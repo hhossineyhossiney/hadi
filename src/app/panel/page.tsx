@@ -126,9 +126,9 @@ export default function ManagerPanelPage() {
   return (
     <main className="min-h-screen bg-[#0B1120]">
       <Navbar />
-      <div className="pt-20 lg:flex lg:flex-row lg:min-h-screen">
-        {/* Mobile top compact bar */}
-        <div className="lg:hidden bg-[#0B1120] border-b border-white/10 px-4 py-3 flex items-center gap-3">
+      <div className="pt-[132px] lg:pt-20 lg:flex lg:flex-row lg:min-h-screen">
+        {/* Mobile top compact bar - fixed directly under navbar */}
+        <div className="lg:hidden fixed top-20 left-0 right-0 z-30 bg-[#0B1120] border-b border-white/10 px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => setDrawerOpen(true)}
             className="w-10 h-10 rounded-[12px] bg-primary-600/20 hover:bg-primary-600/30 border border-primary-500/30 flex items-center justify-center text-primary-300 cursor-pointer"
