@@ -170,9 +170,9 @@ function StudentDashboardContent() {
         )}
 
         <aside className={`panel-mobile-drawer shrink-0 bg-[#0B1120] lg:border-l lg:border-white/5 lg:w-72 lg:static lg:translate-x-0
-          w-[85%] max-w-[320px] overflow-y-auto transition-transform duration-300 ease-out
-          ${drawerOpen ? "translate-x-0 block" : "translate-x-full hidden lg:block lg:translate-x-0"}`}
-          style={{ boxShadow: drawerOpen ? "-20px 0 60px rgba(0,0,0,0.5)" : undefined }}>
+          w-[85%] max-w-[320px] overflow-y-auto lg:block
+          ${drawerOpen ? "is-open" : ""}`}
+          style={{ boxShadow: drawerOpen ? "0 20px 40px rgba(0,0,0,0.5)" : undefined }}>
           <div className="p-5 flex items-center justify-between border-b border-white/10">
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 rounded-full bg-primary-500 animate-pulse" />
