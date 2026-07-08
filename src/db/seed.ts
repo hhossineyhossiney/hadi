@@ -1,0 +1,585 @@
+import { db } from "./index";
+import { categories, regions, institutes, courses, users } from "./schema";
+import bcrypt from "bcryptjs";
+import { normalizePhone } from "../lib/phone";
+
+async function seed() {
+  console.log("Seeding database with requested admin and user credentials...");
+
+  // Truncate existing tables
+  await db.execute(
+    "TRUNCATE TABLE registrations, reviews, courses, institutes, categories, regions, users RESTART IDENTITY CASCADE;"
+  );
+
+  // Create admin user (Requested Phone: 09159513179, Password: 123456)
+  const adminPassword = await bcrypt.hash("123456", 10);
+  const [adminUser] = await db
+    .insert(users)
+    .values({
+      name: "مدیر کل پلتفرم",
+      phone: normalizePhone("09159513179"),
+      email: "admin@zabarkhan.ir",
+      password: adminPassword,
+      role: "admin",
+    })
+    .returning();
+
+  // Create demo student user
+  const studentPassword = await bcrypt.hash("student123", 10);
+  const [demoStudent] = await db
+    .insert(users)
+    .values({
+      name: "علی رضایی",
+      phone: normalizePhone("09123456789"),
+      email: "ali@gmail.com",
+      password: studentPassword,
+      role: "student",
+    })
+    .returning();
+
+  // Seed categories
+  const cats = await db
+    .insert(categories)
+    .values([
+      {
+        name: "کامپیوتر و فناوری اطلاعات",
+        slug: "computer",
+        description: "دوره‌های آموزشی کامپیوتر، برنامه‌نویسی و شبکه",
+        icon: "Monitor",
+        color: "#3B82F6",
+      },
+      {
+        name: "خیاطی و طراحی لباس",
+        slug: "tailoring",
+        description: "دوره‌های خیاطی، طراحی لباس و دوخت",
+        icon: "Scissors",
+        color: "#EC4899",
+      },
+      {
+        name: "مراقبت و زیبایی",
+        slug: "beauty",
+        description: "دوره‌های آرایشگری، پوست و زیبایی",
+        icon: "Sparkles",
+        color: "#A855F7",
+      },
+      {
+        name: "خدمات تغذیه‌ای",
+        slug: "culinary",
+        description: "دوره‌های آشپزی، قنادی و خدمات تغذیه",
+        icon: "ChefHat",
+        color: "#F59E0B",
+      },
+      {
+        name: "آموزش و زبان",
+        slug: "education",
+        description: "دوره‌های زبان و خدمات آموزشی",
+        icon: "BookOpen",
+        color: "#10B981",
+      },
+    ])
+    .returning();
+
+  // Seed regions
+  const regs = await db
+    .insert(regions)
+    .values([
+      { name: "قدمگاه", slug: "qadamgah" },
+      { name: "درود", slug: "dorud" },
+      { name: "اسحاق‌آباد", slug: "eshaqabad" },
+      { name: "خور", slug: "khor" },
+      { name: "خرو", slug: "kharu" },
+    ])
+    .returning();
+
+  const qadamgah = regs.find((r) => r.slug === "qadamgah")!;
+  const dorud = regs.find((r) => r.slug === "dorud")!;
+  const eshaqabad = regs.find((r) => r.slug === "eshaqabad")!;
+  const khor = regs.find((r) => r.slug === "khor")!;
+  const kharu = regs.find((r) => r.slug === "kharu")!;
+
+  const computerCat = cats.find((c) => c.slug === "computer")!;
+  const tailoringCat = cats.find((c) => c.slug === "tailoring")!;
+  const beautyCat = cats.find((c) => c.slug === "beauty")!;
+  const culinaryCat = cats.find((c) => c.slug === "culinary")!;
+  const educationCat = cats.find((c) => c.slug === "education")!;
+
+  // Seed institutes
+  const insts = await db
+    .insert(institutes)
+    .values([
+      {
+        name: "آموزشگاه کامپیوتر هدف",
+        slug: "hadaf-computer",
+        description: "آموزشگاه تخصصی کامپیوتر با کادری مجرب و سال‌ها تجربه در آموزش مهارت‌های فنی",
+        address: "قدمگاه، بلوار امام خمینی، بین امام خمینی ۷ و ۹",
+        regionId: qadamgah.id,
+        phone: "05143224799",
+        mobile: "09159513179",
+        rating: "4.8",
+        reviewCount: 32,
+        isVerified: true,
+        status: "approved",
+      },
+      {
+        name: "آموزشگاه خیاطی فنی و حرفه‌ای عاطفه",
+        slug: "atefeh-tailoring",
+        description: "آموزش تخصصی خیاطی و طراحی لباس با مدرک فنی و حرفه‌ای",
+        address: "درود، خیابان امام خمینی، امام خمینی ۲، پلاک ۷۲",
+        regionId: dorud.id,
+        mobile: "09156833135",
+        rating: "4.6",
+        reviewCount: 24,
+        isVerified: true,
+        status: "approved",
+      },
+      {
+        name: "آموزشگاه خیاطی تابان دوخت",
+        slug: "taban-dokht",
+        description: "آموزش خیاطی از مبتدی تا پیشرفته با روش‌های نوین",
+        address: "اسحاق‌آباد، خیابان امام حسین، روبه‌روی مدرسه شهید شرفی",
+        regionId: eshaqabad.id,
+        mobile: "09030329577",
+        rating: "4.5",
+        reviewCount: 18,
+        isVerified: true,
+        status: "approved",
+      },
+      {
+        name: "آموزشگاه خیاطی و طراحی بیتا حسینی",
+        slug: "bita-hoseini-tailoring",
+        description: "آموزشگاه خیاطی با تمرکز بر طراحی لباس‌های مدرن و سنتی",
+        address: "درود، خیابان طالقانی، روبه‌روی مسجد امام حسن، جنب املاک اوژن",
+        regionId: dorud.id,
+        mobile: "09928637941",
+        rating: "4.7",
+        reviewCount: 21,
+        isVerified: true,
+        status: "approved",
+      },
+      {
+        name: "آموزشگاه خیاطی فاطمه قدمیاری",
+        slug: "fatemeh-ghadamiari",
+        description: "آموزش خیاطی در شهرک امام رضا با محیطی آرام و آموزشی",
+        address: "خرو، شهرک امام رضا، خیابان رازی ۳",
+        regionId: kharu.id,
+        mobile: "09153741335",
+        rating: "4.4",
+        reviewCount: 15,
+        isVerified: true,
+        status: "approved",
+      },
+      {
+        name: "آموزشگاه خیاطی زهرا قدمیاری",
+        slug: "zahra-ghadamiari",
+        description: "آموزش خیاطی با روش‌های ساده و کاربردی",
+        address: "خرو، شهرک امام رضا، خیابان مطهری، روبه‌روی اداره تأمین اجتماعی",
+        regionId: kharu.id,
+        mobile: "09153534485",
+        rating: "4.3",
+        reviewCount: 12,
+        isVerified: true,
+        status: "approved",
+      },
+      {
+        name: "آموزشگاه خیاطی علیخانی",
+        slug: "alikhani-tailoring",
+        description: "آموزش تخصصی خیاطی با اساتید مجرب",
+        address: "اسحاق‌آباد، خیابان دانش، نبش دانش ۶",
+        regionId: eshaqabad.id,
+        mobile: "09150485521",
+        rating: "4.5",
+        reviewCount: 19,
+        isVerified: true,
+        status: "approved",
+      },
+      {
+        name: "آموزشگاه خیاطی ستاره طلایی",
+        slug: "setareh-talaei",
+        description: "آموزشگاه خیاطی با محیطی دلنشین و آموزش‌های کاربردی",
+        address: "شهر خور، شهرک امام رضا، کوچه مطب خانم دکتر شفیعی",
+        regionId: khor.id,
+        mobile: "09150488362",
+        rating: "4.6",
+        reviewCount: 17,
+        isVerified: true,
+        status: "approved",
+      },
+      {
+        name: "آموزشگاه مراقبت زیبایی راحله رحمانی",
+        slug: "raheleh-rahmani-beauty",
+        description: "آموزش تخصصی آرایشگری و مراقبت پوست",
+        address: "شهر خور، شهرک امام رضا، نبش خیابان فرهنگ ۱۷",
+        regionId: khor.id,
+        mobile: "09330454016",
+        rating: "4.7",
+        reviewCount: 28,
+        isVerified: true,
+        status: "approved",
+      },
+      {
+        name: "آموزشگاه مراقبت زیبایی بهدخت",
+        slug: "behdokht-beauty",
+        description: "آموزشگاه آرایشگری با مدیریت خانم مریم نخعی",
+        address: "قدمگاه، بین امام خمینی ۹ و ۱۱، روبه‌روی مخابرات",
+        regionId: qadamgah.id,
+        mobile: "09150023253",
+        rating: "4.8",
+        reviewCount: 35,
+        isVerified: true,
+        status: "approved",
+      },
+      {
+        name: "آموزشگاه مراقبت زیبایی بانو موسوی",
+        slug: "banoo-mosavi-beauty",
+        description: "آموزش تخصصی زیبایی و آرایش",
+        address: "قدمگاه، امام خمینی ۱۶، جنب آلومینیوم‌سازی آقای حاجی‌آبادی",
+        regionId: qadamgah.id,
+        mobile: "09157705574",
+        rating: "4.5",
+        reviewCount: 22,
+        isVerified: true,
+        status: "approved",
+      },
+      {
+        name: "آموزشگاه مراقبت زیبایی مهشید معتمدی",
+        slug: "mahshid-motamedi-beauty",
+        description: "آموزشگاه تخصصی مراقبت و زیبایی",
+        address: "شهرک امام رضا، خیابان خیام، طبقه بالای مطب دکتر مروی",
+        regionId: khor.id,
+        mobile: "09151534652",
+        rating: "4.6",
+        reviewCount: 20,
+        isVerified: true,
+        status: "approved",
+      },
+      {
+        name: "آموزشگاه مراقبت زیبایی ستاره سهیل",
+        slug: "setareh-soheil-beauty",
+        description: "آموزشگاه زیبایی در سالن توران",
+        address: "درود، امام خمینی ۷، کوچه کانون مختاری، سالن زیبایی توران",
+        regionId: dorud.id,
+        mobile: "09902634005",
+        rating: "4.4",
+        reviewCount: 16,
+        isVerified: true,
+        status: "approved",
+      },
+      {
+        name: "آکادمی و سالن زیبایی نسرین سخدری",
+        slug: "nasrin-sokhdari-beauty",
+        description: "آکادمی تخصصی زیبایی و آرایشگری",
+        address: "قدمگاه، امام خمینی ۳۳، جنب مسجد صاحب‌الزمان",
+        regionId: qadamgah.id,
+        mobile: "09151531813",
+        rating: "4.9",
+        reviewCount: 42,
+        isVerified: true,
+        status: "approved",
+      },
+      {
+        name: "آموزشگاه خدمات تغذیه‌ای دانش",
+        slug: "danesh-culinary",
+        description: "آموزش آشپزی و قنادی با روش‌های حرفه‌ای",
+        address: "قدمگاه، روبه‌روی اداره پست",
+        regionId: qadamgah.id,
+        mobile: "09158213898",
+        rating: "4.7",
+        reviewCount: 25,
+        isVerified: true,
+        status: "approved",
+      },
+      {
+        name: "آموزشگاه خدمات تغذیه‌ای موسوی‌تبار",
+        slug: "mosavitar-culinary",
+        description: "آموزش آشپزی و خدمات تغذیه‌ای",
+        address: "درود، خیابان آزادی، اول خیابان مطهری، پلاک ۲۲۵",
+        regionId: dorud.id,
+        mobile: "09399827508",
+        rating: "4.5",
+        reviewCount: 18,
+        isVerified: true,
+        status: "approved",
+      },
+      {
+        name: "آموزشگاه خدمات آموزشی و زبان انگلیسی دانشمند",
+        slug: "daneshmand-education",
+        description: "آموزش زبان انگلیسی و خدمات آموزشی",
+        address: "اسحاق‌آباد، خیابان امام حسین، کوچه امام حسین ۱۱، سه‌راه سمت راست",
+        regionId: eshaqabad.id,
+        phone: "09046369680",
+        mobile: "09158583282",
+        rating: "4.8",
+        reviewCount: 30,
+        isVerified: true,
+        status: "approved",
+      },
+      {
+        name: "آموزشگاه کتاب دانایی",
+        slug: "danai-book",
+        description: "آموزشگاه کتاب و خدمات آموزشی",
+        address: "قدمگاه، بین امام خمینی ۴۱ و ۴۳، طبقه پایین قرض‌الحسنه رضوی",
+        regionId: qadamgah.id,
+        mobile: "09157130437",
+        rating: "4.6",
+        reviewCount: 14,
+        isVerified: true,
+        status: "approved",
+      },
+    ])
+    .returning();
+
+  // Seed courses
+  const hadaf = insts.find((i) => i.slug === "hadaf-computer")!;
+  const atefeh = insts.find((i) => i.slug === "atefeh-tailoring")!;
+  const taban = insts.find((i) => i.slug === "taban-dokht")!;
+  const bita = insts.find((i) => i.slug === "bita-hoseini-tailoring")!;
+  const behdokht = insts.find((i) => i.slug === "behdokht-beauty")!;
+  const nasrin = insts.find((i) => i.slug === "nasrin-sokhdari-beauty")!;
+  const danesh = insts.find((i) => i.slug === "danesh-culinary")!;
+  const daneshmand = insts.find((i) => i.slug === "daneshmand-education")!;
+
+  await db.insert(courses).values([
+    {
+      instituteId: hadaf.id,
+      categoryId: computerCat.id,
+      title: "آموزش ICDL",
+      slug: "icdl-hadaf",
+      description: "دوره جامع مهارت‌های هفتگانه کامپیوتر",
+      fullDescription: "دوره ICDL شامل مهارت‌های پایه کامپیوتر، اینترنت، ورد، اکسل، پاورپوینت و... می‌باشد.",
+      duration: "۶۰ ساعت",
+      price: "2500000",
+      capacity: 15,
+      enrolledCount: 8,
+      instructor: "استاد محمدی",
+      requirements: "آشنایی اولیه با کامپیوتر",
+      schedule: "شنبه و سه‌شنبه ۱۶:۰۰ الی ۱۸:۰۰",
+      startDate: "۱۵ مرداد ۱۴۰۳",
+      status: "approved",
+    },
+    {
+      instituteId: hadaf.id,
+      categoryId: computerCat.id,
+      title: "برنامه‌نویسی Python",
+      slug: "python-hadaf",
+      description: "آموزش زبان برنامه‌نویسی پایتون از مبتدی تا پیشرفته",
+      fullDescription: "دوره جامع پایتون شامل مبانی برنامه‌نویسی، شیءگرایی، وب‌اسکرپینگ و پروژه‌های عملی.",
+      duration: "۸۰ ساعت",
+      price: "4500000",
+      capacity: 12,
+      enrolledCount: 5,
+      instructor: "استاد رضایی",
+      requirements: "ICDL یا آشنایی با کامپیوتر",
+      schedule: "یکشنبه و چهارشنبه ۱۷:۰۰ الی ۱۹:۰۰",
+      startDate: "۲۰ مرداد ۱۴۰۳",
+      status: "approved",
+    },
+    {
+      instituteId: atefeh.id,
+      categoryId: tailoringCat.id,
+      title: "خیاطی مبتدی",
+      slug: "tailoring-beginner-atefeh",
+      description: "آموزش اصول اولیه خیاطی و دوخت",
+      fullDescription: "آموزش الگوسازی، برش و دوخت لباس‌های ساده و کاربردی.",
+      duration: "۴۰ ساعت",
+      price: "1800000",
+      capacity: 10,
+      enrolledCount: 7,
+      instructor: "خانم عاطفه",
+      requirements: "بدون پیش‌نیاز",
+      schedule: "شنبه تا چهارشنبه ۰۹:۰۰ الی ۱۲:۰۰",
+      startDate: "۱۰ مرداد ۱۴۰۳",
+      status: "approved",
+    },
+    {
+      instituteId: atefeh.id,
+      categoryId: tailoringCat.id,
+      title: "طراحی لباس",
+      slug: "fashion-design-atefeh",
+      description: "آموزش طراحی و الگوسازی لباس‌های مدرن",
+      fullDescription: "دوره تخصصی طراحی لباس با تمرکز بر مد روز و الگوسازی پیشرفته.",
+      duration: "۶۰ ساعت",
+      price: "3200000",
+      capacity: 8,
+      enrolledCount: 4,
+      instructor: "خانم عاطفه",
+      requirements: "آشنایی با خیاطی مبتدی",
+      schedule: "شنبه و سه‌شنبه ۱۴:۰۰ الی ۱۷:۰۰",
+      startDate: "۱ شهریور ۱۴۰۳",
+      status: "approved",
+    },
+    {
+      instituteId: taban.id,
+      categoryId: tailoringCat.id,
+      title: "دوخت لباس مجلسی",
+      slug: "formal-dress-taban",
+      description: "آموزش دوخت لباس‌های مجلسی و شب",
+      fullDescription: "آموزش تکنیک‌های دوخت لباس‌های مجلسی با پارچه‌های مختلف.",
+      duration: "۵۰ ساعت",
+      price: "2800000",
+      capacity: 6,
+      enrolledCount: 3,
+      instructor: "خانم تابان",
+      requirements: "خیاطی مبتدی",
+      schedule: "یکشنبه و چهارشنبه ۱۰:۰۰ الی ۱۳:۰۰",
+      startDate: "۲۵ مرداد ۱۴۰۳",
+      status: "approved",
+    },
+    {
+      instituteId: bita.id,
+      categoryId: tailoringCat.id,
+      title: "خیاطی پیشرفته",
+      slug: "advanced-tailoring-bita",
+      description: "دوره تخصصی خیاطی پیشرفته",
+      fullDescription: "آموزش تکنیک‌های پیشرفته دوخت، اتوکاری و فینیشینگ لباس.",
+      duration: "۷۰ ساعت",
+      price: "3500000",
+      capacity: 5,
+      enrolledCount: 2,
+      instructor: "خانم حسینی",
+      requirements: "خیاطی متوسط",
+      schedule: "شنبه تا سه‌شنبه ۱۵:۰۰ الی ۱۸:۰۰",
+      startDate: "۵ شهریور ۱۴۰۳",
+      status: "approved",
+    },
+    {
+      instituteId: behdokht.id,
+      categoryId: beautyCat.id,
+      title: "آرایشگری پوست",
+      slug: "skin-makeup-behdokht",
+      description: "آموزش تخصصی مراقبت و آرایش پوست",
+      fullDescription: "آموزش فیشال، پاکسازی پوست، میکاپ و مراقبت‌های تخصصی.",
+      duration: "۵۰ ساعت",
+      price: "4000000",
+      capacity: 8,
+      enrolledCount: 6,
+      instructor: "خانم نخعی",
+      requirements: "بدون پیش‌نیاز",
+      schedule: "شنبه تا چهارشنبه ۰۹:۰۰ الی ۱۳:۰۰",
+      startDate: "۱۲ مرداد ۱۴۰۳",
+      status: "approved",
+    },
+    {
+      instituteId: behdokht.id,
+      categoryId: beautyCat.id,
+      title: "آرایش عروس",
+      slug: "bridal-makeup-behdokht",
+      description: "دوره تخصصی آرایش عروس",
+      fullDescription: "آموزش جامع آرایش عروس شامل میکاپ، شینیون و استایلینگ.",
+      duration: "۶۰ ساعت",
+      price: "5500000",
+      capacity: 6,
+      enrolledCount: 4,
+      instructor: "خانم نخعی",
+      requirements: "آرایشگری پوست",
+      schedule: "یکشنبه و چهارشنبه ۰۹:۰۰ الی ۱۳:۰۰",
+      startDate: "۱۸ مرداد ۱۴۰۳",
+      status: "approved",
+    },
+    {
+      instituteId: nasrin.id,
+      categoryId: beautyCat.id,
+      title: "کاشت ناخن",
+      slug: "nail-extension-nasrin",
+      description: "آموزش تخصصی کاشت و طراحی ناخن",
+      fullDescription: "آموزش کاشت ناخن ژلیش، اکریلیک و طراحی‌های حرفه‌ای.",
+      duration: "۴۰ ساعت",
+      price: "3000000",
+      capacity: 4,
+      enrolledCount: 3,
+      instructor: "خانم سخدری",
+      requirements: "بدون پیش‌نیاز",
+      schedule: "شنبه تا سه‌شنبه ۱۴:۰۰ الی ۱۷:۰۰",
+      startDate: "۲۲ مرداد ۱۴۰۳",
+      status: "approved",
+    },
+    {
+      instituteId: nasrin.id,
+      categoryId: beautyCat.id,
+      title: "میکاپ پیشرفته",
+      slug: "advanced-makeup-nasrin",
+      description: "دوره پیشرفته میکاپ و گریم",
+      fullDescription: "آموزش تکنیک‌های پیشرفته میکاپ شامل کانتورینگ، هایلایت و گریم تخصصی.",
+      duration: "۵۰ ساعت",
+      price: "4800000",
+      capacity: 5,
+      enrolledCount: 2,
+      instructor: "خانم سخدری",
+      requirements: "آرایشگری پوست",
+      schedule: "یکشنبه و چهارشنبه ۱۴:۰۰ الی ۱۸:۰۰",
+      startDate: "۲۸ مرداد ۱۴۰۳",
+      status: "approved",
+    },
+    {
+      instituteId: danesh.id,
+      categoryId: culinaryCat.id,
+      title: "آشپزی ایرانی",
+      slug: "iranian-cooking-danesh",
+      description: "آموزش غذاهای سنتی و مدرن ایرانی",
+      fullDescription: "آموزش انواع غذاهای ایرانی، دسرها و نوشیدنی‌های سنتی.",
+      duration: "۴۰ ساعت",
+      price: "2200000",
+      capacity: 10,
+      enrolledCount: 6,
+      instructor: "خانم دانش",
+      requirements: "بدون پیش‌نیاز",
+      schedule: "شنبه تا چهارشنبه ۱۰:۰۰ الی ۱۳:۰۰",
+      startDate: "۱۴ مرداد ۱۴۰۳",
+      status: "approved",
+    },
+    {
+      instituteId: danesh.id,
+      categoryId: culinaryCat.id,
+      title: "شیرینی‌پزی",
+      slug: "pastry-danesh",
+      description: "آموزش انواع شیرینی و کیک",
+      fullDescription: "آموزش شیرینی‌های سنتی و کیک‌های تزئینی.",
+      duration: "۵۰ ساعت",
+      price: "2800000",
+      capacity: 8,
+      enrolledCount: 5,
+      instructor: "خانم دانش",
+      requirements: "بدون پیش‌نیاز",
+      schedule: "یکشنبه و چهارشنبه ۱۰:۰۰ الی ۱۳:۰۰",
+      startDate: "۲۴ مرداد ۱۴۰۳",
+      status: "approved",
+    },
+    {
+      instituteId: daneshmand.id,
+      categoryId: educationCat.id,
+      title: "زبان انگلیسی مقدماتی",
+      slug: "english-beginner-daneshmand",
+      description: "آموزش زبان انگلیسی از پایه",
+      fullDescription: "دوره مقدماتی زبان انگلیسی شامل گرامر، مکالمه و لغت.",
+      duration: "۶۰ ساعت",
+      price: "2000000",
+      capacity: 12,
+      enrolledCount: 9,
+      instructor: "استاد دانشمند",
+      requirements: "بدون پیش‌نیاز",
+      schedule: "شنبه و سه‌شنبه ۱۶:۰۰ الی ۱۸:۰۰",
+      startDate: "۱۶ مرداد ۱۴۰۳",
+      status: "approved",
+    },
+    {
+      instituteId: daneshmand.id,
+      categoryId: educationCat.id,
+      title: "زبان انگلیسی پیشرفته",
+      slug: "english-advanced-daneshmand",
+      description: "دوره پیشرفته زبان انگلیسی",
+      fullDescription: "آموزش گرامر پیشرفته، مکالمه تخصصی و آمادگی آزمون‌های بین‌المللی.",
+      duration: "۸۰ ساعت",
+      price: "3500000",
+      capacity: 10,
+      enrolledCount: 4,
+      instructor: "استاد دانشمند",
+      requirements: "زبان انگلیسی متوسط",
+      schedule: "یکشنبه و چهارشنبه ۱۶:۰۰ الی ۱۸:۰۰",
+      startDate: "۳۰ مرداد ۱۴۰۳",
+      status: "approved",
+    },
+  ]);
+
+  console.log("Seed completed successfully!");
+}
+
+seed().catch(console.error);
