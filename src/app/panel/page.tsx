@@ -150,10 +150,9 @@ export default function ManagerPanelPage() {
 
         <aside
           className={`panel-mobile-drawer bg-[#0B1120] text-white shrink-0 lg:min-h-[calc(100vh-80px)] lg:w-72 lg:static lg:translate-x-0 lg:border-l lg:border-white/5 lg:block
-          w-[85%] max-w-[320px] overflow-y-auto transition-transform duration-300 ease-out
-          ${drawerOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
-          ${drawerOpen ? "block" : "hidden lg:block"}`}
-          style={{ boxShadow: drawerOpen ? "-20px 0 60px rgba(0,0,0,0.5)" : undefined }}>
+          w-[85%] max-w-[320px] overflow-y-auto
+          ${drawerOpen ? "is-open" : ""}`}
+          style={{ boxShadow: drawerOpen ? "0 20px 40px rgba(0,0,0,0.5)" : undefined }}>
           <div className="p-5 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-9 h-9 rounded-[10px] bg-primary-600 flex items-center justify-center shrink-0">
