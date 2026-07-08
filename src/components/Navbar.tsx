@@ -37,18 +37,23 @@ export default function Navbar() {
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between h-20 overflow-hidden">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="relative w-11 h-11 rounded-[14px] gradient-button flex items-center justify-center shadow-lg shadow-primary-500/30 group-hover:shadow-primary-500/50 group-hover:scale-105 transition-all duration-300">
-              <GraduationCap className="w-5 h-5 text-white" />
+          <Link href="/" className="flex items-center gap-2 lg:gap-3 group min-w-0 flex-1">
+            <div className="relative w-10 h-10 lg:w-11 lg:h-11 rounded-[14px] gradient-button flex items-center justify-center shadow-lg shadow-primary-500/30 group-hover:shadow-primary-500/50 group-hover:scale-105 transition-all duration-300 shrink-0">
+              <GraduationCap className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
             </div>
-            <div className="flex flex-col">
-              <span className="text-base font-extrabold gradient-text leading-tight">
+            <div className="flex flex-col min-w-0 flex-1">
+              {/* Mobile: short title (single line) */}
+              <span className="lg:hidden text-sm font-extrabold gradient-text leading-tight truncate">
+                آموزشگاه‌های زبرخان
+              </span>
+              {/* Desktop: full title */}
+              <span className="hidden lg:inline text-base font-extrabold gradient-text leading-tight">
                 آموزشگاه‌های آزاد فنی و حرفه‌ای زبرخان
               </span>
-              <span className="text-[10px] text-text-tertiary font-bold -mt-0.5">
-                مرکز شماره ۱۲ • ثبت‌نام آنلاین دوره‌های مهارتی
+              <span className="text-[9px] lg:text-[10px] text-text-tertiary font-bold -mt-0.5 truncate">
+                مرکز شماره ۱۲ • ثبت‌نام آنلاین
               </span>
             </div>
           </Link>
@@ -142,14 +147,14 @@ export default function Navbar() {
           </div>
 
           {/* Theme toggle for the compact area next to mobile menu button */}
-          <div className="lg:hidden flex items-center gap-1">
+          <div className="lg:hidden flex items-center gap-1 shrink-0">
             <ThemeToggle compact />
           </div>
 
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="lg:hidden p-2.5 rounded-xl hover:bg-primary-50 transition-colors"
+            className="lg:hidden p-2.5 rounded-xl hover:bg-primary-50 transition-colors shrink-0"
           >
             {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
