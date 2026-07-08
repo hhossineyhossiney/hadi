@@ -144,7 +144,7 @@ function StudentDashboardContent() {
     <div className="pt-20 bg-[#0B1120] min-h-screen text-white">
       <div className="lg:flex lg:flex-row lg:min-h-[calc(100vh-80px)]">
         {/* Mobile top compact bar */}
-        <div className="lg:hidden sticky top-20 z-30 bg-[#0B1120]/95 backdrop-blur-lg border-b border-white/10 px-4 py-3 flex items-center gap-3">
+        <div className="lg:hidden bg-[#0B1120] border-b border-white/10 px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => setDrawerOpen(true)}
             className="w-10 h-10 rounded-[12px] bg-primary-600/20 hover:bg-primary-600/30 border border-primary-500/30 flex items-center justify-center text-primary-300 cursor-pointer"
