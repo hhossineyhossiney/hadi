@@ -145,11 +145,12 @@ export default function ManagerPanelPage() {
         </div>
 
         {drawerOpen && (
-          <div onClick={() => setDrawerOpen(false)} className="lg:hidden fixed top-20 left-0 right-0 bottom-0 z-30 bg-black/70" />
+          <div onClick={() => setDrawerOpen(false)} className="lg:hidden fixed inset-0 z-[60] bg-black/70" />
         )}
 
-        <aside className={`bg-[#0B1120] text-white shrink-0 lg:min-h-[calc(100vh-80px)] lg:w-72 lg:static lg:translate-x-0 lg:border-l lg:border-white/5 lg:block
-          fixed top-[80px] right-0 bottom-0 z-40 w-[85%] max-w-[320px] overflow-y-auto transition-transform duration-300 ease-out
+        <aside
+          className={`bg-[#0B1120] text-white shrink-0 lg:min-h-[calc(100vh-80px)] lg:w-72 lg:static lg:translate-x-0 lg:border-l lg:border-white/5 lg:block
+          fixed top-0 right-0 bottom-0 z-[70] w-[85%] max-w-[320px] overflow-y-auto transition-transform duration-300 ease-out
           ${drawerOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
           ${drawerOpen ? "block" : "hidden lg:block"}`}
           style={{ boxShadow: drawerOpen ? "-20px 0 60px rgba(0,0,0,0.5)" : undefined }}>
