@@ -467,17 +467,22 @@ button:active, a:active {
     bottom: auto !important;
     width: 100% !important;
     max-width: 100% !important;
+    height: auto !important;
     max-height: calc(100dvh - 132px) !important;
     z-index: 70 !important;
     overflow-y: auto !important;
-    transform: translateY(-105%) !important;
-    transition: transform 300ms ease-out !important;
+    transform: translateY(-100%) !important;
+    transition: transform 300ms ease-out, visibility 300ms !important;
     display: block !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    clip-path: inset(0 0 100% 0) !important;
   }
   .panel-mobile-drawer.is-open {
     transform: translateY(0) !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    clip-path: inset(0 0 0 0) !important;
   }
   .panel-drawer-backdrop {
     position: fixed !important;
