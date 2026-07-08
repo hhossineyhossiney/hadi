@@ -139,11 +139,11 @@ export default function AdminPage() {
           <div onClick={() => setDrawerOpen(false)} className="lg:hidden panel-drawer-backdrop" />
         )}
 
-        {/* Sidebar — desktop always visible, mobile as slide-in drawer */}
+        {/* Sidebar — desktop always visible, mobile as dropdown from top */}
         <aside className={`panel-mobile-drawer bg-[#0B1120] text-white shrink-0 lg:min-h-[calc(100vh-80px)] lg:w-72 lg:static lg:translate-x-0
-          w-[85%] max-w-[320px] overflow-y-auto transition-transform duration-300 ease-out
-          ${drawerOpen ? "translate-x-0 block" : "translate-x-full hidden lg:block lg:translate-x-0"}`}
-          style={{ boxShadow: drawerOpen ? "-20px 0 60px rgba(0,0,0,0.5)" : undefined }}>
+          w-[85%] max-w-[320px] overflow-y-auto lg:block
+          ${drawerOpen ? "is-open" : ""}`}
+          style={{ boxShadow: drawerOpen ? "0 20px 40px rgba(0,0,0,0.5)" : undefined }}>
           <div className="p-5 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-[10px] bg-primary-600 flex items-center justify-center">
