@@ -457,6 +457,87 @@ button:active, a:active {
   }
 }
 
+/* ================== SELECT & OPTION FIX (all themes, all browsers) ================== */
+/* Native <option> ignores most CSS but respects background-color and color */
+select {
+  color-scheme: dark;
+  background-color: #082D53 !important;
+  color: #EAF3FB !important;
+}
+select option {
+  background-color: #04152A !important;
+  color: #EAF3FB !important;
+  padding: 8px 12px !important;
+  font-weight: 600 !important;
+}
+select option:checked,
+select option:hover,
+select option:focus {
+  background-color: #14B8A6 !important;
+  color: #04152A !important;
+  font-weight: 900 !important;
+}
+select option:disabled {
+  color: #587891 !important;
+  background-color: #061F3B !important;
+}
+
+/* Light theme select — override */
+html[data-theme="light"] select {
+  color-scheme: light;
+  background-color: #FFFFFF !important;
+  color: #04152A !important;
+}
+html[data-theme="light"] select option {
+  background-color: #FFFFFF !important;
+  color: #04152A !important;
+}
+html[data-theme="light"] select option:checked,
+html[data-theme="light"] select option:hover {
+  background-color: #14B8A6 !important;
+  color: #FFFFFF !important;
+}
+
+/* Force text visibility in ALL inputs across dark panels */
+.bg-\[\#0B1120\] input:not([type="checkbox"]):not([type="radio"]),
+.bg-\[\#0B1120\] select,
+.bg-\[\#0B1120\] textarea,
+.bg-\[\#111a2e\] input:not([type="checkbox"]):not([type="radio"]),
+.bg-\[\#111a2e\] select,
+.bg-\[\#111a2e\] textarea {
+  color: #EAF3FB !important;
+  background-color: #04152A !important;
+}
+
+/* Native date/time picker text visibility */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  color-scheme: dark;
+}
+html[data-theme="light"] input[type="date"],
+html[data-theme="light"] input[type="time"],
+html[data-theme="light"] input[type="datetime-local"] {
+  color-scheme: light;
+}
+
+/* Autofill fix — Chrome sets yellow background on autofill */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #EAF3FB !important;
+  -webkit-box-shadow: 0 0 0 1000px #04152A inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+html[data-theme="light"] input:-webkit-autofill,
+html[data-theme="light"] input:-webkit-autofill:hover,
+html[data-theme="light"] input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #04152A !important;
+  -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+}
+
 /* ================== Mobile Panel Drawer (dropdown from mobile top bar) ================== */
 @media (max-width: 1023px) {
   .panel-mobile-drawer {
