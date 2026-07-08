@@ -116,7 +116,7 @@ export default function AdminPage() {
   return (
     <main className="min-h-screen bg-bg-secondary">
       <Navbar />
-      <div className="pt-20 flex flex-col lg:flex-row min-h-screen">
+      <div className="pt-20 lg:flex lg:flex-row lg:min-h-screen">
         {/* Mobile compact top bar (only shown on mobile) */}
         <div className="lg:hidden sticky top-20 z-30 bg-[#0B1120]/95 backdrop-blur-lg border-b border-white/10 px-4 py-3 flex items-center gap-3">
           <button
@@ -142,7 +142,7 @@ export default function AdminPage() {
         {/* Sidebar — desktop always visible, mobile as slide-in drawer */}
         <aside className={`bg-[#0B1120] text-white shrink-0 lg:min-h-[calc(100vh-80px)] lg:w-72 lg:static lg:translate-x-0
           fixed top-0 right-0 bottom-0 z-50 w-[85%] max-w-[320px] overflow-y-auto transition-transform duration-300 ease-out
-          ${drawerOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"}`}
+          ${drawerOpen ? "translate-x-0 block" : "translate-x-full hidden lg:block lg:translate-x-0"}`}
           style={{ boxShadow: drawerOpen ? "-20px 0 60px rgba(0,0,0,0.5)" : undefined }}>
           <div className="p-5 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -171,7 +171,7 @@ export default function AdminPage() {
         </aside>
 
         {/* Content Area (dark) */}
-        <div className="flex-1 bg-[#0B1120] text-white p-5 lg:p-8 min-h-[calc(100vh-80px)]">
+        <div className="flex-1 bg-[#0B1120] text-white p-4 lg:p-8">
           {tab === "dashboard" && <DashboardTab />}
           {tab === "institutes" && <InstitutesTab />}
           {tab === "awards" && <AwardsTab />}
