@@ -456,3 +456,36 @@ button:active, a:active {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ================== Mobile Panel Drawer (dropdown from mobile top bar) ================== */
+@media (max-width: 1023px) {
+  .panel-mobile-drawer {
+    position: fixed !important;
+    top: 132px !important;
+    right: 0 !important;
+    left: 0 !important;
+    bottom: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: calc(100dvh - 132px) !important;
+    z-index: 70 !important;
+    overflow-y: auto !important;
+    transform: translateY(-105%) !important;
+    transition: transform 300ms ease-out !important;
+    display: block !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+  .panel-mobile-drawer.is-open {
+    transform: translateY(0) !important;
+  }
+  .panel-drawer-backdrop {
+    position: fixed !important;
+    top: 132px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 60 !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+  }
+}
