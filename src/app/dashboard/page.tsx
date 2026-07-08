@@ -142,7 +142,7 @@ function StudentDashboardContent() {
 
   return (
     <div className="pt-20 bg-[#0B1120] min-h-screen text-white">
-      <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
+      <div className="lg:flex lg:flex-row lg:min-h-[calc(100vh-80px)]">
         {/* Mobile top compact bar */}
         <div className="lg:hidden sticky top-20 z-30 bg-[#0B1120]/95 backdrop-blur-lg border-b border-white/10 px-4 py-3 flex items-center gap-3">
           <button
@@ -171,7 +171,7 @@ function StudentDashboardContent() {
 
         <aside className={`shrink-0 bg-[#0B1120] lg:border-l lg:border-white/5 lg:w-72 lg:static lg:translate-x-0
           fixed top-0 right-0 bottom-0 z-50 w-[85%] max-w-[320px] overflow-y-auto transition-transform duration-300 ease-out
-          ${drawerOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"}`}
+          ${drawerOpen ? "translate-x-0 block" : "translate-x-full hidden lg:block lg:translate-x-0"}`}
           style={{ boxShadow: drawerOpen ? "-20px 0 60px rgba(0,0,0,0.5)" : undefined }}>
           <div className="p-5 flex items-center justify-between border-b border-white/10">
             <div className="flex items-center gap-3">
@@ -201,7 +201,7 @@ function StudentDashboardContent() {
         </aside>
 
         {/* Content */}
-        <main className="flex-1 p-5 lg:p-8">
+        <main className="flex-1 p-4 lg:p-8">
           {/* Top header with welcome + user */}
           <div className="hidden lg:flex items-center justify-between mb-8">
             <div>
