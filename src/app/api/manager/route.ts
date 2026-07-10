@@ -253,6 +253,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    // Toggle registration open/closed for a course
+    if (action === "toggleCourseRegistration") {
+      const { courseId, closed } = body;
+      const c = await db.select().from(courses)
+        .where(and(eq(courses.id, courseId), eq(courses.instituteId, inst.id)))
+        .then((r) => r[0]);
+      if (!c) return NextResponse.json({ error: "دوره متعلق به آموزشگاه شما نیست" }, { status: 403 });
+      // Use `status`: rejected = closed, approved = open (existing enum)
+      const newStatus = closed ? "rejected" : "approved";
+      await db.update(courses).set({ status: newStatus as any }).where(eq(courses.id, courseId));
+      return NextResponse.json({ ok: true, status: newStatus });
+    }
+
+    // Update capacity
+    if (action === "updateCapacity") {
+      const { courseId, capacity } = body;
+      const capNum = parseInt(String(capacity), 10);
+      if (isNaN(capNum) || capNum < 0) {
+        return NextResponse.json({ error: "ظرفیت نامعتبر است" }, { status: 400 });
+      }
+      const c = await db.select().from(courses)
+        .where(and(eq(courses.id, courseId), eq(courses.instituteId, inst.id)))
+        .then((r) => r[0]);
+      if (!c) return NextResponse.json({ error: "دوره متعلق به آموزشگاه شما نیست" }, { status: 403 });
+      await db.update(courses).set({ capacity: capNum }).where(eq(courses.id, courseId));
+      return NextResponse.json({ ok: true, capacity: capNum });
+    }
+
     if (action === "addCourseBanner") {
       const { courseId, image } = body;
       if (!image || typeof image !== "string" || !image.startsWith("data:image/")) {
