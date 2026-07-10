@@ -35,6 +35,8 @@ interface Course {
   schedule: string | null;
   startDate: string | null;
   bannerImages: string[] | null;
+  registrationClosed?: boolean | null;
+  registrationEnded?: boolean | null;
   categoryName: string | null;
   categorySlug: string | null;
   instituteName: string | null;
@@ -306,13 +308,49 @@ export default function CourseDetailPage() {
                 </div>
               </div>
 
+              {(() => {
+                const isFull = (course.capacity || 0) > 0 && (course.enrolledCount || 0) >= (course.capacity || 0);
+                const blocked = course.registrationClosed || course.registrationEnded || isFull;
+                const reason = course.registrationClosed
+                  ? { text: "ثبت‌نام در این دوره متوقف شده است", sub: "توسط مدیر آموزشگاه غیرفعال شده", color: "error" }
+                  : course.registrationEnded
+                    ? { text: "زمان ثبت‌نام این دوره به پایان رسیده", sub: "مهلت ثبت‌نام تمام شده است", color: "purple" }
+                    : isFull
+                      ? { text: "ظرفیت این دوره تکمیل شده است", sub: `${course.enrolledCount} از ${course.capacity} نفر ثبت‌نام کرده‌اند`, color: "amber" }
+                      : null;
+
+                if (blocked && reason) {
+                  const colorMap: Record<string, string> = {
+                    error: "bg-error-500/15 border-error-500/40 text-error-600",
+                    purple: "bg-purple-500/15 border-purple-500/40 text-purple-600",
+                    amber: "bg-amber-500/15 border-amber-500/40 text-amber-600",
+                  };
+                  return (
+                    <div className={`mb-4 rounded-[16px] border-2 p-5 text-center ${colorMap[reason.color]}`}>
+                      <div className="text-lg font-black mb-1">⚠️ {reason.text}</div>
+                      <div className="text-xs opacity-80">{reason.sub}</div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link
-                  href={`/register?course=${course.slug}`}
-                  className="flex-1 text-center px-8 py-4 rounded-[16px] text-lg font-black text-white gradient-button hover:gradient-button-hover shadow-xl shadow-primary-500/25 hover:shadow-primary-500/40 transition-all"
-                >
-                  ثبت‌نام در دوره
-                </Link>
+                {(course.registrationClosed || course.registrationEnded || ((course.capacity || 0) > 0 && (course.enrolledCount || 0) >= (course.capacity || 0))) ? (
+                  <button
+                    disabled
+                    className="flex-1 text-center px-8 py-4 rounded-[16px] text-lg font-black text-white bg-slate-500 cursor-not-allowed opacity-70"
+                  >
+                    ثبت‌نام غیرفعال است
+                  </button>
+                ) : (
+                  <Link
+                    href={`/register?course=${course.slug}`}
+                    className="flex-1 text-center px-8 py-4 rounded-[16px] text-lg font-black text-white gradient-button hover:gradient-button-hover shadow-xl shadow-primary-500/25 hover:shadow-primary-500/40 transition-all"
+                  >
+                    ثبت‌نام در دوره
+                  </Link>
+                )}
                 {course.instituteMobile && (
                   <a
                     href={`https://wa.me/${course.instituteMobile.replace(/^0/, "+98")}`}
