@@ -43,6 +43,8 @@ export async function GET(request: Request) {
       startDate: courses.startDate,
       image: courses.image,
       fullDescription: courses.fullDescription,
+      registrationClosed: courses.registrationClosed,
+      registrationEnded: courses.registrationEnded,
       categoryName: categories.name,
       categorySlug: categories.slug,
       instituteName: institutes.name,
