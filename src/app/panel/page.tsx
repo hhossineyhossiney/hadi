@@ -6,8 +6,8 @@ import {
   Users, BookOpen, Clock, CheckCircle, XCircle, Loader2, Building2,
   Wallet, Check, X, Pencil, ImagePlus, Trash2, Send, Lock, Phone,
   LayoutDashboard, Image as ImageIcon, Award, Plus, LogOut, ShieldCheck, Eye, EyeOff,
-  UserCircle2, FolderOpen, Menu, Bell,
-  MessageCircle,
+  UserCircle2, FolderOpen, Menu, Bell, TrendingUp, CalendarDays,
+  MessageCircle, Video, Link as LinkIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSession, signIn, signOut } from "next-auth/react";
@@ -16,13 +16,16 @@ import { normalizePhone } from "@/lib/phone";
 import ProfileStoriesTab from "@/components/panel/ProfileStoriesTab";
 import InstituteProfileForm from "@/components/panel/InstituteProfileForm";
 import StudentDocumentsModal from "@/components/panel/StudentDocumentsModal";
+import PersianDatePicker from "@/components/PersianDatePicker";
 
-type TabKey = "dashboard" | "courses" | "students" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
+type TabKey = "dashboard" | "courses" | "students" | "sessions" | "progress" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
   { key: "courses", label: "مدیریت دوره‌ها", icon: BookOpen },
   { key: "students", label: "لیست هنرجویان", icon: Users },
+  { key: "progress", label: "وضعیت پیشرفت هنرجویان", icon: TrendingUp },
+  { key: "sessions", label: "تقویم جلسات دوره‌ها", icon: CalendarDays },
   { key: "notifications", label: "ارسال اعلان", icon: Bell },
   { key: "gallery", label: "گالری نمونه‌کارها", icon: ImageIcon },
   { key: "banner", label: "بنر اسلایدی آموزشگاه", icon: ImagePlus },
@@ -204,6 +207,8 @@ export default function ManagerPanelPage() {
           )}
           {tab === "chat" && <ManagerChatTab data={data} refresh={fetchData} />}
           {tab === "notifications" && <NotificationSenderTab data={data} />}
+          {tab === "sessions" && <SessionsManagerTab data={data} />}
+          {tab === "progress" && <ProgressManagerTab data={data} refresh={fetchData} />}
           {tab === "telegram" && <TelegramTab institute={institute} />}
         </div>
       </div>
@@ -1003,6 +1008,359 @@ function NotificationSenderTab({ data }: { data: any }) {
           ارسال اعلان
         </button>
       </div>
+    </div>
+  );
+}
+
+/* ============================= SESSIONS MANAGER TAB (course schedule) ============================= */
+function SessionsManagerTab({ data }: { data: any }) {
+  const courses = data?.courses || [];
+  const [selectedCourseId, setSelectedCourseId] = useState<number | null>(courses[0]?.id || null);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState<any>({
+    sessionNumber: "", title: "", sessionDate: "", sessionTime: "",
+    duration: "", isOnline: false, meetingUrl: "",
+  });
+  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const load = () => {
+    if (!selectedCourseId) return;
+    setLoading(true);
+    fetch(`/api/manager/sessions?courseId=${selectedCourseId}`)
+      .then((r) => r.json())
+      .then((d) => setSessions(Array.isArray(d) ? d : []))
+      .catch(() => setSessions([]))
+      .finally(() => setLoading(false));
+  };
+  useEffect(load, [selectedCourseId]);
+
+  const resetForm = () => {
+    setForm({ sessionNumber: "", title: "", sessionDate: "", sessionTime: "", duration: "", isOnline: false, meetingUrl: "" });
+    setEditingId(null);
+    setShowAdd(false);
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCourseId) return;
+    setMsg(null);
+    try {
+      const method = editingId ? "PATCH" : "POST";
+      const body: any = { ...form, courseId: selectedCourseId };
+      if (editingId) body.id = editingId;
+      const res = await fetch("/api/manager/sessions", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setMsg({ type: "ok", text: editingId ? "جلسه ویرایش شد" : "جلسه اضافه شد" });
+        resetForm();
+        load();
+      } else {
+        setMsg({ type: "err", text: d.error || "خطا" });
+      }
+    } catch { setMsg({ type: "err", text: "خطا در ارتباط با سرور" }); }
+  };
+
+  const remove = async (id: number) => {
+    if (!confirm("حذف این جلسه؟")) return;
+    await fetch("/api/manager/sessions", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    load();
+  };
+
+  const startEdit = (s: any) => {
+    setEditingId(s.id);
+    setForm({
+      sessionNumber: s.sessionNumber || "",
+      title: s.title || "",
+      sessionDate: s.sessionDate || "",
+      sessionTime: s.sessionTime || "",
+      duration: s.duration || "",
+      isOnline: !!s.isOnline,
+      meetingUrl: s.meetingUrl || "",
+    });
+    setShowAdd(true);
+  };
+
+  const selectedCourse = courses.find((c: any) => c.id === selectedCourseId);
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h2 className="text-2xl font-black flex items-center gap-2"><CalendarDays className="w-6 h-6 text-primary-400" /> تقویم جلسات دوره‌ها</h2>
+        <p className="text-slate-400 text-sm mt-1">جلسات هر دوره را زمان‌بندی کنید تا در تقویم آموزشی هنرجویان نمایش داده شود.</p>
+      </div>
+
+      {msg && (
+        <div className={`mb-4 p-3 rounded-[10px] text-xs font-bold ${msg.type === "ok" ? "bg-emerald-500/10 text-emerald-300" : "bg-error-500/10 text-error-400"}`}>{msg.text}</div>
+      )}
+
+      {courses.length === 0 ? (
+        <div className="text-center py-16 bg-[#111a2e] border border-white/5 rounded-[16px]">
+          <BookOpen className="w-12 h-12 mx-auto text-slate-600 mb-3" />
+          <p className="text-slate-500 text-sm">ابتدا یک دوره در تب «مدیریت دوره‌ها» ایجاد کنید.</p>
+        </div>
+      ) : (
+        <>
+          {/* Course selector */}
+          <div className="mb-5">
+            <label className="text-[11px] font-bold text-slate-400 mb-1.5 block">انتخاب دوره</label>
+            <select value={selectedCourseId || ""} onChange={(e) => setSelectedCourseId(Number(e.target.value))}
+              className="w-full px-4 py-3 rounded-[12px] bg-[#111a2e] border border-white/10 text-sm font-bold text-white cursor-pointer">
+              {courses.map((c: any) => (
+                <option key={c.id} value={c.id}>{c.title} ({c.enrolledCount || 0} هنرجو)</option>
+              ))}
+            </select>
+            {selectedCourse && (
+              <p className="text-[10px] text-slate-500 mt-1.5">
+                کل جلسات این دوره: <b className="text-primary-300">{selectedCourse.totalSessions || "تعیین نشده"}</b>
+              </p>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-black text-white text-sm">جلسات ثبت‌شده ({sessions.length})</h3>
+            <button onClick={() => { resetForm(); setShowAdd(!showAdd); }}
+              className="px-4 py-2 rounded-[10px] bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer">
+              <Plus className="w-4 h-4" /> افزودن جلسه جدید
+            </button>
+          </div>
+
+          {showAdd && (
+            <form onSubmit={submit} className="bg-[#111a2e] border border-white/10 rounded-[16px] p-5 mb-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 mb-1 block">شماره جلسه</label>
+                <input type="number" min="1" value={form.sessionNumber} onChange={(e) => setForm({ ...form, sessionNumber: e.target.value })}
+                  placeholder="خودکار"
+                  className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white" />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 mb-1 block">مدت جلسه</label>
+                <input value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })}
+                  placeholder="مثل: ۹۰ دقیقه"
+                  className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-[10px] font-bold text-slate-400 mb-1 block">عنوان جلسه *</label>
+                <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  placeholder="مثال: مقدمه بر برنامه‌نویسی"
+                  className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white" />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 mb-1 block">تاریخ جلسه</label>
+                <PersianDatePicker value={form.sessionDate} onChange={(v) => setForm({ ...form, sessionDate: v })} placeholder="انتخاب تاریخ" />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 mb-1 block">ساعت</label>
+                <input value={form.sessionTime} onChange={(e) => setForm({ ...form, sessionTime: e.target.value })}
+                  placeholder="مثل: ۱۶:۰۰ - ۱۸:۰۰" dir="ltr"
+                  className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white text-right" />
+              </div>
+              <div className="md:col-span-2 flex items-center gap-3 p-2 bg-[#0B1120] rounded-[10px] border border-white/10">
+                <button type="button" onClick={() => setForm({ ...form, isOnline: !form.isOnline })}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${form.isOnline ? "bg-primary-600" : "bg-white/10"}`}>
+                  <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${form.isOnline ? "left-0.5" : "left-[22px]"}`} />
+                </button>
+                <span className="text-xs font-black text-white flex items-center gap-1"><Video className="w-3.5 h-3.5" /> جلسه آنلاین است</span>
+              </div>
+              {form.isOnline && (
+                <div className="md:col-span-2">
+                  <label className="text-[10px] font-bold text-slate-400 mb-1 block">لینک ورود به کلاس</label>
+                  <input value={form.meetingUrl} onChange={(e) => setForm({ ...form, meetingUrl: e.target.value })}
+                    placeholder="https://meet.google.com/..." dir="ltr"
+                    className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white text-right" />
+                </div>
+              )}
+              <div className="md:col-span-2 flex gap-2">
+                <button type="submit" className="flex-1 py-2.5 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white text-sm font-black">
+                  {editingId ? "ذخیره تغییرات" : "افزودن جلسه"}
+                </button>
+                <button type="button" onClick={resetForm}
+                  className="px-5 py-2.5 rounded-[10px] bg-white/10 text-white text-xs font-black">انصراف</button>
+              </div>
+            </form>
+          )}
+
+          {loading ? (
+            <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-primary-500" /></div>
+          ) : sessions.length === 0 ? (
+            <div className="text-center py-12 bg-[#111a2e] border border-white/5 rounded-[14px]">
+              <CalendarDays className="w-10 h-10 mx-auto text-slate-600 mb-2" />
+              <p className="text-slate-500 text-sm">هنوز جلسه‌ای برای این دوره ثبت نکرده‌اید.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {sessions.map((s) => (
+                <div key={s.id} className="bg-[#111a2e] border border-white/5 rounded-[14px] p-4 flex items-start gap-3">
+                  <div className="w-14 h-14 rounded-[12px] bg-primary-500/15 border border-primary-500/30 flex flex-col items-center justify-center shrink-0">
+                    <div className="text-[9px] text-primary-300 font-black">جلسه</div>
+                    <div className="text-lg font-black text-white">{String(s.sessionNumber || "?").replace(/[0-9]/g, d => "۰۱۲۳۴۵۶۷۸۹"[+d])}</div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-black text-sm text-white">{s.title}</h4>
+                    <div className="flex flex-wrap gap-3 mt-1 text-[10px] text-slate-400">
+                      {s.sessionDate && <span className="flex items-center gap-1"><CalendarDays className="w-3 h-3" />{String(s.sessionDate).replace(/[0-9]/g, d => "۰۱۲۳۴۵۶۷۸۹"[+d])}</span>}
+                      {s.sessionTime && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{s.sessionTime}</span>}
+                      {s.duration && <span>مدت: {s.duration}</span>}
+                      {s.isOnline && <span className="text-primary-300 flex items-center gap-1"><Video className="w-3 h-3" /> آنلاین</span>}
+                    </div>
+                    {s.isOnline && s.meetingUrl && (
+                      <a href={s.meetingUrl} target="_blank" rel="noreferrer" className="text-[10px] text-primary-300 mt-1 flex items-center gap-1" dir="ltr">
+                        <LinkIcon className="w-3 h-3" />{s.meetingUrl}
+                      </a>
+                    )}
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <button onClick={() => startEdit(s)} className="p-2 rounded-[8px] bg-primary-500/15 text-primary-400 hover:bg-primary-500/25 cursor-pointer">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => remove(s.id)} className="p-2 rounded-[8px] bg-error-500/15 text-error-400 hover:bg-error-500/25 cursor-pointer">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ============================= PROGRESS MANAGER TAB (student progress) ============================= */
+function ProgressManagerTab({ data, refresh }: { data: any; refresh: () => void }) {
+  const students = (data?.students || []).filter((s: any) => s.status === "approved");
+  const courses = data?.courses || [];
+  const [savingId, setSavingId] = useState<number | null>(null);
+  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [drafts, setDrafts] = useState<Record<number, { progress?: number; sessionsAttended?: number }>>({});
+
+  const save = async (regId: number, courseTitle: string, studentName: string) => {
+    const draft = drafts[regId] || {};
+    if (draft.progress === undefined && draft.sessionsAttended === undefined) return;
+    setSavingId(regId);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/manager/progress", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          registrationId: regId,
+          progress: draft.progress,
+          sessionsAttended: draft.sessionsAttended,
+          notifyStudent: true,
+        }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setMsg({ type: "ok", text: `✅ پیشرفت ${studentName} در دوره «${courseTitle}» ذخیره شد` });
+        setDrafts((prev) => { const c = { ...prev }; delete c[regId]; return c; });
+        refresh();
+      } else {
+        setMsg({ type: "err", text: d.error || "خطا" });
+      }
+    } catch {
+      setMsg({ type: "err", text: "خطا در ارتباط با سرور" });
+    } finally { setSavingId(null); }
+  };
+
+  const getCurrentProgress = (s: any) => drafts[s.id]?.progress ?? s.progress ?? 0;
+  const getCurrentSessions = (s: any) => drafts[s.id]?.sessionsAttended ?? s.sessionsAttended ?? 0;
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h2 className="text-2xl font-black flex items-center gap-2"><TrendingUp className="w-6 h-6 text-primary-400" /> وضعیت پیشرفت هنرجویان</h2>
+        <p className="text-slate-400 text-sm mt-1">درصد پیشرفت و تعداد جلسات شرکت‌کرده هر هنرجو را به‌روزرسانی کنید. هنرجو خودکار اعلان می‌گیرد.</p>
+      </div>
+
+      {msg && (
+        <div className={`mb-4 p-3 rounded-[10px] text-xs font-bold ${msg.type === "ok" ? "bg-emerald-500/10 text-emerald-300" : "bg-error-500/10 text-error-400"}`}>{msg.text}</div>
+      )}
+
+      {students.length === 0 ? (
+        <div className="text-center py-16 bg-[#111a2e] border border-white/5 rounded-[16px]">
+          <Users className="w-12 h-12 mx-auto text-slate-600 mb-3" />
+          <p className="text-slate-500 text-sm">هیچ هنرجوی تأییدشده‌ای وجود ندارد.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {students.map((s: any) => {
+            const c = courses.find((cc: any) => cc.title === s.courseTitle);
+            const totalSess = c?.totalSessions || 0;
+            const curProgress = getCurrentProgress(s);
+            const curSessions = getCurrentSessions(s);
+            const hasChanges = drafts[s.id] !== undefined;
+
+            return (
+              <div key={s.id} className="bg-[#111a2e] border border-white/5 rounded-[14px] p-4">
+                <div className="flex items-start justify-between mb-3 gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-black text-white text-sm">{s.fullName}</div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">
+                      دوره: <b className="text-primary-300">{s.courseTitle}</b>
+                    </div>
+                    <div className="text-[10px] text-slate-500 mt-0.5" dir="ltr">{s.phone}</div>
+                  </div>
+                  {curProgress >= 100 && (
+                    <span className="text-[10px] font-black bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full shrink-0">
+                      🎉 تکمیل
+                    </span>
+                  )}
+                </div>
+
+                {/* Progress bar */}
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-1 text-[11px]">
+                    <span className="text-slate-400">درصد پیشرفت</span>
+                    <span className="font-black text-primary-300">{String(curProgress).replace(/[0-9]/g, d => "۰۱۲۳۴۵۶۷۸۹"[+d])}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-white/5 overflow-hidden mb-2">
+                    <div className="h-full bg-gradient-to-r from-cyan-500 to-primary-500 transition-all" style={{ width: `${curProgress}%` }} />
+                  </div>
+                  <input type="range" min="0" max="100" step="5" value={curProgress}
+                    onChange={(e) => setDrafts({ ...drafts, [s.id]: { ...drafts[s.id], progress: Number(e.target.value) } })}
+                    className="w-full accent-primary-500" />
+                </div>
+
+                {/* Sessions attended */}
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 mb-1 block">جلسات شرکت‌کرده</label>
+                    <input type="number" min="0" max={totalSess || 100} value={curSessions}
+                      onChange={(e) => setDrafts({ ...drafts, [s.id]: { ...drafts[s.id], sessionsAttended: Number(e.target.value) } })}
+                      className="w-full px-3 py-2 rounded-[8px] bg-[#0B1120] border border-white/10 text-sm text-white" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 mb-1 block">کل جلسات دوره</label>
+                    <div className="px-3 py-2 rounded-[8px] bg-[#0B1120] border border-white/10 text-sm text-slate-500">
+                      {String(totalSess || "—").replace(/[0-9]/g, d => "۰۱۲۳۴۵۶۷۸۹"[+d])}
+                    </div>
+                  </div>
+                </div>
+
+                {hasChanges && (
+                  <button onClick={() => save(s.id, s.courseTitle, s.fullName)} disabled={savingId === s.id}
+                    className="w-full py-2 rounded-[8px] bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black flex items-center justify-center gap-1.5">
+                    {savingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    ذخیره تغییرات و اطلاع به هنرجو
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
