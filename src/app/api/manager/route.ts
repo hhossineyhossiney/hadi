@@ -110,28 +110,57 @@ export async function GET() {
   if ("error" in res) return NextResponse.json({ error: res.error }, { status: res.status });
   const inst = res.inst;
 
-  const courseListRaw = await db
-    .select({
-      id: courses.id, title: courses.title, slug: courses.slug,
-      description: courses.description, fullDescription: courses.fullDescription,
-      duration: courses.duration,
-      price: courses.price, originalPrice: courses.originalPrice,
-      capacity: courses.capacity,
-      enrolledCount: courses.enrolledCount, instructor: courses.instructor,
-      instructorTitle: courses.instructorTitle,
-      schedule: courses.schedule, startDate: courses.startDate,
-      level: courses.level, totalSessions: courses.totalSessions,
-      syllabus: courses.syllabus,
-      requirements: courses.requirements,
-      image: courses.image,
-      categoryName: categories.name, categoryId: courses.categoryId,
-      bannerImages: courses.bannerImages,
-      registrationClosed: courses.registrationClosed,
-      registrationEnded: courses.registrationEnded,
-    })
-    .from(courses)
-    .leftJoin(categories, eq(courses.categoryId, categories.id))
-    .where(eq(courses.instituteId, inst.id));
+  const courseListRaw = await (async () => {
+    // Try full query with new columns; if columns missing, retry without them
+    try {
+      return await db
+        .select({
+          id: courses.id, title: courses.title, slug: courses.slug,
+          description: courses.description, fullDescription: courses.fullDescription,
+          duration: courses.duration,
+          price: courses.price, originalPrice: courses.originalPrice,
+          capacity: courses.capacity,
+          enrolledCount: courses.enrolledCount, instructor: courses.instructor,
+          instructorTitle: courses.instructorTitle,
+          schedule: courses.schedule, startDate: courses.startDate,
+          level: courses.level, totalSessions: courses.totalSessions,
+          syllabus: courses.syllabus,
+          requirements: courses.requirements,
+          image: courses.image,
+          categoryName: categories.name, categoryId: courses.categoryId,
+          bannerImages: courses.bannerImages,
+          registrationClosed: courses.registrationClosed,
+          registrationEnded: courses.registrationEnded,
+        })
+        .from(courses)
+        .leftJoin(categories, eq(courses.categoryId, categories.id))
+        .where(eq(courses.instituteId, inst.id));
+    } catch (e: any) {
+      console.error("Fallback query - missing columns:", e?.message);
+      // Retry without new columns (registration_closed/registration_ended)
+      const rows = await db
+        .select({
+          id: courses.id, title: courses.title, slug: courses.slug,
+          description: courses.description, fullDescription: courses.fullDescription,
+          duration: courses.duration,
+          price: courses.price, originalPrice: courses.originalPrice,
+          capacity: courses.capacity,
+          enrolledCount: courses.enrolledCount, instructor: courses.instructor,
+          instructorTitle: courses.instructorTitle,
+          schedule: courses.schedule, startDate: courses.startDate,
+          level: courses.level, totalSessions: courses.totalSessions,
+          syllabus: courses.syllabus,
+          requirements: courses.requirements,
+          image: courses.image,
+          categoryName: categories.name, categoryId: courses.categoryId,
+          bannerImages: courses.bannerImages,
+        })
+        .from(courses)
+        .leftJoin(categories, eq(courses.categoryId, categories.id))
+        .where(eq(courses.instituteId, inst.id));
+      return rows.map((r) => ({ ...r, registrationClosed: false, registrationEnded: false }));
+    }
+  })();
 
   const courseList = courseListRaw.map((c) => ({ ...c, bannerImages: (c.bannerImages as string[]) || [] }));
 
