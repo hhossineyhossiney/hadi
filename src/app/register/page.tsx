@@ -8,23 +8,35 @@ import Footer from "@/components/Footer";
 import {
   ArrowLeft, ArrowRight, CheckCircle, Loader2, Phone, Lock, User,
   BookOpen, Building2, Check, ShieldCheck, MessageSquare, RefreshCw,
+  UserCheck,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useSession } from "next-auth/react";
 import { normalizePhone } from "@/lib/phone";
 
 interface CourseOpt {
   id: number; slug: string; title: string; instituteName: string;
   price: string | null; duration?: string | null;
+  capacity?: number; enrolledCount?: number; status?: string;
 }
 
-const STEPS = [
+const STEPS_GUEST = [
   { n: 1, title: "انتخاب دوره" },
   { n: 2, title: "اطلاعات و رمز" },
   { n: 3, title: "تأیید پیامکی" },
   { n: 4, title: "ثبت نهایی" },
 ];
 
+const STEPS_LOGGED = [
+  { n: 1, title: "انتخاب دوره" },
+  { n: 2, title: "ثبت نهایی" },
+];
+
 function RegistrationWizard() {
+  const { data: session, status: sessionStatus } = useSession();
+  const sessionUser = session?.user as any;
+  const isLoggedIn = sessionStatus === "authenticated" && !!sessionUser?.id;
+
   const searchParams = useSearchParams();
   const preselectedCourse = searchParams.get("course");
 
@@ -45,6 +57,17 @@ function RegistrationWizard() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
+  // Prefill from session if logged in
+  useEffect(() => {
+    if (isLoggedIn && sessionUser) {
+      setForm((prev) => ({
+        ...prev,
+        fullName: sessionUser.name || "",
+        phone: sessionUser.phone || "",
+      }));
+    }
+  }, [isLoggedIn, sessionUser]);
+
   useEffect(() => {
     fetch("/api/courses")
       .then((r) => r.json())
@@ -52,6 +75,7 @@ function RegistrationWizard() {
         setCourses(data.map((c: any) => ({
           id: c.id, slug: c.slug, title: c.title,
           instituteName: c.instituteName, price: c.price, duration: c.duration,
+          capacity: c.capacity, enrolledCount: c.enrolledCount, status: c.status,
         })));
         setLoadingCourses(false);
       })
@@ -75,6 +99,14 @@ function RegistrationWizard() {
 
   const canNext1 = !!form.courseSlug;
   const canNext2 = form.fullName.trim().length >= 3 && phoneValid && passValid && passMatch;
+
+  // Course capacity check
+  const isCourseFull = selectedCourse
+    ? selectedCourse.status === "rejected" ||
+      (typeof selectedCourse.capacity === "number" &&
+        selectedCourse.capacity > 0 &&
+        (selectedCourse.enrolledCount || 0) >= selectedCourse.capacity)
+    : false;
 
   const sendOtp = async () => {
     setLoading(true); setError("");
@@ -103,7 +135,7 @@ function RegistrationWizard() {
       });
       const data = await res.json();
       if (res.ok && data.verified) {
-        setOtpVerified(true); setStep(4);
+        setOtpVerified(true); setStep(isLoggedIn ? 2 : 4);
       } else {
         setError(data.error || "کد نادرست است");
       }
@@ -119,18 +151,32 @@ function RegistrationWizard() {
       if (!courseRes.ok || !courseData?.id) {
         setError("خطا در دریافت اطلاعات دوره"); setLoading(false); return;
       }
+      const payload = isLoggedIn
+        ? { courseId: courseData.id, notes: form.notes } // session-based; server pulls user data
+        : {
+            courseId: courseData.id, fullName: form.fullName, phone: cleanPhone,
+            password: form.password, notes: form.notes,
+          };
       const res = await fetch("/api/registrations", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          courseId: courseData.id, fullName: form.fullName, phone: cleanPhone,
-          password: form.password, notes: form.notes,
-        }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) setSuccess(true);
-      else { const d = await res.json(); setError(d.error || "خطا در ثبت‌نام"); }
+      else {
+        const d = await res.json();
+        if (d.requiresLogin) {
+          setError("این شماره قبلاً ثبت‌شده. لطفاً وارد حساب کاربری خود شوید.");
+        } else if (d.duplicate) {
+          setError("شما قبلاً در این دوره ثبت‌نام کرده‌اید. به پنل هنرجو مراجعه کنید.");
+        } else {
+          setError(d.error || "خطا در ثبت‌نام");
+        }
+      }
     } catch { setError("خطا در ارتباط با سرور"); }
     finally { setLoading(false); }
   };
+
+  const STEPS = isLoggedIn ? STEPS_LOGGED : STEPS_GUEST;
 
   if (success) {
     return (
@@ -146,10 +192,14 @@ function RegistrationWizard() {
               دوره <b className="text-text-primary">{selectedCourse?.title}</b> برای شما رزرو شد.
             </p>
             <p className="text-text-tertiary text-xs mb-8">
-              شماره <span dir="ltr" className="font-bold text-text-primary">{cleanPhone}</span> تأیید پیامکی شد و حساب شما فعال است.
+              {isLoggedIn
+                ? "درخواست شما در انتظار تأیید مدیر آموزشگاه است. می‌توانید در پنل هنرجو وضعیت را پیگیری کنید."
+                : (
+                  <>شماره <span dir="ltr" className="font-bold text-text-primary">{cleanPhone}</span> تأیید پیامکی شد و حساب شما فعال است.</>
+                )}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href={`/dashboard?phone=${encodeURIComponent(cleanPhone)}`}
+              <Link href={isLoggedIn ? "/dashboard" : `/dashboard?phone=${encodeURIComponent(cleanPhone)}`}
                 className="px-8 py-3.5 rounded-[14px] text-white gradient-button font-bold text-sm shadow-lg shadow-primary-600/25">
                 ورود به پنل هنرجو
               </Link>
@@ -169,6 +219,23 @@ function RegistrationWizard() {
         <Link href="/" className="inline-flex items-center gap-2 text-text-secondary hover:text-primary-600 mb-6 font-medium text-sm">
           <ArrowLeft className="w-4 h-4" /> بازگشت به صفحه اصلی
         </Link>
+
+        {/* Logged-in banner */}
+        {isLoggedIn && (
+          <div className="mb-5 p-4 rounded-[16px] bg-gradient-to-l from-emerald-500/15 to-emerald-500/5 border border-emerald-500/30 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+              <UserCheck className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-black text-emerald-300">
+                خوش آمدید {sessionUser?.name || ""}
+              </div>
+              <div className="text-[11px] text-emerald-200 mt-0.5">
+                شما وارد حساب کاربری خود شده‌اید — نیازی به دریافت مجدد کد پیامکی نیست.
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stepper */}
         <div className="flex items-center justify-between mb-8 px-1">
@@ -195,7 +262,7 @@ function RegistrationWizard() {
           className="glass-card rounded-[24px] overflow-hidden">
           {error && <div className="m-6 mb-0 p-4 rounded-[14px] bg-error-50 text-error-600 text-sm font-bold">{error}</div>}
 
-          {/* STEP 1 */}
+          {/* STEP 1 — Course selection (always) */}
           {step === 1 && (
             <div className="p-7">
               <h2 className="text-xl font-black text-text-primary mb-1">انتخاب آموزشگاه و دوره</h2>
@@ -209,43 +276,98 @@ function RegistrationWizard() {
                 <div className="space-y-2">{[1, 2, 3].map((i) => <div key={i} className="skeleton h-16" />)}</div>
               ) : (
                 <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                  {filteredCourses.map((c) => (
-                    <button key={c.slug} type="button" onClick={() => setForm({ ...form, courseSlug: c.slug })}
-                      className={`w-full text-right p-4 rounded-[14px] border transition-all cursor-pointer ${
-                        form.courseSlug === c.slug ? "border-primary-500 bg-primary-50/80 shadow-md shadow-primary-500/10"
-                        : "border-border-default bg-white/60 hover:border-primary-200"}`}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-sm font-black text-text-primary">{c.title}</div>
-                          <div className="text-[11px] text-text-tertiary mt-0.5">{c.instituteName}</div>
-                        </div>
-                        <div className="flex items-center gap-2.5">
-                          <span className="text-xs font-black text-primary-600">
-                            {c.price ? Number(c.price).toLocaleString("fa-IR") : "رایگان"}
-                          </span>
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            form.courseSlug === c.slug ? "border-primary-500 bg-primary-500" : "border-border-strong"}`}>
-                            {form.courseSlug === c.slug && <Check className="w-3 h-3 text-white" />}
+                  {filteredCourses.map((c) => {
+                    const cFull = c.status === "rejected" || (typeof c.capacity === "number" && c.capacity > 0 && (c.enrolledCount || 0) >= c.capacity);
+                    return (
+                      <button key={c.slug} type="button" onClick={() => !cFull && setForm({ ...form, courseSlug: c.slug })} disabled={cFull}
+                        className={`w-full text-right p-4 rounded-[14px] border transition-all ${
+                          cFull
+                            ? "opacity-50 cursor-not-allowed border-border-default bg-white/40"
+                            : form.courseSlug === c.slug
+                              ? "border-primary-500 bg-primary-50/80 shadow-md shadow-primary-500/10 cursor-pointer"
+                              : "border-border-default bg-white/60 hover:border-primary-200 cursor-pointer"
+                        }`}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-sm font-black text-text-primary flex items-center gap-2">
+                              {c.title}
+                              {cFull && <span className="text-[9px] font-black bg-error-500/20 text-error-600 px-2 py-0.5 rounded-full">تکمیل ظرفیت</span>}
+                            </div>
+                            <div className="text-[11px] text-text-tertiary mt-0.5">{c.instituteName}</div>
+                          </div>
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-xs font-black text-primary-600">
+                              {c.price ? Number(c.price).toLocaleString("fa-IR") + " ت" : "رایگان"}
+                            </span>
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                              form.courseSlug === c.slug ? "border-primary-500 bg-primary-500" : "border-border-strong"}`}>
+                              {form.courseSlug === c.slug && <Check className="w-3 h-3 text-white" />}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
-              <button disabled={!canNext1} onClick={() => setStep(2)}
+              {isCourseFull && (
+                <div className="mt-4 p-3 rounded-[12px] bg-error-500/10 text-error-600 text-xs font-bold">
+                  ⚠️ این دوره در حال حاضر قابل ثبت‌نام نیست.
+                </div>
+              )}
+              <button disabled={!canNext1 || isCourseFull} onClick={() => setStep(2)}
                 className="mt-6 w-full py-3.5 rounded-[14px] text-sm font-black text-white gradient-button disabled:opacity-40 shadow-lg shadow-primary-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
                 ادامه <ArrowLeft className="w-4 h-4" />
               </button>
             </div>
           )}
 
-          {/* STEP 2: Info + double password */}
-          {step === 2 && (
+          {/* ================= LOGGED-IN FLOW: STEP 2 = FINAL CONFIRM ================= */}
+          {isLoggedIn && step === 2 && (
+            <div className="p-7">
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-xl font-black text-text-primary">تأیید نهایی ثبت‌نام</h2>
+                <span className="text-[10px] font-black text-success-600 bg-success-50 px-2.5 py-1 rounded-full flex items-center gap-1">
+                  <UserCheck className="w-3 h-3" /> کاربر تأیید شده
+                </span>
+              </div>
+              <p className="text-text-tertiary text-xs mb-6">بدون نیاز به تأیید پیامکی — فقط اطلاعات را بررسی و ثبت نهایی کنید</p>
+              <div className="rounded-[16px] bg-white/70 border border-border-light p-5 space-y-3.5 text-sm mb-6">
+                <div className="flex justify-between"><span className="text-text-tertiary">دوره:</span><b>{selectedCourse?.title}</b></div>
+                <div className="flex justify-between"><span className="text-text-tertiary">آموزشگاه:</span><b>{selectedCourse?.instituteName}</b></div>
+                <div className="flex justify-between"><span className="text-text-tertiary">شهریه:</span><b className="text-primary-600">{selectedCourse?.price ? Number(selectedCourse.price).toLocaleString("fa-IR") + " تومان" : "رایگان"}</b></div>
+                <div className="border-t border-border-light pt-3.5 flex justify-between"><span className="text-text-tertiary">هنرجو:</span><b>{sessionUser?.name}</b></div>
+                <div className="flex justify-between"><span className="text-text-tertiary">موبایل:</span><b dir="ltr">{sessionUser?.phone}</b></div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-text-primary mb-1.5">توضیحات (اختیاری)</label>
+                <textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  className="w-full px-4 py-3 rounded-[14px] border border-border-default bg-white/70 text-sm resize-none mb-4" />
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setStep(1)}
+                  className="px-5 py-3.5 rounded-[14px] text-sm font-bold text-text-secondary bg-white/60 border border-border-default flex items-center gap-1.5 cursor-pointer">
+                  <ArrowRight className="w-4 h-4" /> قبلی
+                </button>
+                <button disabled={loading} onClick={handleSubmit}
+                  className="flex-1 py-3.5 rounded-[14px] text-sm font-black text-white bg-success-600 hover:bg-success-700 disabled:opacity-50 shadow-lg shadow-success-500/25 flex items-center justify-center gap-2 cursor-pointer">
+                  {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> در حال ثبت...</> : <><CheckCircle className="w-4 h-4" /> تأیید و ثبت‌نام قطعی</>}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ================= GUEST FLOW: STEP 2 - Info + password ================= */}
+          {!isLoggedIn && step === 2 && (
             <div className="p-7 space-y-4">
               <div>
                 <h2 className="text-xl font-black text-text-primary mb-1">اطلاعات هنرجو و رمز عبور</h2>
                 <p className="text-text-tertiary text-xs">شماره موبایل واقعی وارد کنید — کد تأیید پیامکی ارسال می‌شود</p>
+                <div className="mt-2 text-[11px]">
+                  <Link href="/login" className="text-primary-600 font-bold hover:underline">
+                    قبلاً ثبت‌نام کرده‌اید؟ وارد حساب کاربری خود شوید
+                  </Link>
+                </div>
               </div>
 
               <div>
@@ -318,8 +440,8 @@ function RegistrationWizard() {
             </div>
           )}
 
-          {/* STEP 3: OTP */}
-          {step === 3 && (
+          {/* GUEST STEP 3: OTP */}
+          {!isLoggedIn && step === 3 && (
             <div className="p-7 text-center">
               <div className="w-16 h-16 rounded-[18px] bg-primary-50 flex items-center justify-center mx-auto mb-4">
                 <MessageSquare className="w-8 h-8 text-primary-600" />
@@ -330,7 +452,7 @@ function RegistrationWizard() {
               </p>
               {devCode && (
                 <div className="inline-block mt-2 mb-1 px-4 py-2 rounded-[12px] bg-accent-50 border border-accent-200 text-accent-600 text-xs font-black">
-                  ⚠️ حالت آزمایشی (پنل پیامکی متصل نیست) — کد شما: <span className="text-lg tracking-[0.3em]" dir="ltr">{devCode}</span>
+                  ⚠️ حالت آزمایشی — کد شما: <span className="text-lg tracking-[0.3em]" dir="ltr">{devCode}</span>
                 </div>
               )}
               <div className="max-w-[220px] mx-auto my-5">
@@ -362,8 +484,8 @@ function RegistrationWizard() {
             </div>
           )}
 
-          {/* STEP 4: Final confirm */}
-          {step === 4 && (
+          {/* GUEST STEP 4: Final confirm */}
+          {!isLoggedIn && step === 4 && (
             <div className="p-7">
               <div className="flex items-center gap-2 mb-1">
                 <h2 className="text-xl font-black text-text-primary">تأیید نهایی</h2>
