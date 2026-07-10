@@ -12,6 +12,21 @@ const ADMIN_PHONES = ["09159513179", "09150000000"];
 const MIGRATIONS: { name: string; sql: string }[] = [
   // 1) Extend institutes table
   {
+    name: "users_extended_fields",
+    sql: `
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS national_id VARCHAR(20);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS birth_date VARCHAR(20);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(20);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS education VARCHAR(100);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS wallet_balance DECIMAL(12,0) DEFAULT 0;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS notifications_enabled BOOLEAN DEFAULT TRUE;
+    `,
+  },
+  {
     name: "institutes_new_fields",
     sql: `
       ALTER TABLE institutes ADD COLUMN IF NOT EXISTS is_year_award BOOLEAN DEFAULT false;
