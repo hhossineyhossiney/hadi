@@ -10,8 +10,8 @@ import { getTheme } from "@/lib/cardTheme";
 export const dynamic = "force-dynamic";
 
 export default async function CoursesPage() {
-  const data = await db
-    .select({
+  const runQuery = (withNew: boolean) => {
+    const fields: any = {
       id: courses.id,
       title: courses.title,
       slug: courses.slug,
@@ -24,19 +24,33 @@ export default async function CoursesPage() {
       enrolledCount: courses.enrolledCount,
       instructor: courses.instructor,
       startDate: courses.startDate,
-      registrationClosed: courses.registrationClosed,
-      registrationEnded: courses.registrationEnded,
       categoryName: categories.name,
       instituteName: institutes.name,
       instituteSlug: institutes.slug,
       regionName: regions.name,
-    })
-    .from(courses)
-    .leftJoin(institutes, eq(courses.instituteId, institutes.id))
-    .leftJoin(categories, eq(courses.categoryId, categories.id))
-    .leftJoin(regions, eq(institutes.regionId, regions.id))
-    .where(eq(courses.status, "approved"))
-    .orderBy(sql`${courses.createdAt} DESC`);
+    };
+    if (withNew) {
+      fields.registrationClosed = courses.registrationClosed;
+      fields.registrationEnded = courses.registrationEnded;
+    }
+    return db
+      .select(fields)
+      .from(courses)
+      .leftJoin(institutes, eq(courses.instituteId, institutes.id))
+      .leftJoin(categories, eq(courses.categoryId, categories.id))
+      .leftJoin(regions, eq(institutes.regionId, regions.id))
+      .where(eq(courses.status, "approved"))
+      .orderBy(sql`${courses.createdAt} DESC`);
+  };
+
+  let data: any[];
+  try {
+    data = await runQuery(true);
+  } catch (e: any) {
+    console.error("Falling back to legacy courses query:", e?.message);
+    const rows = await runQuery(false);
+    data = rows.map((r: any) => ({ ...r, registrationClosed: false, registrationEnded: false }));
+  }
 
   return (
     <main className="min-h-screen bg-bg-secondary">
