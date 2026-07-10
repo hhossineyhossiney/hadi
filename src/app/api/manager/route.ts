@@ -81,6 +81,8 @@ export async function GET() {
       image: courses.image,
       categoryName: categories.name, categoryId: courses.categoryId,
       bannerImages: courses.bannerImages,
+      registrationClosed: courses.registrationClosed,
+      registrationEnded: courses.registrationEnded,
     })
     .from(courses)
     .leftJoin(categories, eq(courses.categoryId, categories.id))
@@ -253,17 +255,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // Toggle registration open/closed for a course
+    // Toggle registration open/closed (manual manager control)
     if (action === "toggleCourseRegistration") {
       const { courseId, closed } = body;
       const c = await db.select().from(courses)
         .where(and(eq(courses.id, courseId), eq(courses.instituteId, inst.id)))
         .then((r) => r[0]);
       if (!c) return NextResponse.json({ error: "دوره متعلق به آموزشگاه شما نیست" }, { status: 403 });
-      // Use `status`: rejected = closed, approved = open (existing enum)
-      const newStatus = closed ? "rejected" : "approved";
-      await db.update(courses).set({ status: newStatus as any }).where(eq(courses.id, courseId));
-      return NextResponse.json({ ok: true, status: newStatus });
+      await db.update(courses).set({ registrationClosed: !!closed }).where(eq(courses.id, courseId));
+      return NextResponse.json({ ok: true, registrationClosed: !!closed });
+    }
+
+    // Toggle "registration period ended" (زمان ثبت‌نام تمام شده)
+    if (action === "toggleCourseRegistrationEnded") {
+      const { courseId, ended } = body;
+      const c = await db.select().from(courses)
+        .where(and(eq(courses.id, courseId), eq(courses.instituteId, inst.id)))
+        .then((r) => r[0]);
+      if (!c) return NextResponse.json({ error: "دوره متعلق به آموزشگاه شما نیست" }, { status: 403 });
+      await db.update(courses).set({ registrationEnded: !!ended }).where(eq(courses.id, courseId));
+      return NextResponse.json({ ok: true, registrationEnded: !!ended });
     }
 
     // Update capacity
