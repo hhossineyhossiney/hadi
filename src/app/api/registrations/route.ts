@@ -290,6 +290,32 @@ export async function POST(request: Request) {
       console.error("Failed to query telegramChats:", e);
     }
 
+    // Send in-app notification to institute manager
+    try {
+      const { notifications, institutes: instTbl } = await import("@/db/schema");
+      const instRow = await db.select({ userId: instTbl.userId }).from(instTbl)
+        .where(eq(instTbl.id, courseDetails.instituteId)).then((r) => r[0]);
+      if (instRow?.userId) {
+        await db.insert(notifications).values({
+          userId: instRow.userId,
+          userRole: "institute",
+          title: "📝 ثبت‌نام جدید",
+          body: `${fullName} در دوره «${courseDetails.title}» ثبت‌نام کرد`,
+          type: "enrollment",
+          link: "/panel",
+        });
+      }
+      // Send notification to student too
+      await db.insert(notifications).values({
+        userId: user.id,
+        userRole: "student",
+        title: "✅ ثبت‌نام شما ارسال شد",
+        body: `درخواست ثبت‌نام شما در دوره «${courseDetails.title}» ثبت شد و در انتظار تأیید مدیر آموزشگاه است.`,
+        type: "info",
+        link: "/dashboard",
+      });
+    } catch (e) { console.error("in-app notify failed:", e); }
+
     return NextResponse.json({ ...result[0], authenticated: isAuthenticated }, { status: 201 });
   } catch (error) {
     console.error(error);
