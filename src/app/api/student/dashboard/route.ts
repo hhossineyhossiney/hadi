@@ -80,25 +80,28 @@ export async function GET(request: Request) {
   }, 0);
   const certificatesCount = realRegs.filter((r) => r.certificateUrl).length;
 
-  // Wallet balance — prefer users.walletBalance (source of truth), fallback to latest tx
+  // Wallet balance — try users.wallet_balance first, fallback to latest tx
   let walletBalance = 0;
   if (user) {
     try {
-      // Try users.walletBalance first (new column)
-      const u2: any = await db.execute(`SELECT wallet_balance FROM users WHERE id = ${user.id} LIMIT 1` as any).catch(() => null);
-      if (u2?.rows?.[0]?.wallet_balance !== undefined) {
-        walletBalance = Number(u2.rows[0].wallet_balance || 0);
+      const res: any = await db.execute(sql`SELECT wallet_balance FROM users WHERE id = ${user.id} LIMIT 1`);
+      if (res?.rows?.[0]?.wallet_balance !== undefined && res.rows[0].wallet_balance !== null) {
+        walletBalance = Number(res.rows[0].wallet_balance);
       } else {
+        throw new Error("no wallet_balance column");
+      }
+    } catch {
+      try {
         const tx = await db
-          .select()
+          .select({ balanceAfter: walletTransactions.balanceAfter })
           .from(walletTransactions)
           .where(eq(walletTransactions.userId, user.id))
           .orderBy(desc(walletTransactions.createdAt))
           .limit(1);
         walletBalance = tx[0] ? Number(tx[0].balanceAfter || 0) : 0;
+      } catch {
+        walletBalance = 0;
       }
-    } catch {
-      walletBalance = 0;
     }
   }
 
