@@ -56,31 +56,47 @@ async function getManagerInstitute() {
     .where(eq(institutes.userId, Number(user.id)))
     .then((r) => r[0]);
 
-  // 2) AUTOHEAL: If user has role=institute but no institute is linked,
-  //    try to find an institute whose mobile matches the user's phone and auto-link it.
-  if (!inst && user.role === "institute" && user.phone) {
+  // 2) AUTOHEAL: If no linked institute, try to auto-link by matching mobile
+  if (!inst && user.phone) {
     const { normalizePhone } = await import("@/lib/phone");
-    const cleanPhone = normalizePhone(user.phone);
-    // Find an institute whose mobile matches (with variations) and is not yet linked
-    const candidates = await db
-      .select()
-      .from(institutes)
-      .then((all) =>
-        all.filter((i) => {
-          if (i.userId && i.userId !== Number(user.id)) return false; // linked to someone else
-          if (!i.mobile) return false;
-          const m = normalizePhone(String(i.mobile));
-          return m === cleanPhone;
-        })
-      );
-    if (candidates.length === 1) {
-      // Safe auto-link
+    const cleanUserPhone = normalizePhone(String(user.phone));
+
+    // Find institutes whose mobile matches (any normalization)
+    const allInstitutes = await db.select().from(institutes);
+    const candidates = allInstitutes.filter((i) => {
+      const candidatePhones = [
+        i.mobile ? normalizePhone(String(i.mobile)) : null,
+        i.phone ? normalizePhone(String(i.phone)) : null,
+      ].filter(Boolean);
+      // Match on any phone field
+      if (candidatePhones.includes(cleanUserPhone)) {
+        // Only link if not already linked to someone else
+        return !i.userId || i.userId === Number(user.id);
+      }
+      return false;
+    });
+
+    if (candidates.length >= 1) {
+      // Prefer institute with NULL userId, otherwise first match
+      const target = candidates.find((c) => !c.userId) || candidates[0];
       const [linked] = await db
         .update(institutes)
         .set({ userId: Number(user.id) })
-        .where(eq(institutes.id, candidates[0].id))
+        .where(eq(institutes.id, target.id))
         .returning();
       inst = linked;
+
+      // Also promote user role to "institute" if not already
+      if (user.role !== "institute") {
+        try {
+          await db
+            .update(users)
+            .set({ role: "institute" as any })
+            .where(eq(users.id, Number(user.id)));
+        } catch (e) {
+          console.error("Failed to promote user role:", e);
+        }
+      }
     }
   }
 
