@@ -58,6 +58,21 @@ function RegistrationWizard() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
+  // Courses that this user has already registered for
+  const [alreadyRegistered, setAlreadyRegistered] = useState<Array<{ courseId: number; courseSlug: string; courseTitle: string; status: string }>>([]);
+  const [checkingReg, setCheckingReg] = useState(false);
+
+  // Fetch user's existing registrations (to prevent duplicates)
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    setCheckingReg(true);
+    fetch("/api/student/registrations")
+      .then((r) => r.json())
+      .then((d) => setAlreadyRegistered(d.registered || []))
+      .catch(() => setAlreadyRegistered([]))
+      .finally(() => setCheckingReg(false));
+  }, [isLoggedIn]);
+
   // Prefill from session if logged in
   useEffect(() => {
     if (isLoggedIn && sessionUser) {
@@ -91,15 +106,28 @@ function RegistrationWizard() {
   }, [otpTimer]);
 
   const institutes = Array.from(new Set(courses.map((c) => c.instituteName))).filter(Boolean);
-  const filteredCourses = instituteFilter ? courses.filter((c) => c.instituteName === instituteFilter) : courses;
+
+  // If a specific course is preselected (user came from course page),
+  // show ONLY that course in the list to avoid confusion.
+  const filteredCourses = preselectedCourse
+    ? courses.filter((c) => c.slug === preselectedCourse)
+    : instituteFilter
+      ? courses.filter((c) => c.instituteName === instituteFilter)
+      : courses;
+
   const selectedCourse = courses.find((c) => c.slug === form.courseSlug);
+
+  // Check if the currently selected course is already registered
+  const duplicateReg = form.courseSlug
+    ? alreadyRegistered.find((r) => r.courseSlug === form.courseSlug)
+    : null;
 
   const cleanPhone = normalizePhone(form.phone);
   const phoneValid = /^09\d{9}$/.test(cleanPhone);
   const passValid = form.password.length >= 6;
   const passMatch = form.password === form.passwordConfirm && form.passwordConfirm.length > 0;
 
-  const canNext1 = !!form.courseSlug;
+  const canNext1 = !!form.courseSlug && !duplicateReg;
   const canNext2 = form.fullName.trim().length >= 3 && phoneValid && passValid && passMatch;
 
   // Course availability check
@@ -285,11 +313,13 @@ function RegistrationWizard() {
                 <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                   {filteredCourses.map((c) => {
                     const blockReason = getCourseBlockReason(c);
+                    const alreadyReg = alreadyRegistered.find((r) => r.courseSlug === c.slug);
                     const cFull = !!blockReason;
+                    const disabled = cFull || !!alreadyReg;
                     return (
-                      <button key={c.slug} type="button" onClick={() => !cFull && setForm({ ...form, courseSlug: c.slug })} disabled={cFull}
+                      <button key={c.slug} type="button" onClick={() => !disabled && setForm({ ...form, courseSlug: c.slug })} disabled={disabled}
                         className={`w-full text-right p-4 rounded-[14px] border transition-all ${
-                          cFull
+                          disabled
                             ? "opacity-60 cursor-not-allowed border-border-default bg-white/40"
                             : form.courseSlug === c.slug
                               ? "border-primary-500 bg-primary-50/80 shadow-md shadow-primary-500/10 cursor-pointer"
@@ -300,6 +330,11 @@ function RegistrationWizard() {
                             <div className="text-sm font-black text-text-primary flex items-center gap-2 flex-wrap">
                               {c.title}
                               {blockReason && <span className="text-[9px] font-black bg-error-500/20 text-error-600 px-2 py-0.5 rounded-full">{blockReason}</span>}
+                              {alreadyReg && (
+                                <span className="text-[9px] font-black bg-primary-500/20 text-primary-700 px-2 py-0.5 rounded-full">
+                                  ✓ قبلاً ثبت‌نام شده
+                                </span>
+                              )}
                             </div>
                             <div className="text-[11px] text-text-tertiary mt-0.5">{c.instituteName}</div>
                           </div>
@@ -318,7 +353,22 @@ function RegistrationWizard() {
                   })}
                 </div>
               )}
-              {isCourseFull && (
+              {duplicateReg && (
+                <div className="mt-4 p-4 rounded-[12px] bg-primary-500/10 border-2 border-primary-500/40 text-primary-700 text-xs font-bold flex items-start gap-2">
+                  <CheckCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-black mb-1">شما قبلاً در دوره «{duplicateReg.courseTitle}» ثبت‌نام کرده‌اید</div>
+                    <div className="font-normal opacity-80">
+                      وضعیت فعلی: {duplicateReg.status === "approved" ? "تأیید شده ✅" : duplicateReg.status === "rejected" ? "رد شده ❌" : "در انتظار تأیید ⏳"}
+                      <br />می‌توانید به پنل هنرجو مراجعه کنید یا دوره دیگری انتخاب کنید.
+                    </div>
+                    <Link href="/dashboard" className="inline-block mt-2 px-3 py-1.5 rounded-[8px] bg-primary-600 text-white text-[11px] font-black">
+                      مشاهده در پنل هنرجو
+                    </Link>
+                  </div>
+                </div>
+              )}
+              {isCourseFull && !duplicateReg && (
                 <div className="mt-4 p-3 rounded-[12px] bg-error-500/10 text-error-600 text-xs font-bold">
                   ⚠️ این دوره در حال حاضر قابل ثبت‌نام نیست ({selectedBlockReason}).
                 </div>
