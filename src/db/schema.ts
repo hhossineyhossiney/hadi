@@ -23,6 +23,17 @@ export const users = pgTable("users", {
   password: varchar("password", { length: 255 }).notNull(),
   role: roleEnum("role").notNull().default("student"),
   avatar: text("avatar"),
+  // Extended student profile fields
+  firstName: varchar("first_name", { length: 100 }),
+  lastName: varchar("last_name", { length: 100 }),
+  nationalId: varchar("national_id", { length: 20 }),
+  birthDate: varchar("birth_date", { length: 20 }),
+  gender: varchar("gender", { length: 20 }),
+  address: text("address"),
+  education: varchar("education", { length: 100 }),
+  bio: text("bio"),
+  walletBalance: decimal("wallet_balance", { precision: 12, scale: 0 }).default("0"),
+  notificationsEnabled: boolean("notifications_enabled").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
