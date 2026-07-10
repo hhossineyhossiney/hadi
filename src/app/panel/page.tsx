@@ -6,7 +6,7 @@ import {
   Users, BookOpen, Clock, CheckCircle, XCircle, Loader2, Building2,
   Wallet, Check, X, Pencil, ImagePlus, Trash2, Send, Lock, Phone,
   LayoutDashboard, Image as ImageIcon, Award, Plus, LogOut, ShieldCheck, Eye, EyeOff,
-  UserCircle2, FolderOpen, Menu,
+  UserCircle2, FolderOpen, Menu, Bell,
   MessageCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -17,12 +17,13 @@ import ProfileStoriesTab from "@/components/panel/ProfileStoriesTab";
 import InstituteProfileForm from "@/components/panel/InstituteProfileForm";
 import StudentDocumentsModal from "@/components/panel/StudentDocumentsModal";
 
-type TabKey = "dashboard" | "courses" | "students" | "chat" | "gallery" | "banner" | "profile" | "telegram";
+type TabKey = "dashboard" | "courses" | "students" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
   { key: "courses", label: "مدیریت دوره‌ها", icon: BookOpen },
   { key: "students", label: "لیست هنرجویان", icon: Users },
+  { key: "notifications", label: "ارسال اعلان", icon: Bell },
   { key: "gallery", label: "گالری نمونه‌کارها", icon: ImageIcon },
   { key: "banner", label: "بنر اسلایدی آموزشگاه", icon: ImagePlus },
   { key: "chat", label: "چت با هنرجویان", icon: MessageCircle },
@@ -202,6 +203,7 @@ export default function ManagerPanelPage() {
             </div>
           )}
           {tab === "chat" && <ManagerChatTab data={data} refresh={fetchData} />}
+          {tab === "notifications" && <NotificationSenderTab data={data} />}
           {tab === "telegram" && <TelegramTab institute={institute} />}
         </div>
       </div>
@@ -907,6 +909,99 @@ function ManagerChatTab({ data }: { data: any; refresh: () => void }) {
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================= NOTIFICATION SENDER TAB (manager → students) ============================= */
+function NotificationSenderTab({ data }: { data: any }) {
+  const [form, setForm] = useState({ title: "", body: "", type: "info", courseId: "" });
+  const [sending, setSending] = useState(false);
+  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const courses = data?.courses || [];
+
+  const send = async () => {
+    if (!form.title.trim()) { setMsg({ type: "err", text: "عنوان اعلان الزامی است" }); return; }
+    setSending(true); setMsg(null);
+    try {
+      const payload: any = {
+        action: "sendNotification",
+        title: form.title,
+        body: form.body,
+        type: form.type,
+      };
+      if (form.courseId) payload.courseId = Number(form.courseId);
+      const res = await fetch("/api/manager", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setMsg({ type: "ok", text: `✅ اعلان به ${d.sent} هنرجو ارسال شد.` });
+        setForm({ title: "", body: "", type: "info", courseId: "" });
+      } else {
+        setMsg({ type: "err", text: d.error || "خطا در ارسال" });
+      }
+    } catch {
+      setMsg({ type: "err", text: "خطا در ارتباط با سرور" });
+    } finally { setSending(false); }
+  };
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h2 className="text-2xl font-black flex items-center gap-2"><Bell className="w-6 h-6 text-primary-400" /> ارسال اعلان به هنرجویان</h2>
+        <p className="text-slate-400 text-sm mt-1">به هنرجویان یک دوره خاص یا همه‌ی هنرجویان آموزشگاه اعلان بفرستید.</p>
+      </div>
+
+      {msg && (
+        <div className={`mb-4 p-3 rounded-[10px] text-xs font-bold ${msg.type === "ok" ? "bg-emerald-500/10 text-emerald-300" : "bg-error-500/10 text-error-400"}`}>{msg.text}</div>
+      )}
+
+      <div className="bg-[#111a2e] border border-white/10 rounded-[18px] p-5 space-y-4">
+        <div>
+          <label className="text-[11px] font-bold text-slate-400 mb-1 block">گیرندگان</label>
+          <select value={form.courseId} onChange={(e) => setForm({ ...form, courseId: e.target.value })}
+            className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white cursor-pointer">
+            <option value="">همه هنرجویان تأییدشده آموزشگاه</option>
+            {courses.map((c: any) => (
+              <option key={c.id} value={c.id}>هنرجویان دوره: {c.title}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-[11px] font-bold text-slate-400 mb-1 block">نوع اعلان</label>
+          <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}
+            className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white cursor-pointer">
+            <option value="info">🔔 اطلاع‌رسانی عمومی</option>
+            <option value="success">✅ خبر خوب / موفقیت</option>
+            <option value="warning">⚠️ هشدار</option>
+            <option value="error">❌ خطا / لغو</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="text-[11px] font-bold text-slate-400 mb-1 block">عنوان *</label>
+          <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
+            placeholder="مثال: تغییر زمان کلاس آموزشی"
+            className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white" />
+        </div>
+
+        <div>
+          <label className="text-[11px] font-bold text-slate-400 mb-1 block">متن اعلان</label>
+          <textarea value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })}
+            rows={4} placeholder="متن اعلان را وارد کنید..."
+            className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white resize-none" />
+        </div>
+
+        <button onClick={send} disabled={sending || !form.title.trim()}
+          className="w-full py-3 rounded-[12px] bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-sm font-black flex items-center justify-center gap-2 cursor-pointer">
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          ارسال اعلان
+        </button>
       </div>
     </div>
   );
