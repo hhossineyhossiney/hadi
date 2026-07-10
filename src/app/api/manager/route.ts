@@ -404,7 +404,70 @@ export async function POST(request: Request) {
       if (!reg) return NextResponse.json({ error: "ثبت‌نام متعلق به آموزشگاه شما نیست" }, { status: 403 });
       const [updated] = await db.update(registrations).set({ status })
         .where(eq(registrations.id, registrationId)).returning();
+
+      // Send notification to student (best-effort)
+      if (reg.userId) {
+        try {
+          const { notifications } = await import("@/db/schema");
+          const courseInfo = await db.select({ title: courses.title }).from(courses)
+            .where(eq(courses.id, reg.courseId)).then((r) => r[0]);
+          const title = status === "approved"
+            ? `✅ ثبت‌نام شما تأیید شد`
+            : status === "rejected"
+              ? `❌ ثبت‌نام شما رد شد`
+              : `⏳ وضعیت ثبت‌نام شما به‌روزرسانی شد`;
+          const notifBody = `${inst.name}: دوره «${courseInfo?.title || "دوره"}»`;
+          await db.insert(notifications).values({
+            userId: reg.userId,
+            userRole: "student",
+            title,
+            body: notifBody,
+            type: status === "approved" ? "success" : status === "rejected" ? "error" : "info",
+            link: "/dashboard",
+          });
+        } catch (e) { console.error("notify student failed:", e); }
+      }
+
       return NextResponse.json({ ok: true, registration: updated });
+    }
+
+    // ═══════════════════ MANAGER: Send notification ═══════════════════
+    if (action === "sendNotification") {
+      const { courseId, title, body: msgBody, type } = body;
+      if (!title) return NextResponse.json({ error: "عنوان الزامی است" }, { status: 400 });
+
+      // Verify course belongs to institute (if courseId provided)
+      let targetRegs;
+      if (courseId) {
+        const c = await db.select().from(courses)
+          .where(and(eq(courses.id, courseId), eq(courses.instituteId, inst.id)))
+          .then((r) => r[0]);
+        if (!c) return NextResponse.json({ error: "دوره متعلق به آموزشگاه شما نیست" }, { status: 403 });
+        targetRegs = await db.select({ userId: registrations.userId })
+          .from(registrations)
+          .where(and(eq(registrations.courseId, courseId), eq(registrations.status, "approved")));
+      } else {
+        // All approved students of this institute
+        targetRegs = await db.select({ userId: registrations.userId })
+          .from(registrations)
+          .where(and(eq(registrations.instituteId, inst.id), eq(registrations.status, "approved")));
+      }
+
+      const uids = Array.from(new Set(targetRegs.map((r) => r.userId).filter(Boolean))) as number[];
+      if (uids.length === 0) return NextResponse.json({ ok: true, sent: 0, message: "هیچ هنرجویی پیدا نشد" });
+
+      const { notifications } = await import("@/db/schema");
+      const rows = await db.insert(notifications).values(
+        uids.map((uid) => ({
+          userId: uid,
+          userRole: "student",
+          title: String(title).slice(0, 250),
+          body: msgBody ? String(msgBody).slice(0, 2000) : null,
+          type: type || "info",
+          link: null,
+        }))
+      ).returning();
+      return NextResponse.json({ ok: true, sent: rows.length });
     }
 
     if (action === "uploadCertificate") {
