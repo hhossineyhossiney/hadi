@@ -16,6 +16,7 @@ import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useMobilePanelDrawer } from "@/components/panel/useMobilePanelDrawer";
 import { normalizePhone } from "@/lib/phone";
+import PersianDatePicker from "@/components/PersianDatePicker";
 
 interface StudentReg {
   id: number;
@@ -370,9 +371,23 @@ function DashboardOverview({ data, stats, regs, setTab }: any) {
 
 /* ============ MY COURSES TAB ============ */
 function MyCoursesTab({ regs }: { regs: StudentReg[] }) {
+  const [recommended, setRecommended] = useState<any[]>([]);
+  const [loadingRec, setLoadingRec] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/student/recommended-courses")
+      .then((r) => r.json())
+      .then((d) => Array.isArray(d) ? setRecommended(d) : setRecommended([]))
+      .catch(() => setRecommended([]))
+      .finally(() => setLoadingRec(false));
+  }, []);
+
   return (
     <div>
-      <h2 className="text-xl font-black mb-6">دوره‌های من ({regs.length})</h2>
+      <div className="mb-6">
+        <h2 className="text-xl font-black">دوره‌های من ({regs.length})</h2>
+        <p className="text-slate-500 text-sm mt-1">دوره‌هایی که شما در آن‌ها ثبت‌نام کرده‌اید.</p>
+      </div>
       {regs.length === 0 ? (
         <div className="text-center py-20 bg-white/5 border border-white/10 rounded-[20px]">
           <BookOpen className="w-12 h-12 mx-auto text-slate-600 mb-3" />
@@ -410,6 +425,58 @@ function MyCoursesTab({ regs }: { regs: StudentReg[] }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ═══════════ RECOMMENDED COURSES SECTION (distinct amber/gold theme) ═══════════ */}
+      {!loadingRec && recommended.length > 0 && (
+        <div className="mt-10">
+          <div className="relative bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent border-2 border-dashed border-amber-500/40 rounded-[20px] p-6">
+            <div className="absolute -top-3 right-6 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-black flex items-center gap-1 shadow-lg">
+              <Sparkles className="w-3 h-3" /> پیشنهاد ویژه برای شما
+            </div>
+
+            <div className="mb-4 mt-2">
+              <h3 className="text-base font-black text-amber-300 flex items-center gap-2">
+                <Award className="w-5 h-5" />
+                دوره‌های پیشنهادی
+              </h3>
+              <p className="text-[11px] text-amber-200/80 mt-1">
+                این دوره‌ها توسط مرکز فنی و حرفه‌ای به شما پیشنهاد می‌شوند و شامل دوره‌های خود شما نیستند.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {recommended.map((c) => (
+                <Link key={c.id} href={`/courses/${c.courseSlug || c.slug}`}
+                  className="bg-white/5 hover:bg-amber-500/5 border border-amber-500/30 hover:border-amber-500/60 rounded-[14px] p-4 transition-all group">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] font-black text-amber-400 mb-1">{c.categoryName || "دوره"}</div>
+                      <h4 className="font-black text-white text-sm line-clamp-1 group-hover:text-amber-300 transition-colors">{c.title}</h4>
+                      <div className="text-[11px] text-slate-400 flex items-center gap-1 mt-1">
+                        <Building2 className="w-3 h-3" /> {c.instituteName}
+                      </div>
+                    </div>
+                    <div className="text-amber-500 shrink-0"><ChevronLeft className="w-4 h-4" /></div>
+                  </div>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-amber-500/20">
+                    <div className="flex items-center gap-3 text-[10px] text-slate-400">
+                      {c.instructor && <span className="flex items-center gap-1"><GraduationCap className="w-3 h-3" />{c.instructor}</span>}
+                      {c.duration && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{c.duration}</span>}
+                    </div>
+                    <div className="text-xs font-black text-amber-400">
+                      {c.price ? Number(c.price).toLocaleString("fa-IR") + " ت" : "رایگان"}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            <Link href="/courses" className="mt-4 inline-flex items-center gap-1 text-[11px] font-black text-amber-300 hover:text-amber-200">
+              مشاهده همه دوره‌ها <ArrowLeft className="w-3 h-3" />
+            </Link>
+          </div>
         </div>
       )}
     </div>
@@ -1253,9 +1320,7 @@ function ProfileTab() {
           </div>
           <div>
             <label className="text-[11px] font-bold text-slate-400 mb-1 block">تاریخ تولد</label>
-            <input value={data.birthDate} onChange={(e) => set("birthDate", e.target.value)}
-              placeholder="۱۳۷۵/۰۵/۱۵" dir="ltr"
-              className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white" />
+            <PersianDatePicker value={data.birthDate} onChange={(v) => set("birthDate", v)} placeholder="انتخاب تاریخ تولد" />
           </div>
           <div>
             <label className="text-[11px] font-bold text-slate-400 mb-1 block">جنسیت</label>
