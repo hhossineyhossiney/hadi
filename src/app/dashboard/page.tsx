@@ -64,7 +64,7 @@ interface DashboardData {
   upcomingSessions: any[];
 }
 
-type TabKey = "dashboard" | "courses" | "progress" | "schedule" | "chat" | "notifications" | "certificates" | "wallet" | "favorites" | "portfolio";
+type TabKey = "dashboard" | "courses" | "progress" | "schedule" | "chat" | "notifications" | "certificates" | "wallet" | "favorites" | "portfolio" | "profile";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
@@ -77,6 +77,7 @@ const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "wallet", label: "کیف پول و مالی", icon: Wallet },
   { key: "favorites", label: "علاقه‌مندی‌ها", icon: Heart },
   { key: "portfolio", label: "رزومه و نمونه‌کار", icon: Briefcase },
+  { key: "profile", label: "ویرایش پروفایل", icon: User },
 ];
 
 function StudentDashboardContent() {
@@ -141,10 +142,10 @@ function StudentDashboardContent() {
   const regs = data?.registrations || [];
 
   return (
-    <div className="pt-[132px] lg:pt-20 bg-[#0B1120] min-h-screen text-white">
+    <div className="pt-20 bg-[#0B1120] min-h-screen text-white">
       <div className="lg:flex lg:flex-row lg:min-h-[calc(100vh-80px)]">
-        {/* Mobile top compact bar - fixed directly under navbar */}
-        <div className="lg:hidden fixed top-20 left-0 right-0 z-30 bg-[#0B1120] border-b border-white/10 px-4 py-3 flex items-center gap-3">
+        {/* Mobile top compact bar */}
+        <div className="lg:hidden sticky top-20 z-30 bg-[#0B1120]/95 backdrop-blur-lg border-b border-white/10 px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => setDrawerOpen(true)}
             className="w-10 h-10 rounded-[12px] bg-primary-600/20 hover:bg-primary-600/30 border border-primary-500/30 flex items-center justify-center text-primary-300 cursor-pointer"
@@ -166,13 +167,13 @@ function StudentDashboardContent() {
         </div>
 
         {drawerOpen && (
-          <div onClick={() => setDrawerOpen(false)} className="lg:hidden panel-drawer-backdrop" />
+          <div onClick={() => setDrawerOpen(false)} className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" />
         )}
 
-        <aside className={`panel-mobile-drawer shrink-0 bg-[#0B1120] lg:border-l lg:border-white/5 lg:w-72 lg:static lg:translate-x-0
-          w-[85%] max-w-[320px] overflow-y-auto lg:block
-          ${drawerOpen ? "is-open" : ""}`}
-          style={{ boxShadow: drawerOpen ? "0 20px 40px rgba(0,0,0,0.5)" : undefined }}>
+        <aside className={`shrink-0 bg-[#0B1120] lg:border-l lg:border-white/5 lg:w-72 lg:static lg:translate-x-0
+          fixed top-0 right-0 bottom-0 z-50 w-[85%] max-w-[320px] overflow-y-auto transition-transform duration-300 ease-out
+          ${drawerOpen ? "translate-x-0 block" : "translate-x-full hidden lg:block lg:translate-x-0"}`}
+          style={{ boxShadow: drawerOpen ? "-20px 0 60px rgba(0,0,0,0.5)" : undefined }}>
           <div className="p-5 flex items-center justify-between border-b border-white/10">
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 rounded-full bg-primary-500 animate-pulse" />
@@ -240,6 +241,7 @@ function StudentDashboardContent() {
           {tab === "wallet" && <WalletTab user={data?.user} balance={stats.walletBalance} />}
           {tab === "favorites" && <FavoritesTab regs={regs} />}
           {tab === "portfolio" && <PortfolioTab user={data?.user} />}
+          {tab === "profile" && <ProfileTab />}
         </main>
       </div>
     </div>
@@ -626,47 +628,532 @@ function CertificatesTab({ regs }: { regs: StudentReg[] }) {
   );
 }
 
-/* ============ WALLET ============ */
+/* ============ WALLET — full functional ============ */
 function WalletTab({ user, balance }: { user: any; balance: number }) {
+  const [currentBalance, setCurrentBalance] = useState(balance);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [chargeOpen, setChargeOpen] = useState(false);
+  const [chargeAmount, setChargeAmount] = useState("");
+  const [chargeLoading, setChargeLoading] = useState(false);
+  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const load = () => {
+    setLoading(true);
+    fetch("/api/student/wallet")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.balance !== undefined) setCurrentBalance(d.balance);
+        setTransactions(d.transactions || []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []);
+
+  const parseAmount = (s: string): number => {
+    const clean = s.replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[^\d]/g, "");
+    return Number(clean) || 0;
+  };
+  const displayAmount = (v: string) => {
+    const n = parseAmount(v);
+    if (!n) return "";
+    return n.toLocaleString("fa-IR");
+  };
+
+  const doCharge = async () => {
+    const amt = parseAmount(chargeAmount);
+    if (amt < 10000) {
+      setMsg({ type: "err", text: "حداقل مبلغ شارژ ۱۰,۰۰۰ تومان است" });
+      return;
+    }
+    setChargeLoading(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/student/wallet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "deposit", amount: amt, description: "شارژ آنلاین کیف پول" }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setMsg({ type: "ok", text: `کیف پول با موفقیت ${amt.toLocaleString("fa-IR")} تومان شارژ شد.` });
+        setChargeAmount("");
+        setChargeOpen(false);
+        load();
+      } else {
+        setMsg({ type: "err", text: d.error || "خطا در شارژ" });
+      }
+    } catch {
+      setMsg({ type: "err", text: "خطا در ارتباط با سرور" });
+    } finally {
+      setChargeLoading(false);
+    }
+  };
+
+  const quickAmounts = [100_000, 500_000, 1_000_000, 5_000_000];
+
+  const txIcon = (type: string) => {
+    if (type === "deposit") return <ArrowLeft className="w-4 h-4 text-emerald-400 rotate-[135deg]" />;
+    if (type === "payment") return <BookOpen className="w-4 h-4 text-primary-400" />;
+    if (type === "refund") return <ArrowLeft className="w-4 h-4 text-amber-400 rotate-[-45deg]" />;
+    return <Wallet className="w-4 h-4 text-slate-400" />;
+  };
+  const txLabel = (type: string) => {
+    if (type === "deposit") return "شارژ";
+    if (type === "withdraw") return "برداشت";
+    if (type === "payment") return "پرداخت دوره";
+    if (type === "refund") return "بازپرداخت";
+    return type;
+  };
+
   return (
     <div>
       <h2 className="text-xl font-black mb-6">کیف پول و مالی</h2>
-      <div className="bg-gradient-to-br from-primary-600 to-purple-600 rounded-[24px] p-8 text-white mb-6">
-        <div className="text-xs opacity-70 mb-2">موجودی کیف پول</div>
-        <div className="text-4xl font-black" dir="ltr">{Number(balance || 0).toLocaleString("fa-IR")} <span className="text-lg">تومان</span></div>
+
+      {msg && (
+        <div className={`mb-4 p-3 rounded-[12px] text-xs font-bold ${msg.type === "ok" ? "bg-emerald-500/15 text-emerald-300" : "bg-error-500/15 text-error-400"}`}>
+          {msg.text}
+        </div>
+      )}
+
+      {/* Balance Card */}
+      <div className="bg-gradient-to-br from-primary-600 to-purple-600 rounded-[24px] p-8 text-white mb-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-16 translate-x-16" />
+        <div className="relative">
+          <div className="text-xs opacity-80 mb-2">موجودی کیف پول شما</div>
+          <div className="text-4xl font-black mb-4" dir="ltr">
+            {Number(currentBalance || 0).toLocaleString("fa-IR")} <span className="text-lg opacity-80">تومان</span>
+          </div>
+          <button
+            onClick={() => setChargeOpen(!chargeOpen)}
+            className="px-5 py-2.5 rounded-[12px] bg-white text-primary-700 font-black text-sm flex items-center gap-2 shadow-lg"
+          >
+            <PlusCircle className="w-4 h-4" /> شارژ کیف پول
+          </button>
+        </div>
       </div>
-      <div className="text-center py-10 bg-white/5 border border-white/10 rounded-[16px]">
-        <Wallet className="w-12 h-12 mx-auto text-slate-600 mb-3" />
-        <p className="text-slate-500 text-sm">تراکنشی ثبت نشده است.</p>
+
+      {/* Charge form */}
+      {chargeOpen && (
+        <div className="mb-6 bg-white/5 border border-white/10 rounded-[16px] p-5">
+          <h3 className="font-black text-sm mb-3">شارژ کیف پول</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+            {quickAmounts.map((a) => (
+              <button
+                key={a}
+                onClick={() => setChargeAmount(String(a))}
+                className="py-2 rounded-[10px] bg-primary-500/15 hover:bg-primary-500/30 text-primary-300 text-xs font-black transition-colors"
+              >
+                {a.toLocaleString("fa-IR")} ت
+              </button>
+            ))}
+          </div>
+          <div className="relative">
+            <input
+              type="text"
+              value={displayAmount(chargeAmount)}
+              onChange={(e) => setChargeAmount(e.target.value.replace(/[^\d۰-۹]/g, ""))}
+              placeholder="مبلغ به تومان (حداقل ۱۰,۰۰۰)"
+              dir="ltr"
+              className="w-full px-4 py-3 pl-20 rounded-[12px] bg-[#0B1120] border border-white/10 text-white text-right font-bold"
+            />
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400 text-xs font-black pointer-events-none">
+              تومان
+            </div>
+          </div>
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={doCharge}
+              disabled={chargeLoading || !chargeAmount}
+              className="flex-1 py-3 rounded-[12px] bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-black cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {chargeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              پرداخت و شارژ
+            </button>
+            <button
+              onClick={() => { setChargeOpen(false); setChargeAmount(""); }}
+              className="px-4 py-3 rounded-[12px] bg-white/10 text-white text-sm font-black cursor-pointer"
+            >
+              انصراف
+            </button>
+          </div>
+          <p className="text-[10px] text-slate-500 mt-3">
+            💡 در حال حاضر پرداخت آزمایشی است. با راه‌اندازی درگاه، پرداخت واقعی فعال می‌شود.
+          </p>
+        </div>
+      )}
+
+      {/* Transactions */}
+      <div>
+        <h3 className="font-black text-sm mb-3 text-slate-300">تاریخچه تراکنش‌ها</h3>
+        {loading ? (
+          <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary-500" /></div>
+        ) : transactions.length === 0 ? (
+          <div className="text-center py-10 bg-white/5 border border-white/10 rounded-[16px]">
+            <Wallet className="w-12 h-12 mx-auto text-slate-600 mb-3" />
+            <p className="text-slate-500 text-sm">تراکنشی ثبت نشده است.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {transactions.map((t) => (
+              <div key={t.id} className="bg-white/5 border border-white/10 rounded-[12px] p-3 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-[10px] bg-white/5 flex items-center justify-center shrink-0">
+                  {txIcon(t.type)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-black text-sm">{txLabel(t.type)}</div>
+                  {t.description && <div className="text-[10px] text-slate-500 truncate">{t.description}</div>}
+                  <div className="text-[9px] text-slate-600 mt-0.5" dir="ltr">
+                    {new Date(t.createdAt).toLocaleString("fa-IR")}
+                  </div>
+                </div>
+                <div className={`text-sm font-black shrink-0 ${t.type === "deposit" || t.type === "refund" ? "text-emerald-400" : "text-error-400"}`}>
+                  {t.type === "deposit" || t.type === "refund" ? "+" : "−"}
+                  {Number(t.amount).toLocaleString("fa-IR")}
+                  <span className="text-[10px] font-bold opacity-70 mr-1">ت</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-/* ============ FAVORITES ============ */
+/* ============ FAVORITES — with real toggle & remove ============ */
 function FavoritesTab({ regs }: { regs: StudentReg[] }) {
-  const favs = regs.filter((r) => r.isFavorite);
+  const [favs, setFavs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<number | null>(null);
+
+  const load = () => {
+    setLoading(true);
+    fetch("/api/student/favorites")
+      .then((r) => r.json())
+      .then((d) => Array.isArray(d) ? setFavs(d) : setFavs([]))
+      .catch(() => setFavs([]))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []);
+
+  const remove = async (courseId: number) => {
+    setBusy(courseId);
+    try {
+      await fetch("/api/student/favorites", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId }),
+      });
+      load();
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <div>
-      <h2 className="text-xl font-black mb-6">علاقه‌مندی‌ها</h2>
-      {favs.length === 0 ? (
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-black">علاقه‌مندی‌ها</h2>
+          <p className="text-slate-500 text-sm">دوره‌های مورد علاقه شما ({favs.length} دوره)</p>
+        </div>
+      </div>
+      {loading ? (
+        <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-primary-500" /></div>
+      ) : favs.length === 0 ? (
         <div className="text-center py-16 bg-white/5 border border-white/10 rounded-[16px]">
           <Heart className="w-12 h-12 mx-auto text-slate-600 mb-3" />
-          <p className="text-slate-500 text-sm">هنوز دوره‌ای به علاقه‌مندی‌ها اضافه نکرده‌اید.</p>
+          <p className="text-slate-500 text-sm mb-2">هنوز دوره‌ای به علاقه‌مندی‌ها اضافه نکرده‌اید.</p>
+          <Link href="/courses" className="inline-block mt-2 px-5 py-2 rounded-[10px] bg-primary-600 text-white text-xs font-black">
+            مشاهده دوره‌ها
+          </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {favs.map((r) => (
-            <div key={r.id} className="bg-white/5 border border-white/10 rounded-[16px] p-4 flex items-center gap-3">
-              <Heart className="w-5 h-5 text-error-400 fill-error-400" />
-              <div>
-                <h4 className="font-black text-sm">{r.courseTitle}</h4>
-                <div className="text-[11px] text-slate-500">{r.instituteName}</div>
+          {favs.map((f) => (
+            <div key={f.registrationId} className="bg-white/5 border border-white/10 rounded-[16px] p-5">
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-black text-primary-300 mb-1">{f.categoryName || "دوره"}</div>
+                  <h3 className="font-black text-white line-clamp-1">{f.courseTitle}</h3>
+                  <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
+                    <Building2 className="w-3 h-3" />{f.instituteName}
+                  </div>
+                </div>
+                <button
+                  onClick={() => remove(f.courseId)}
+                  disabled={busy === f.courseId}
+                  className="p-2 rounded-[10px] bg-error-500/15 text-error-400 hover:bg-error-500/25 cursor-pointer"
+                  title="حذف از علاقه‌مندی‌ها"
+                >
+                  {busy === f.courseId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className="w-4 h-4 fill-error-400" />}
+                </button>
+              </div>
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+                <div className="text-xs">
+                  <span className="text-slate-500">شهریه: </span>
+                  <b className="text-emerald-400">{f.price ? Number(f.price).toLocaleString("fa-IR") + " ت" : "رایگان"}</b>
+                </div>
+                <Link
+                  href={`/courses/${f.courseSlug}`}
+                  className="px-3 py-1.5 rounded-[8px] bg-primary-600 text-white text-[11px] font-black flex items-center gap-1"
+                >
+                  <BookOpen className="w-3 h-3" /> مشاهده دوره
+                </Link>
               </div>
             </div>
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ============ PROFILE — full edit ============ */
+function ProfileTab() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [showPass, setShowPass] = useState(false);
+  const [passForm, setPassForm] = useState({ currentPassword: "", newPassword: "" });
+
+  const load = () => {
+    setLoading(true);
+    fetch("/api/student/profile")
+      .then((r) => r.json())
+      .then((d) => { setData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []);
+
+  const save = async (extra: any = {}) => {
+    setSaving(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/student/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, ...extra }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setMsg({ type: "ok", text: "اطلاعات با موفقیت ذخیره شد." });
+        load();
+      } else {
+        setMsg({ type: "err", text: d.error || "خطا در ذخیره" });
+      }
+    } catch {
+      setMsg({ type: "err", text: "خطا در ارتباط با سرور" });
+    } finally { setSaving(false); }
+  };
+
+  const uploadAvatar = (file: File) => {
+    if (file.size > 500_000) { setMsg({ type: "err", text: "حجم عکس باید کمتر از ۵۰۰KB باشد" }); return; }
+    const reader = new FileReader();
+    reader.onload = () => save({ avatar: reader.result });
+    reader.readAsDataURL(file);
+  };
+
+  const changePassword = async () => {
+    if (passForm.newPassword.length < 6) {
+      setMsg({ type: "err", text: "رمز جدید حداقل ۶ کاراکتر" }); return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/student/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: passForm.currentPassword,
+          newPassword: passForm.newPassword,
+        }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setMsg({ type: "ok", text: "رمز عبور با موفقیت تغییر کرد." });
+        setPassForm({ currentPassword: "", newPassword: "" });
+        setShowPass(false);
+      } else {
+        setMsg({ type: "err", text: d.error || "خطا در تغییر رمز" });
+      }
+    } finally { setSaving(false); }
+  };
+
+  if (loading || !data) {
+    return <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary-500" /></div>;
+  }
+
+  const set = (k: string, v: any) => setData({ ...data, [k]: v });
+
+  return (
+    <div>
+      <h2 className="text-xl font-black mb-2">ویرایش پروفایل</h2>
+      <p className="text-slate-500 text-sm mb-6">اطلاعات شخصی و تماس خود را به‌طور کامل مدیریت کنید.</p>
+
+      {msg && (
+        <div className={`mb-4 p-3 rounded-[12px] text-xs font-bold ${msg.type === "ok" ? "bg-emerald-500/15 text-emerald-300" : "bg-error-500/15 text-error-400"}`}>
+          {msg.text}
+        </div>
+      )}
+
+      {/* Avatar */}
+      <div className="bg-white/5 border border-white/10 rounded-[16px] p-5 mb-4 flex items-center gap-4">
+        <div className="relative">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center text-white font-black text-2xl overflow-hidden">
+            {data.avatar ? (
+              <img src={data.avatar} alt="" className="w-full h-full object-cover" />
+            ) : (
+              (data.firstName || data.name || "?")[0]
+            )}
+          </div>
+          <label className="absolute bottom-0 left-0 w-7 h-7 rounded-full bg-primary-600 hover:bg-primary-700 text-white flex items-center justify-center cursor-pointer shadow-lg">
+            <PlusCircle className="w-4 h-4" />
+            <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])} />
+          </label>
+        </div>
+        <div className="flex-1">
+          <div className="font-black text-white">{data.name || "بدون نام"}</div>
+          <div className="text-[11px] text-slate-500" dir="ltr">{data.phone}</div>
+          <div className="text-[10px] text-slate-600 mt-1">عکس پروفایل: کلیک روی آیکون + برای آپلود</div>
+        </div>
+      </div>
+
+      {/* Basic Info */}
+      <div className="bg-white/5 border border-white/10 rounded-[16px] p-5 mb-4">
+        <h3 className="font-black text-sm mb-4 text-primary-300">اطلاعات هویتی</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="text-[11px] font-bold text-slate-400 mb-1 block">نام</label>
+            <input value={data.firstName} onChange={(e) => set("firstName", e.target.value)}
+              className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white" />
+          </div>
+          <div>
+            <label className="text-[11px] font-bold text-slate-400 mb-1 block">نام خانوادگی</label>
+            <input value={data.lastName} onChange={(e) => set("lastName", e.target.value)}
+              className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white" />
+          </div>
+          <div>
+            <label className="text-[11px] font-bold text-slate-400 mb-1 block">کد ملی (۱۰ رقم)</label>
+            <input value={data.nationalId} onChange={(e) => set("nationalId", e.target.value.replace(/[^\d۰-۹]/g, ""))}
+              dir="ltr" maxLength={10}
+              className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white" />
+          </div>
+          <div>
+            <label className="text-[11px] font-bold text-slate-400 mb-1 block">تاریخ تولد</label>
+            <input value={data.birthDate} onChange={(e) => set("birthDate", e.target.value)}
+              placeholder="۱۳۷۵/۰۵/۱۵" dir="ltr"
+              className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white" />
+          </div>
+          <div>
+            <label className="text-[11px] font-bold text-slate-400 mb-1 block">جنسیت</label>
+            <select value={data.gender || ""} onChange={(e) => set("gender", e.target.value)}
+              className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white cursor-pointer">
+              <option value="">— انتخاب کنید —</option>
+              <option value="male">مرد</option>
+              <option value="female">زن</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-[11px] font-bold text-slate-400 mb-1 block">تحصیلات</label>
+            <select value={data.education || ""} onChange={(e) => set("education", e.target.value)}
+              className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white cursor-pointer">
+              <option value="">— انتخاب کنید —</option>
+              <option value="under-diploma">زیر دیپلم</option>
+              <option value="diploma">دیپلم</option>
+              <option value="associate">کاردانی</option>
+              <option value="bachelor">کارشناسی</option>
+              <option value="master">کارشناسی ارشد</option>
+              <option value="phd">دکترا</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Contact */}
+      <div className="bg-white/5 border border-white/10 rounded-[16px] p-5 mb-4">
+        <h3 className="font-black text-sm mb-4 text-primary-300">اطلاعات تماس</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="text-[11px] font-bold text-slate-400 mb-1 block">شماره موبایل</label>
+            <input value={data.phone} disabled dir="ltr"
+              className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-slate-400 cursor-not-allowed" />
+            <p className="text-[10px] text-slate-600 mt-1">برای تغییر شماره با پشتیبانی تماس بگیرید.</p>
+          </div>
+          <div>
+            <label className="text-[11px] font-bold text-slate-400 mb-1 block">ایمیل</label>
+            <input value={data.email} onChange={(e) => set("email", e.target.value)}
+              placeholder="you@example.com" dir="ltr"
+              className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-[11px] font-bold text-slate-400 mb-1 block">آدرس کامل</label>
+            <textarea value={data.address} onChange={(e) => set("address", e.target.value)} rows={2}
+              className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white resize-none" />
+          </div>
+        </div>
+      </div>
+
+      {/* Bio */}
+      <div className="bg-white/5 border border-white/10 rounded-[16px] p-5 mb-4">
+        <h3 className="font-black text-sm mb-4 text-primary-300">درباره من</h3>
+        <textarea value={data.bio} onChange={(e) => set("bio", e.target.value)} rows={3}
+          placeholder="خلاصه‌ای درباره خود بنویسید..."
+          className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white resize-none" />
+      </div>
+
+      {/* Notifications */}
+      <div className="bg-white/5 border border-white/10 rounded-[16px] p-5 mb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="font-black text-sm text-primary-300 mb-1">اعلان‌ها</h3>
+            <p className="text-[11px] text-slate-500">دریافت اعلان درباره دوره‌ها، پیام‌ها و به‌روزرسانی‌ها</p>
+          </div>
+          <button
+            onClick={() => set("notificationsEnabled", !data.notificationsEnabled)}
+            className={`relative w-12 h-6 rounded-full transition-colors ${data.notificationsEnabled ? "bg-emerald-500" : "bg-white/10"}`}
+          >
+            <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${data.notificationsEnabled ? "left-0.5" : "left-[26px]"}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Save Button */}
+      <button
+        onClick={() => save()}
+        disabled={saving}
+        className="w-full py-3.5 rounded-[14px] bg-primary-600 hover:bg-primary-700 text-white font-black text-sm disabled:opacity-50 flex items-center justify-center gap-2 mb-4"
+      >
+        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+        ذخیره تغییرات
+      </button>
+
+      {/* Password Change */}
+      <div className="bg-white/5 border border-white/10 rounded-[16px] p-5">
+        <button onClick={() => setShowPass(!showPass)} className="w-full flex items-center justify-between text-right">
+          <div>
+            <h3 className="font-black text-sm text-primary-300">تغییر رمز عبور</h3>
+            <p className="text-[11px] text-slate-500">برای امنیت بیشتر، رمز عبور خود را عوض کنید</p>
+          </div>
+          <ChevronLeft className={`w-5 h-5 text-slate-400 transition-transform ${showPass ? "-rotate-90" : ""}`} />
+        </button>
+        {showPass && (
+          <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
+            <input type="password" value={passForm.currentPassword} onChange={(e) => setPassForm({ ...passForm, currentPassword: e.target.value })}
+              placeholder="رمز فعلی" dir="ltr"
+              className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white" />
+            <input type="password" value={passForm.newPassword} onChange={(e) => setPassForm({ ...passForm, newPassword: e.target.value })}
+              placeholder="رمز جدید (حداقل ۶ کاراکتر)" dir="ltr"
+              className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white" />
+            <button onClick={changePassword} disabled={saving || !passForm.currentPassword || !passForm.newPassword}
+              className="w-full py-2.5 rounded-[10px] bg-amber-500 hover:bg-amber-600 text-white text-sm font-black disabled:opacity-50">
+              تغییر رمز
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
