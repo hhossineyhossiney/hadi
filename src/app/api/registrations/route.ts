@@ -111,26 +111,43 @@ export async function POST(request: Request) {
     }
 
     // Check course & institute details
-    const courseDetails = await db
-      .select({
+    const fetchCourseDetails = async (withNew: boolean) => {
+      const fields: any = {
         id: courses.id,
         title: courses.title,
         price: courses.price,
         capacity: courses.capacity,
         enrolledCount: courses.enrolledCount,
-        registrationClosed: courses.registrationClosed,
-        registrationEnded: courses.registrationEnded,
         startDate: courses.startDate,
         schedule: courses.schedule,
         instituteId: courses.instituteId,
         instituteName: institutes.name,
         institutePhone: institutes.phone,
         instituteMobile: institutes.mobile,
-      })
-      .from(courses)
-      .leftJoin(institutes, eq(courses.instituteId, institutes.id))
-      .where(eq(courses.id, courseId))
-      .then((res) => res[0]);
+      };
+      if (withNew) {
+        fields.registrationClosed = courses.registrationClosed;
+        fields.registrationEnded = courses.registrationEnded;
+      }
+      return db
+        .select(fields)
+        .from(courses)
+        .leftJoin(institutes, eq(courses.instituteId, institutes.id))
+        .where(eq(courses.id, courseId))
+        .then((res: any[]) => res[0]);
+    };
+
+    let courseDetails: any;
+    try {
+      courseDetails = await fetchCourseDetails(true);
+    } catch (e: any) {
+      console.error("Falling back to legacy course query:", e?.message);
+      courseDetails = await fetchCourseDetails(false);
+      if (courseDetails) {
+        courseDetails.registrationClosed = false;
+        courseDetails.registrationEnded = false;
+      }
+    }
 
     if (!courseDetails) {
       return NextResponse.json({ error: "دوره یافت نشد" }, { status: 404 });
