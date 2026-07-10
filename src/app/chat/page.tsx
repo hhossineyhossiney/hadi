@@ -76,6 +76,8 @@ function ChatContent() {
   const [notifSound, setNotifSound] = useState(true);
   const [muteAll, setMuteAll] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const messagesContainerMobileRef = useRef<HTMLDivElement>(null);
 
   const loadThreads = () => {
     const params = new URLSearchParams({ filter });
@@ -121,7 +123,18 @@ function ChatContent() {
     return () => clearInterval(t);
   }, [activeThreadId]);
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  // Scroll message list to bottom without affecting page scroll
+  useEffect(() => {
+    const scrollToBottom = (container: HTMLDivElement | null) => {
+      if (!container) return;
+      // Use rAF to avoid layout thrash
+      requestAnimationFrame(() => {
+        container.scrollTop = container.scrollHeight;
+      });
+    };
+    scrollToBottom(messagesContainerRef.current);
+    scrollToBottom(messagesContainerMobileRef.current);
+  }, [messages]);
 
   const send = async () => {
     if (!input.trim() || !activeThreadId || sending) return;
@@ -193,9 +206,9 @@ function ChatContent() {
         <div className="lg:hidden">
           {activeThreadId && active ? (
             /* --- MOBILE: single conversation view --- */
-            <div className="bg-[#111a2e] border border-white/10 rounded-[20px] overflow-hidden flex flex-col h-[calc(100vh-160px)]">
+            <div className="bg-[#111a2e] border border-white/10 rounded-[20px] overflow-hidden flex flex-col" style={{ height: "calc(100dvh - 160px)" }}>
               {/* Header */}
-              <div className="p-3 border-b border-white/10 flex items-center gap-2.5 relative">
+              <div className="shrink-0 p-3 border-b border-white/10 flex items-center gap-2.5 relative">
                 <button onClick={() => setActiveThreadId(null)} className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400">
                   <ArrowRight className="w-4 h-4" />
                 </button>
@@ -235,7 +248,7 @@ function ChatContent() {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-3 space-y-2" style={{ backgroundImage: "radial-gradient(circle at 20% 30%, rgba(59,130,246,0.05), transparent 50%)" }}>
+              <div ref={messagesContainerMobileRef} className="flex-1 overflow-y-auto overscroll-contain p-3 space-y-2" style={{ backgroundImage: "radial-gradient(circle at 20% 30%, rgba(59,130,246,0.05), transparent 50%)" }}>
                 {messages.length === 0 && (
                   <div className="text-center py-16 text-slate-500 text-xs">
                     <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -264,7 +277,7 @@ function ChatContent() {
               </div>
 
               {/* Input */}
-              <div className="p-2.5 border-t border-white/10 bg-[#0B1120]/50 flex items-center gap-1.5">
+              <div className="shrink-0 p-2.5 border-t border-white/10 bg-[#0B1120]/50 flex items-center gap-1.5">
                 <button className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400"><Paperclip className="w-4 h-4" /></button>
                 <button className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400"><Smile className="w-4 h-4" /></button>
                 <input value={input} onChange={(e) => setInput(e.target.value)}
@@ -279,7 +292,7 @@ function ChatContent() {
             </div>
           ) : (
             /* --- MOBILE: ultra clean threads list --- */
-            <div className="bg-[#111a2e] border border-white/10 rounded-[20px] overflow-hidden flex flex-col h-[calc(100vh-160px)] relative">
+            <div className="bg-[#111a2e] border border-white/10 rounded-[20px] overflow-hidden flex flex-col relative" style={{ height: "calc(100dvh - 160px)" }}>
               {/* Minimal header: just title + 3-dot */}
               <div className="p-4 border-b border-white/10 flex items-center gap-2">
                 <MessageCircle className="w-5 h-5 text-primary-400" />
@@ -587,7 +600,7 @@ function ChatContent() {
                       </div>
                     )}
                   </div>
-                  <div className="flex-1 overflow-y-auto p-4 space-y-2" style={{ backgroundImage: "radial-gradient(circle at 20% 30%, rgba(59,130,246,0.05), transparent 50%)" }}>
+                  <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-2" style={{ backgroundImage: "radial-gradient(circle at 20% 30%, rgba(59,130,246,0.05), transparent 50%)" }}>
                     {messages.length === 0 && (
                       <div className="text-center py-16 text-slate-500 text-xs">
                         <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -612,7 +625,7 @@ function ChatContent() {
                     })}
                     <div ref={endRef} />
                   </div>
-                  <div className="p-3 border-t border-white/10 bg-[#0B1120]/50 flex items-center gap-2">
+                  <div className="shrink-0 p-3 border-t border-white/10 bg-[#0B1120]/50 flex items-center gap-2">
                     <button className="p-2 rounded-lg hover:bg-white/5 text-slate-400"><Paperclip className="w-4 h-4" /></button>
                     <button className="p-2 rounded-lg hover:bg-white/5 text-slate-400"><Smile className="w-4 h-4" /></button>
                     <input value={input} onChange={(e) => setInput(e.target.value)}
