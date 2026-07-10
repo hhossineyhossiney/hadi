@@ -69,25 +69,34 @@ export async function GET(request: Request) {
     )
     .orderBy(desc(registrations.createdAt));
 
+  // Filter out favorite-only records (they use notes='__FAV__' marker)
+  const realRegs = userRegs.filter((r) => r.notes !== "__FAV__");
+
   // Aggregates
-  const activeRegs = userRegs.filter((r) => r.status === "approved");
+  const activeRegs = realRegs.filter((r) => r.status === "approved");
   const totalHours = activeRegs.reduce((sum, r) => {
     const m = String(r.duration || "").match(/(\d+)/);
     return sum + (m ? parseInt(m[1]) : 0);
   }, 0);
-  const certificatesCount = userRegs.filter((r) => r.certificateUrl).length;
+  const certificatesCount = realRegs.filter((r) => r.certificateUrl).length;
 
-  // Wallet balance
+  // Wallet balance — prefer users.walletBalance (source of truth), fallback to latest tx
   let walletBalance = 0;
   if (user) {
     try {
-      const tx = await db
-        .select()
-        .from(walletTransactions)
-        .where(eq(walletTransactions.userId, user.id))
-        .orderBy(desc(walletTransactions.createdAt))
-        .limit(1);
-      walletBalance = tx[0] ? Number(tx[0].balanceAfter || 0) : 0;
+      // Try users.walletBalance first (new column)
+      const u2: any = await db.execute(`SELECT wallet_balance FROM users WHERE id = ${user.id} LIMIT 1` as any).catch(() => null);
+      if (u2?.rows?.[0]?.wallet_balance !== undefined) {
+        walletBalance = Number(u2.rows[0].wallet_balance || 0);
+      } else {
+        const tx = await db
+          .select()
+          .from(walletTransactions)
+          .where(eq(walletTransactions.userId, user.id))
+          .orderBy(desc(walletTransactions.createdAt))
+          .limit(1);
+        walletBalance = tx[0] ? Number(tx[0].balanceAfter || 0) : 0;
+      }
     } catch {
       walletBalance = 0;
     }
@@ -124,14 +133,14 @@ export async function GET(request: Request) {
     user: user
       ? { id: user.id, name: user.name, phone: user.phone, email: user.email, avatar: user.avatar }
       : null,
-    registrations: userRegs,
+    registrations: realRegs,
     stats: {
       activeCourses: activeRegs.length,
       totalHours,
       certificates: certificatesCount,
       walletBalance,
-      pendingCount: userRegs.filter((r) => r.status === "pending").length,
-      completedCount: userRegs.filter((r) => (r.progress || 0) >= 100).length,
+      pendingCount: realRegs.filter((r) => r.status === "pending").length,
+      completedCount: realRegs.filter((r) => (r.progress || 0) >= 100).length,
       notificationsUnread: notifCount,
     },
     upcomingSessions,
