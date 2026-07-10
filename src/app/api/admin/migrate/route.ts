@@ -31,6 +31,8 @@ const MIGRATIONS: { name: string; sql: string }[] = [
       ALTER TABLE courses ADD COLUMN IF NOT EXISTS instructor_title VARCHAR(150);
       ALTER TABLE courses ADD COLUMN IF NOT EXISTS level VARCHAR(30);
       ALTER TABLE courses ADD COLUMN IF NOT EXISTS total_sessions INTEGER DEFAULT 0;
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS registration_closed BOOLEAN DEFAULT FALSE;
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS registration_ended BOOLEAN DEFAULT FALSE;
     `,
   },
   // 3) Extend registrations
