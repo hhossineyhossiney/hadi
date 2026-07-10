@@ -429,41 +429,77 @@ function StatusBadge({ status }: { status: string }) {
 /* ============ PROGRESS TAB ============ */
 function ProgressTab({ regs }: { regs: StudentReg[] }) {
   const approved = regs.filter((r) => r.status === "approved");
+  const toPersian = (str: string | number) => String(str).replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[+d]);
+
   return (
     <div>
-      <h2 className="text-xl font-black mb-6">وضعیت پیشرفت</h2>
+      <div className="mb-6">
+        <h2 className="text-xl font-black">وضعیت پیشرفت</h2>
+        <p className="text-slate-500 text-sm mt-1">
+          درصد پیشرفت هر دوره را ببینید. این اطلاعات را مدیر آموزشگاه به‌روزرسانی می‌کند و شما فقط مشاهده می‌کنید.
+        </p>
+      </div>
       {approved.length === 0 ? (
-        <p className="text-slate-500 bg-white/5 border border-white/10 rounded-[16px] p-8 text-center">دوره فعالی ندارید.</p>
+        <div className="bg-white/5 border border-white/10 rounded-[16px] p-8 text-center">
+          <TrendingUp className="w-12 h-12 mx-auto text-slate-600 mb-3" />
+          <p className="text-slate-500 text-sm mb-1">هنوز در دوره تأییدشده‌ای نیستید.</p>
+          <p className="text-slate-600 text-[11px]">وقتی مدیر آموزشگاه ثبت‌نام شما را تأیید کند، پیشرفت اینجا نمایش داده می‌شود.</p>
+        </div>
       ) : (
         <div className="space-y-4">
-          {approved.map((r) => (
-            <div key={r.id} className="bg-white/5 border border-white/10 rounded-[16px] p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h3 className="font-black text-white">{r.courseTitle}</h3>
-                  <div className="text-[11px] text-slate-500">{r.instituteName}</div>
+          {approved.map((r) => {
+            const p = r.progress || 0;
+            const sessAtt = r.sessionsAttended || 0;
+            const totSess = r.totalSessions || 0;
+            const isDone = p >= 100;
+            return (
+              <div key={r.id} className={`border rounded-[16px] p-5 ${isDone ? "bg-emerald-500/5 border-emerald-500/30" : "bg-white/5 border-white/10"}`}>
+                <div className="flex items-center justify-between mb-3 gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-black text-white">{r.courseTitle}</h3>
+                      {isDone && <span className="text-[9px] font-black bg-emerald-500 text-white px-2 py-0.5 rounded-full">🎉 تکمیل شد</span>}
+                    </div>
+                    <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                      <Building2 className="w-3 h-3" /> {r.instituteName}
+                    </div>
+                    {r.instructor && (
+                      <div className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1">
+                        <GraduationCap className="w-3 h-3" /> مدرس: {r.instructor}
+                      </div>
+                    )}
+                  </div>
+                  <div className={`text-3xl font-black ${isDone ? "text-emerald-400" : "text-primary-300"}`}>
+                    {toPersian(p)}<span className="text-lg">%</span>
+                  </div>
                 </div>
-                <div className="text-2xl font-black text-primary-300">{r.progress || 0}%</div>
+                <div className="h-3 rounded-full bg-white/10 overflow-hidden mb-4">
+                  <div className={`h-full transition-all ${isDone ? "bg-emerald-500" : "bg-gradient-to-r from-cyan-500 via-primary-500 to-fuchsia-500"}`}
+                    style={{ width: `${p}%` }} />
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-white/5 rounded-[10px] py-2">
+                    <div className="text-lg font-black text-emerald-400">{toPersian(sessAtt)}</div>
+                    <div className="text-[9px] text-slate-500">جلسه حضور</div>
+                  </div>
+                  <div className="bg-white/5 rounded-[10px] py-2">
+                    <div className="text-lg font-black text-sky-400">{totSess ? toPersian(totSess) : "—"}</div>
+                    <div className="text-[9px] text-slate-500">کل جلسات</div>
+                  </div>
+                  <div className="bg-white/5 rounded-[10px] py-2">
+                    <div className="text-sm font-black text-amber-400">{r.duration || "—"}</div>
+                    <div className="text-[9px] text-slate-500">مدت دوره</div>
+                  </div>
+                </div>
+                {r.certificateUrl && isDone && (
+                  <a href={r.certificateUrl} download={`گواهینامه-${r.courseTitle}.png`}
+                    className="mt-3 w-full py-2 rounded-[10px] bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black flex items-center justify-center gap-2">
+                    <Award className="w-4 h-4" /> دانلود گواهینامه دوره
+                  </a>
+                )}
               </div>
-              <div className="h-3 rounded-full bg-white/10 overflow-hidden mb-3">
-                <div className="h-full bg-gradient-to-r from-cyan-500 via-primary-500 to-fuchsia-500" style={{ width: `${r.progress || 0}%` }} />
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-white/5 rounded-[10px] py-2">
-                  <div className="text-sm font-black text-emerald-400">{r.sessionsAttended || 0}</div>
-                  <div className="text-[9px] text-slate-500">جلسه شرکت‌کرده</div>
-                </div>
-                <div className="bg-white/5 rounded-[10px] py-2">
-                  <div className="text-sm font-black text-sky-400">{r.totalSessions || "—"}</div>
-                  <div className="text-[9px] text-slate-500">کل جلسات</div>
-                </div>
-                <div className="bg-white/5 rounded-[10px] py-2">
-                  <div className="text-sm font-black text-amber-400">{r.duration || "—"}</div>
-                  <div className="text-[9px] text-slate-500">مدت دوره</div>
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -472,36 +508,123 @@ function ProgressTab({ regs }: { regs: StudentReg[] }) {
 
 /* ============ SCHEDULE TAB ============ */
 function ScheduleTab({ sessions, regs }: { sessions: any[]; regs: StudentReg[] }) {
+  const [rows, setRows] = useState<any[]>(sessions || []);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "upcoming" | "past">("all");
+
+  useEffect(() => {
+    setLoading(true);
+    fetch("/api/student/schedule")
+      .then((r) => r.json())
+      .then((d) => setRows(Array.isArray(d) ? d : []))
+      .catch(() => setRows(sessions || []))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Group sessions by course
+  const grouped: Record<string, any[]> = {};
+  rows.forEach((s) => {
+    const key = s.courseTitle || "بدون دوره";
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(s);
+  });
+
+  // Parse a Persian date "1404/05/15" and compare to today (best-effort)
+  const parsePersianDate = (str: string): number => {
+    if (!str) return 0;
+    const clean = String(str).replace(/[۰-۹]/g, (d: string) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[-.]/g, "/");
+    const parts = clean.split("/").map((x) => parseInt(x.trim(), 10));
+    if (parts.length !== 3 || parts.some(isNaN)) return 0;
+    return parts[0] * 10000 + parts[1] * 100 + parts[2];
+  };
+  // Today in Jalali (approximate)
+  const now = new Date();
+  const jy = now.getFullYear() - 621;
+  const todayApprox = jy * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+
+  const filteredRows = rows.filter((s) => {
+    if (filter === "all") return true;
+    const d = parsePersianDate(s.sessionDate);
+    if (filter === "upcoming") return d === 0 || d >= todayApprox;
+    if (filter === "past") return d !== 0 && d < todayApprox;
+    return true;
+  });
+
+  const toPersian = (str: string | number) => String(str).replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[+d]);
+
   return (
     <div>
-      <h2 className="text-xl font-black mb-6">تقویم آموزشی</h2>
-      {sessions.length === 0 ? (
+      <div className="mb-6">
+        <h2 className="text-xl font-black">تقویم آموزشی</h2>
+        <p className="text-slate-500 text-sm mt-1">
+          جلسات دوره‌های ثبت‌نامی شما ({rows.length} جلسه). مدیر آموزشگاه جلسات را از پنل خود ثبت می‌کند.
+        </p>
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-2 mb-4 bg-white/5 border border-white/10 rounded-[12px] p-1 w-fit">
+        {[
+          { v: "all" as const, l: "همه" },
+          { v: "upcoming" as const, l: "آینده" },
+          { v: "past" as const, l: "گذشته" },
+        ].map((f) => (
+          <button key={f.v} onClick={() => setFilter(f.v)}
+            className={`px-3.5 py-1.5 rounded-[10px] text-xs font-bold ${filter === f.v ? "bg-primary-600 text-white" : "text-slate-400"}`}>
+            {f.l}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-primary-500" /></div>
+      ) : filteredRows.length === 0 ? (
         <div className="bg-white/5 border border-white/10 rounded-[16px] p-8 text-center">
           <CalendarDays className="w-12 h-12 mx-auto text-slate-600 mb-3" />
-          <p className="text-slate-500 text-sm mb-2">جلسه‌ای برنامه‌ریزی نشده است.</p>
-          <p className="text-slate-600 text-[11px]">مدیر آموزشگاه می‌تواند جلسات را از پنل خود ثبت کند.</p>
+          <p className="text-slate-500 text-sm mb-2">
+            {rows.length === 0 ? "جلسه‌ای برنامه‌ریزی نشده است." : "جلسه‌ای در این دسته وجود ندارد."}
+          </p>
+          <p className="text-slate-600 text-[11px]">مدیر آموزشگاه می‌تواند جلسات را از پنل «تقویم جلسات دوره‌ها» ثبت کند.</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {sessions.map((s, i) => (
-            <div key={i} className="bg-white/5 border border-white/10 rounded-[16px] p-4 flex items-center gap-4">
-              <div className="w-14 h-14 rounded-[12px] bg-primary-500/20 border border-primary-500/30 flex flex-col items-center justify-center shrink-0">
-                <div className="text-[9px] text-primary-300 font-black">جلسه</div>
-                <div className="text-sm font-black">{s.sessionNumber || i + 1}</div>
-              </div>
-              <div className="flex-1">
-                <h4 className="font-black">{s.title || s.courseTitle}</h4>
-                <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-3">
-                  <span className="flex items-center gap-1"><CalendarDays className="w-3 h-3" />{s.sessionDate || "—"}</span>
-                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{s.sessionTime || "—"}</span>
-                  <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{s.instituteName || "—"}</span>
+          {filteredRows.map((s) => {
+            const d = parsePersianDate(s.sessionDate);
+            const isPast = d !== 0 && d < todayApprox;
+            const isToday = d === todayApprox;
+            return (
+              <div key={s.id} className={`border rounded-[16px] p-4 flex items-center gap-4 ${
+                isToday ? "bg-primary-500/10 border-primary-500/40"
+                : isPast ? "bg-white/5 border-white/10 opacity-60"
+                : "bg-white/5 border-white/10"
+              }`}>
+                <div className={`w-14 h-14 rounded-[12px] border flex flex-col items-center justify-center shrink-0 ${
+                  isToday ? "bg-primary-500/30 border-primary-400" : "bg-primary-500/20 border-primary-500/30"
+                }`}>
+                  <div className="text-[9px] text-primary-300 font-black">جلسه</div>
+                  <div className="text-sm font-black">{toPersian(s.sessionNumber || "?")}</div>
                 </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="font-black text-sm">{s.title}</h4>
+                    {isToday && <span className="text-[9px] font-black bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full">امروز</span>}
+                    {s.attended && <span className="text-[9px] font-black bg-primary-500/20 text-primary-300 px-2 py-0.5 rounded-full">✓ حضور</span>}
+                  </div>
+                  <div className="text-[11px] text-primary-300 font-bold mt-0.5 truncate">{s.courseTitle}</div>
+                  <div className="text-[10px] text-slate-400 mt-1 flex items-center gap-3 flex-wrap">
+                    {s.sessionDate && <span className="flex items-center gap-1"><CalendarDays className="w-3 h-3" />{toPersian(s.sessionDate)}</span>}
+                    {s.sessionTime && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{s.sessionTime}</span>}
+                    {s.duration && <span>مدت: {s.duration}</span>}
+                    {s.instituteName && <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{s.instituteName}</span>}
+                  </div>
+                </div>
+                {s.isOnline && s.meetingUrl && !isPast && (
+                  <a href={s.meetingUrl} target="_blank" rel="noreferrer" className="px-4 py-2 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white text-xs font-black cursor-pointer shrink-0">
+                    ورود به کلاس
+                  </a>
+                )}
               </div>
-              {s.meetingUrl && (
-                <a href={s.meetingUrl} target="_blank" rel="noreferrer" className="px-4 py-2 rounded-[10px] bg-primary-600 text-white text-xs font-black cursor-pointer">ورود به کلاس</a>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
