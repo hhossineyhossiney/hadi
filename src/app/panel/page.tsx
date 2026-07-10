@@ -482,8 +482,9 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-black text-white">{c.title}</h3>
-                      {c.status === "rejected" && <span className="text-[9px] font-black bg-error-500/20 text-error-400 px-2 py-0.5 rounded-full">ثبت‌نام متوقف</span>}
-                      {c.status !== "rejected" && (c.capacity > 0 && c.enrolledCount >= c.capacity) && (
+                      {c.registrationClosed && <span className="text-[9px] font-black bg-error-500/20 text-error-400 px-2 py-0.5 rounded-full">ثبت‌نام متوقف</span>}
+                      {c.registrationEnded && <span className="text-[9px] font-black bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full">زمان تمام شده</span>}
+                      {!c.registrationClosed && !c.registrationEnded && (c.capacity > 0 && c.enrolledCount >= c.capacity) && (
                         <span className="text-[9px] font-black bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">تکمیل ظرفیت</span>
                       )}
                     </div>
@@ -492,35 +493,65 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
                   <div className="flex gap-1.5 shrink-0 flex-wrap">
                     <button onClick={() => setEditCourse({ ...c })} className="p-2 rounded-[10px] bg-primary-500/15 text-primary-400 hover:bg-primary-500/30 cursor-pointer" title="ویرایش دوره"><Pencil className="w-3.5 h-3.5" /></button>
                     <button onClick={() => setBannerCourseId(bannerCourseId === c.id ? null : c.id)} className="p-2 rounded-[10px] bg-fuchsia-500/15 text-fuchsia-400 hover:bg-fuchsia-500/30 cursor-pointer" title="بنر تبلیغاتی دوره"><ImagePlus className="w-3.5 h-3.5" /></button>
-                    <button
-                      onClick={() => act({ action: "toggleCourseRegistration", courseId: c.id, closed: c.status !== "rejected" })}
-                      className={`p-2 rounded-[10px] cursor-pointer ${c.status === "rejected" ? "bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/30" : "bg-amber-500/15 text-amber-400 hover:bg-amber-500/30"}`}
-                      title={c.status === "rejected" ? "فعال‌سازی ثبت‌نام" : "توقف ثبت‌نام"}
-                    >
-                      {c.status === "rejected" ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                    </button>
-                    <button
-                      onClick={async () => {
-                        const cur = c.capacity || 0;
-                        const raw = prompt(`ظرفیت جدید دوره «${c.title}» را وارد کنید (فعلی: ${cur})`, String(cur));
-                        if (raw === null) return;
-                        const capacity = parseInt(raw.replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))), 10);
-                        if (isNaN(capacity) || capacity < 0) { alert("عدد نامعتبر است"); return; }
-                        await act({ action: "updateCapacity", courseId: c.id, capacity });
-                      }}
-                      className="p-2 rounded-[10px] bg-sky-500/15 text-sky-400 hover:bg-sky-500/30 cursor-pointer"
-                      title="ویرایش ظرفیت"
-                    >
-                      <Users className="w-3.5 h-3.5" />
-                    </button>
                     <button onClick={() => handleDelete(c.id, c.title)} className="p-2 rounded-[10px] bg-error-500/15 text-error-400 hover:bg-error-500/30 cursor-pointer" title="حذف دوره"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="grid grid-cols-2 gap-2 text-[11px] mb-3">
                   <div className="bg-[#0B1120] rounded-[10px] p-2.5"><span className="text-slate-500">شهریه: </span><b className="text-emerald-400">{c.price ? Number(c.price).toLocaleString("fa-IR") + " تومان" : "رایگان"}</b></div>
                   <div className="bg-[#0B1120] rounded-[10px] p-2.5"><span className="text-slate-500">ظرفیت: </span><b className="text-white">{Number(c.enrolledCount).toLocaleString("fa-IR")}/{Number(c.capacity).toLocaleString("fa-IR")}</b></div>
                   <div className="bg-[#0B1120] rounded-[10px] p-2.5"><span className="text-slate-500">شروع: </span><b className="text-white">{c.startDate ? String(c.startDate).replace(/[0-9]/g, d => "۰۱۲۳۴۵۶۷۸۹"[+d]) : "—"}</b></div>
                   <div className="bg-[#0B1120] rounded-[10px] p-2.5"><span className="text-slate-500">مدرس: </span><b className="text-white">{c.instructor || "—"}</b></div>
+                </div>
+
+                {/* Registration Management Panel */}
+                <div className="bg-[#0B1120] rounded-[12px] p-3 border border-white/5 space-y-2">
+                  <div className="text-[10px] font-black text-slate-400 mb-2">🎯 مدیریت ثبت‌نام دوره</div>
+
+                  {/* Toggle 1: Registration closed by manager */}
+                  <div className="flex items-center justify-between gap-2 p-2 rounded-[8px] bg-[#111a2e]">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] font-black text-white">توقف/تکمیل ظرفیت</div>
+                      <div className="text-[9px] text-slate-500">ثبت‌نام دستی متوقف شود</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => act({ action: "toggleCourseRegistration", courseId: c.id, closed: !c.registrationClosed })}
+                      className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${c.registrationClosed ? "bg-error-500" : "bg-white/10"}`}
+                    >
+                      <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${c.registrationClosed ? "left-0.5" : "left-[22px]"}`} />
+                    </button>
+                  </div>
+
+                  {/* Toggle 2: Registration period ended */}
+                  <div className="flex items-center justify-between gap-2 p-2 rounded-[8px] bg-[#111a2e]">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] font-black text-white">زمان ثبت‌نام تمام شده</div>
+                      <div className="text-[9px] text-slate-500">مهلت ثبت‌نام گذشته است</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => act({ action: "toggleCourseRegistrationEnded", courseId: c.id, ended: !c.registrationEnded })}
+                      className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${c.registrationEnded ? "bg-purple-500" : "bg-white/10"}`}
+                    >
+                      <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${c.registrationEnded ? "left-0.5" : "left-[22px]"}`} />
+                    </button>
+                  </div>
+
+                  {/* Capacity edit */}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const cur = c.capacity || 0;
+                      const raw = prompt(`ظرفیت جدید دوره «${c.title}» را وارد کنید (فعلی: ${cur})`, String(cur));
+                      if (raw === null) return;
+                      const capacity = parseInt(raw.replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))), 10);
+                      if (isNaN(capacity) || capacity < 0) { alert("عدد نامعتبر است"); return; }
+                      await act({ action: "updateCapacity", courseId: c.id, capacity });
+                    }}
+                    className="w-full py-1.5 rounded-[8px] bg-sky-500/15 text-sky-400 text-[10px] font-black hover:bg-sky-500/25 cursor-pointer flex items-center justify-center gap-1"
+                  >
+                    <Users className="w-3 h-3" /> ویرایش ظرفیت ({Number(c.capacity).toLocaleString("fa-IR")} نفر)
+                  </button>
                 </div>
 
                 {bannerCourseId === c.id && (
