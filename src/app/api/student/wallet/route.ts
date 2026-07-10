@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { users, walletTransactions } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { walletTransactions } from "@/db/schema";
+import { eq, desc, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -15,11 +15,34 @@ async function requireUser() {
 }
 
 async function getBalance(userId: number): Promise<number> {
+  // Try wallet_balance column first
   try {
-    const [u] = await db.select({ walletBalance: users.walletBalance }).from(users).where(eq(users.id, userId));
-    return Number(u?.walletBalance || 0);
+    const res: any = await db.execute(sql`SELECT wallet_balance FROM users WHERE id = ${userId} LIMIT 1`);
+    if (res.rows?.[0]?.wallet_balance !== undefined && res.rows[0].wallet_balance !== null) {
+      return Number(res.rows[0].wallet_balance);
+    }
+  } catch {}
+  // Fallback: last transaction's balanceAfter
+  try {
+    const tx = await db
+      .select({ balanceAfter: walletTransactions.balanceAfter })
+      .from(walletTransactions)
+      .where(eq(walletTransactions.userId, userId))
+      .orderBy(desc(walletTransactions.createdAt))
+      .limit(1);
+    return Number(tx[0]?.balanceAfter || 0);
   } catch {
     return 0;
+  }
+}
+
+async function setBalance(userId: number, newBalance: number) {
+  try {
+    await db.execute(sql`UPDATE users SET wallet_balance = ${String(newBalance)} WHERE id = ${userId}`);
+    return true;
+  } catch (e) {
+    console.error("setBalance failed (column may not exist):", e);
+    return false;
   }
 }
 
@@ -42,7 +65,6 @@ export async function GET() {
   return NextResponse.json({ balance, transactions });
 }
 
-// POST: charge wallet (deposit) — simulated payment
 export async function POST(request: Request) {
   const auth = await requireUser();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -61,32 +83,28 @@ export async function POST(request: Request) {
   const currentBalance = await getBalance(auth.userId);
   let newBalance = currentBalance;
   let txType = "deposit";
-  let txDescription = "شارژ کیف پول";
+  let txDescription = body.description || "شارژ کیف پول";
 
   if (action === "deposit") {
     newBalance = currentBalance + amount;
     txType = "deposit";
-    txDescription = body.description || "شارژ کیف پول";
   } else if (action === "withdraw") {
-    if (amount > currentBalance) {
-      return NextResponse.json({ error: "موجودی کافی نیست" }, { status: 400 });
-    }
+    if (amount > currentBalance) return NextResponse.json({ error: "موجودی کافی نیست" }, { status: 400 });
     newBalance = currentBalance - amount;
     txType = "withdraw";
     txDescription = body.description || "برداشت از کیف پول";
   } else if (action === "payment") {
-    if (amount > currentBalance) {
-      return NextResponse.json({ error: "موجودی کافی نیست" }, { status: 400 });
-    }
+    if (amount > currentBalance) return NextResponse.json({ error: "موجودی کافی نیست" }, { status: 400 });
     newBalance = currentBalance - amount;
     txType = "payment";
     txDescription = body.description || "پرداخت بابت دوره";
   }
 
-  try {
-    await db.update(users).set({ walletBalance: String(newBalance) as any }).where(eq(users.id, auth.userId));
-  } catch (e: any) {
-    return NextResponse.json({ error: "خطا در به‌روزرسانی موجودی: " + e?.message }, { status: 500 });
+  const balanceUpdated = await setBalance(auth.userId, newBalance);
+  if (!balanceUpdated) {
+    return NextResponse.json({
+      error: "ستون wallet_balance در دیتابیس وجود ندارد. لطفاً از /admin migration را اجرا کنید.",
+    }, { status: 500 });
   }
 
   try {
