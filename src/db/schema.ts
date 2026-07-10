@@ -150,6 +150,8 @@ export const courses = pgTable("courses", {
   bannerImages: jsonb("banner_images").default([]),
   isFeatured: boolean("is_featured").default(false),
   totalSessions: integer("total_sessions").default(0),
+  registrationClosed: boolean("registration_closed").default(false), // مدیر ثبت‌نام رو دستی متوقف کرده
+  registrationEnded: boolean("registration_ended").default(false),   // زمان ثبت‌نام تمام شده
   status: statusEnum("status").default("pending"),
   createdAt: timestamp("created_at").defaultNow(),
 });
