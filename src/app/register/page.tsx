@@ -17,7 +17,8 @@ import { normalizePhone } from "@/lib/phone";
 interface CourseOpt {
   id: number; slug: string; title: string; instituteName: string;
   price: string | null; duration?: string | null;
-  capacity?: number; enrolledCount?: number; status?: string;
+  capacity?: number; enrolledCount?: number;
+  registrationClosed?: boolean; registrationEnded?: boolean;
 }
 
 const STEPS_GUEST = [
@@ -75,7 +76,8 @@ function RegistrationWizard() {
         setCourses(data.map((c: any) => ({
           id: c.id, slug: c.slug, title: c.title,
           instituteName: c.instituteName, price: c.price, duration: c.duration,
-          capacity: c.capacity, enrolledCount: c.enrolledCount, status: c.status,
+          capacity: c.capacity, enrolledCount: c.enrolledCount,
+          registrationClosed: c.registrationClosed, registrationEnded: c.registrationEnded,
         })));
         setLoadingCourses(false);
       })
@@ -100,13 +102,18 @@ function RegistrationWizard() {
   const canNext1 = !!form.courseSlug;
   const canNext2 = form.fullName.trim().length >= 3 && phoneValid && passValid && passMatch;
 
-  // Course capacity check
-  const isCourseFull = selectedCourse
-    ? selectedCourse.status === "rejected" ||
-      (typeof selectedCourse.capacity === "number" &&
-        selectedCourse.capacity > 0 &&
-        (selectedCourse.enrolledCount || 0) >= selectedCourse.capacity)
-    : false;
+  // Course availability check
+  const getCourseBlockReason = (c?: CourseOpt): string | null => {
+    if (!c) return null;
+    if (c.registrationClosed) return "ثبت‌نام متوقف شده";
+    if (c.registrationEnded) return "زمان ثبت‌نام تمام شده";
+    if (typeof c.capacity === "number" && c.capacity > 0 && (c.enrolledCount || 0) >= c.capacity) {
+      return "تکمیل ظرفیت";
+    }
+    return null;
+  };
+  const selectedBlockReason = getCourseBlockReason(selectedCourse);
+  const isCourseFull = !!selectedBlockReason;
 
   const sendOtp = async () => {
     setLoading(true); setError("");
@@ -201,7 +208,7 @@ function RegistrationWizard() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link href={isLoggedIn ? "/dashboard" : `/dashboard?phone=${encodeURIComponent(cleanPhone)}`}
                 className="px-8 py-3.5 rounded-[14px] text-white gradient-button font-bold text-sm shadow-lg shadow-primary-600/25">
-                ورود به پنل هنرجو
+                {isLoggedIn ? "بازگشت به داشبورد" : "ورود به پنل هنرجو"}
               </Link>
               <Link href="/courses" className="px-8 py-3.5 rounded-[14px] text-text-primary bg-surface border border-border-default font-bold text-sm">
                 ثبت‌نام دوره دیگر
@@ -277,21 +284,22 @@ function RegistrationWizard() {
               ) : (
                 <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                   {filteredCourses.map((c) => {
-                    const cFull = c.status === "rejected" || (typeof c.capacity === "number" && c.capacity > 0 && (c.enrolledCount || 0) >= c.capacity);
+                    const blockReason = getCourseBlockReason(c);
+                    const cFull = !!blockReason;
                     return (
                       <button key={c.slug} type="button" onClick={() => !cFull && setForm({ ...form, courseSlug: c.slug })} disabled={cFull}
                         className={`w-full text-right p-4 rounded-[14px] border transition-all ${
                           cFull
-                            ? "opacity-50 cursor-not-allowed border-border-default bg-white/40"
+                            ? "opacity-60 cursor-not-allowed border-border-default bg-white/40"
                             : form.courseSlug === c.slug
                               ? "border-primary-500 bg-primary-50/80 shadow-md shadow-primary-500/10 cursor-pointer"
                               : "border-border-default bg-white/60 hover:border-primary-200 cursor-pointer"
                         }`}>
                         <div className="flex items-center justify-between">
                           <div>
-                            <div className="text-sm font-black text-text-primary flex items-center gap-2">
+                            <div className="text-sm font-black text-text-primary flex items-center gap-2 flex-wrap">
                               {c.title}
-                              {cFull && <span className="text-[9px] font-black bg-error-500/20 text-error-600 px-2 py-0.5 rounded-full">تکمیل ظرفیت</span>}
+                              {blockReason && <span className="text-[9px] font-black bg-error-500/20 text-error-600 px-2 py-0.5 rounded-full">{blockReason}</span>}
                             </div>
                             <div className="text-[11px] text-text-tertiary mt-0.5">{c.instituteName}</div>
                           </div>
@@ -312,7 +320,7 @@ function RegistrationWizard() {
               )}
               {isCourseFull && (
                 <div className="mt-4 p-3 rounded-[12px] bg-error-500/10 text-error-600 text-xs font-bold">
-                  ⚠️ این دوره در حال حاضر قابل ثبت‌نام نیست.
+                  ⚠️ این دوره در حال حاضر قابل ثبت‌نام نیست ({selectedBlockReason}).
                 </div>
               )}
               <button disabled={!canNext1 || isCourseFull} onClick={() => setStep(2)}
