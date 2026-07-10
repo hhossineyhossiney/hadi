@@ -17,6 +17,7 @@ import ProfileStoriesTab from "@/components/panel/ProfileStoriesTab";
 import InstituteProfileForm from "@/components/panel/InstituteProfileForm";
 import StudentDocumentsModal from "@/components/panel/StudentDocumentsModal";
 import PersianDatePicker from "@/components/PersianDatePicker";
+import MoneyInput from "@/components/MoneyInput";
 
 type TabKey = "dashboard" | "courses" | "students" | "sessions" | "progress" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
 
@@ -317,14 +318,12 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
             <option value="">انتخاب رشته *</option>
             {categories?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          <input placeholder="شهریه (تومان)" value={newCourse.price} onChange={(e) => setNewCourse({ ...newCourse, price: e.target.value })}
-            className="px-4 py-3 rounded-[12px] bg-[#0B1120] border border-white/10 text-sm font-semibold text-white placeholder:text-slate-500" />
-          <input placeholder="ظرفیت" type="number" value={newCourse.capacity} onChange={(e) => setNewCourse({ ...newCourse, capacity: e.target.value })}
+          <MoneyInput value={newCourse.price} onChange={(v) => setNewCourse({ ...newCourse, price: v })} placeholder="شهریه دوره" />
+          <input placeholder="ظرفیت (نفر)" type="number" value={newCourse.capacity} onChange={(e) => setNewCourse({ ...newCourse, capacity: e.target.value })}
             className="px-4 py-3 rounded-[12px] bg-[#0B1120] border border-white/10 text-sm font-semibold text-white placeholder:text-slate-500" />
           <input placeholder="مدت دوره (مثلاً ۴۰ ساعت)" value={newCourse.duration} onChange={(e) => setNewCourse({ ...newCourse, duration: e.target.value })}
             className="px-4 py-3 rounded-[12px] bg-[#0B1120] border border-white/10 text-sm font-semibold text-white placeholder:text-slate-500" />
-          <input placeholder="تاریخ شروع" value={newCourse.startDate} onChange={(e) => setNewCourse({ ...newCourse, startDate: e.target.value })}
-            className="px-4 py-3 rounded-[12px] bg-[#0B1120] border border-white/10 text-sm font-semibold text-white placeholder:text-slate-500" />
+          <PersianDatePicker value={newCourse.startDate} onChange={(v) => setNewCourse({ ...newCourse, startDate: v })} placeholder="تاریخ شروع دوره" />
           <input placeholder="زمان‌بندی کلاس" value={newCourse.schedule} onChange={(e) => setNewCourse({ ...newCourse, schedule: e.target.value })}
             className="px-4 py-3 rounded-[12px] bg-[#0B1120] border border-white/10 text-sm font-semibold text-white placeholder:text-slate-500" />
           <input placeholder="نام مدرس" value={newCourse.instructor} onChange={(e) => setNewCourse({ ...newCourse, instructor: e.target.value })}
@@ -339,8 +338,7 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
             <option value="advanced">پیشرفته</option>
             <option value="comprehensive">جامع از صفر تا صد</option>
           </select>
-          <input placeholder="قیمت اصلی قبل تخفیف (اختیاری)" value={newCourse.originalPrice} onChange={(e) => setNewCourse({ ...newCourse, originalPrice: e.target.value })}
-            className="px-4 py-3 rounded-[12px] bg-[#0B1120] border border-white/10 text-sm font-semibold text-white placeholder:text-slate-500" />
+          <MoneyInput value={newCourse.originalPrice} onChange={(v) => setNewCourse({ ...newCourse, originalPrice: v })} placeholder="قیمت قبل از تخفیف (اختیاری)" />
           <input placeholder="تعداد کل جلسات (مثل: ۲۰)" type="number" value={newCourse.totalSessions} onChange={(e) => setNewCourse({ ...newCourse, totalSessions: e.target.value })}
             className="px-4 py-3 rounded-[12px] bg-[#0B1120] border border-white/10 text-sm font-semibold text-white placeholder:text-slate-500" />
           <textarea placeholder="توضیحات کوتاه (برای کارت)" rows={2} value={newCourse.description} onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })}
@@ -399,11 +397,10 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
             {editCourse?.id === c.id ? (
               <div className="space-y-3">
                 {[
-                  { k: "title", l: "عنوان دوره" }, { k: "price", l: "شهریه (تومان)" },
-                  { k: "originalPrice", l: "قیمت اصلی قبل تخفیف" },
-                  { k: "capacity", l: "ظرفیت" }, { k: "duration", l: "مدت" },
+                  { k: "title", l: "عنوان دوره" },
+                  { k: "capacity", l: "ظرفیت (نفر)" }, { k: "duration", l: "مدت" },
                   { k: "totalSessions", l: "تعداد کل جلسات" },
-                  { k: "schedule", l: "زمان‌بندی" }, { k: "startDate", l: "تاریخ شروع" },
+                  { k: "schedule", l: "زمان‌بندی" },
                   { k: "instructor", l: "مدرس" },
                   { k: "instructorTitle", l: "عنوان مدرس" },
                 ].map((f) => (
@@ -413,6 +410,24 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
                       className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-xs font-semibold text-white mt-1" />
                   </div>
                 ))}
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500">شهریه دوره</label>
+                  <div className="mt-1">
+                    <MoneyInput value={editCourse.price ?? ""} onChange={(v) => setEditCourse({ ...editCourse, price: v })} placeholder="شهریه" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500">قیمت قبل از تخفیف</label>
+                  <div className="mt-1">
+                    <MoneyInput value={editCourse.originalPrice ?? ""} onChange={(v) => setEditCourse({ ...editCourse, originalPrice: v })} placeholder="قیمت قبل تخفیف" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500">تاریخ شروع دوره</label>
+                  <div className="mt-1">
+                    <PersianDatePicker value={editCourse.startDate ?? ""} onChange={(v) => setEditCourse({ ...editCourse, startDate: v })} placeholder="تاریخ شروع" />
+                  </div>
+                </div>
                 <div>
                   <label className="text-[10px] font-bold text-slate-500">سطح دوره</label>
                   <select value={editCourse.level || ""} onChange={(e) => setEditCourse({ ...editCourse, level: e.target.value })}
