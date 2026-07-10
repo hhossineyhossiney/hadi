@@ -21,9 +21,17 @@ export const authOptions: NextAuthOptions = {
         try {
           const cleanPhone = normalizePhone(credentials.phone);
 
-          // Search user by normalized phone or email
+          // Search user by normalized phone or email — ONLY select core columns
+          // (Fault-tolerant against schema changes — new columns won't break login)
           const userList = await db
-            .select()
+            .select({
+              id: users.id,
+              name: users.name,
+              phone: users.phone,
+              email: users.email,
+              password: users.password,
+              role: users.role,
+            })
             .from(users)
             .where(or(eq(users.phone, cleanPhone), eq(users.email, cleanPhone)));
 
