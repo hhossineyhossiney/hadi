@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { courses, institutes, categories, regions } from "@/db/schema";
-import { sql, eq, and, like } from "drizzle-orm";
+import { sql, eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -27,8 +27,8 @@ export async function GET(request: Request) {
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const data = await db
-    .select({
+  const runQuery = (withNew: boolean) => {
+    const baseFields: any = {
       id: courses.id,
       title: courses.title,
       slug: courses.slug,
@@ -43,20 +43,34 @@ export async function GET(request: Request) {
       startDate: courses.startDate,
       image: courses.image,
       fullDescription: courses.fullDescription,
-      registrationClosed: courses.registrationClosed,
-      registrationEnded: courses.registrationEnded,
       categoryName: categories.name,
       categorySlug: categories.slug,
       instituteName: institutes.name,
       instituteSlug: institutes.slug,
       regionName: regions.name,
-    })
-    .from(courses)
-    .leftJoin(institutes, eq(courses.instituteId, institutes.id))
-    .leftJoin(categories, eq(courses.categoryId, categories.id))
-    .leftJoin(regions, eq(institutes.regionId, regions.id))
-    .where(whereClause)
-    .orderBy(sql`${courses.createdAt} DESC`);
+    };
+    if (withNew) {
+      baseFields.registrationClosed = courses.registrationClosed;
+      baseFields.registrationEnded = courses.registrationEnded;
+    }
+    return db
+      .select(baseFields)
+      .from(courses)
+      .leftJoin(institutes, eq(courses.instituteId, institutes.id))
+      .leftJoin(categories, eq(courses.categoryId, categories.id))
+      .leftJoin(regions, eq(institutes.regionId, regions.id))
+      .where(whereClause)
+      .orderBy(sql`${courses.createdAt} DESC`);
+  };
 
-  return NextResponse.json(data);
+  try {
+    const data = await runQuery(true);
+    return NextResponse.json(data);
+  } catch (e: any) {
+    console.error("Falling back to legacy query:", e?.message);
+    const data = await runQuery(false);
+    return NextResponse.json(
+      data.map((d: any) => ({ ...d, registrationClosed: false, registrationEnded: false }))
+    );
+  }
 }
