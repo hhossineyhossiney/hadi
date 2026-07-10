@@ -118,7 +118,8 @@ export async function POST(request: Request) {
         price: courses.price,
         capacity: courses.capacity,
         enrolledCount: courses.enrolledCount,
-        status: courses.status,
+        registrationClosed: courses.registrationClosed,
+        registrationEnded: courses.registrationEnded,
         startDate: courses.startDate,
         schedule: courses.schedule,
         instituteId: courses.instituteId,
@@ -135,10 +136,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "دوره یافت نشد" }, { status: 404 });
     }
 
-    // Check capacity — block if full or registrations disabled
-    if (courseDetails.status === "rejected") {
+    // Check registration status — block if manager stopped, period ended, or capacity full
+    if (courseDetails.registrationClosed) {
       return NextResponse.json(
         { error: "ثبت‌نام در این دوره توسط مدیر آموزشگاه متوقف شده است." },
+        { status: 403 }
+      );
+    }
+    if (courseDetails.registrationEnded) {
+      return NextResponse.json(
+        { error: "زمان ثبت‌نام این دوره به پایان رسیده است." },
         { status: 403 }
       );
     }
