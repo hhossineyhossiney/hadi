@@ -49,11 +49,40 @@ async function getManagerInstitute() {
   const user = session?.user as any;
   if (!user?.id) return { error: "ابتدا وارد حساب مدیر آموزشگاه شوید", status: 401 as const };
 
-  const inst = await db
+  // 1) Primary: find institute directly linked to this user
+  let inst = await db
     .select()
     .from(institutes)
     .where(eq(institutes.userId, Number(user.id)))
     .then((r) => r[0]);
+
+  // 2) AUTOHEAL: If user has role=institute but no institute is linked,
+  //    try to find an institute whose mobile matches the user's phone and auto-link it.
+  if (!inst && user.role === "institute" && user.phone) {
+    const { normalizePhone } = await import("@/lib/phone");
+    const cleanPhone = normalizePhone(user.phone);
+    // Find an institute whose mobile matches (with variations) and is not yet linked
+    const candidates = await db
+      .select()
+      .from(institutes)
+      .then((all) =>
+        all.filter((i) => {
+          if (i.userId && i.userId !== Number(user.id)) return false; // linked to someone else
+          if (!i.mobile) return false;
+          const m = normalizePhone(String(i.mobile));
+          return m === cleanPhone;
+        })
+      );
+    if (candidates.length === 1) {
+      // Safe auto-link
+      const [linked] = await db
+        .update(institutes)
+        .set({ userId: Number(user.id) })
+        .where(eq(institutes.id, candidates[0].id))
+        .returning();
+      inst = linked;
+    }
+  }
 
   if (!inst) return { error: "هیچ آموزشگاهی به حساب شما متصل نیست", status: 403 as const };
   return { inst };
