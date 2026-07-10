@@ -16,8 +16,11 @@ import {
   Calendar,
   User,
   BookOpen,
+  Heart,
+  Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useSession } from "next-auth/react";
 import CourseBannerSlider from "@/components/CourseBannerSlider";
 
 interface Course {
@@ -49,8 +52,12 @@ interface Course {
 
 export default function CourseDetailPage() {
   const params = useParams();
+  const { status: sessionStatus } = useSession();
+  const isLoggedIn = sessionStatus === "authenticated";
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isFav, setIsFav] = useState(false);
+  const [favBusy, setFavBusy] = useState(false);
 
   useEffect(() => {
     async function fetchCourse() {
@@ -63,6 +70,48 @@ export default function CourseDetailPage() {
     }
     fetchCourse();
   }, [params.slug]);
+
+  // Check if this course is in favorites
+  useEffect(() => {
+    if (!isLoggedIn || !course?.id) return;
+    fetch("/api/student/favorites")
+      .then((r) => r.json())
+      .then((favs) => {
+        if (Array.isArray(favs)) {
+          setIsFav(favs.some((f: any) => f.courseId === course.id));
+        }
+      })
+      .catch(() => {});
+  }, [isLoggedIn, course?.id]);
+
+  const toggleFav = async () => {
+    if (!isLoggedIn) {
+      alert("برای افزودن به علاقه‌مندی‌ها ابتدا وارد حساب کاربری شوید.");
+      window.location.href = "/login";
+      return;
+    }
+    if (!course?.id) return;
+    setFavBusy(true);
+    try {
+      if (isFav) {
+        await fetch("/api/student/favorites", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ courseId: course.id }),
+        });
+        setIsFav(false);
+      } else {
+        await fetch("/api/student/favorites", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ courseId: course.id }),
+        });
+        setIsFav(true);
+      }
+    } finally {
+      setFavBusy(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -351,6 +400,23 @@ export default function CourseDetailPage() {
                     ثبت‌نام در دوره
                   </Link>
                 )}
+                <button
+                  onClick={toggleFav}
+                  disabled={favBusy}
+                  className={`px-6 py-4 rounded-[16px] text-sm font-bold border-2 transition-all flex items-center gap-2 justify-center ${
+                    isFav
+                      ? "bg-error-500/15 border-error-500 text-error-600"
+                      : "bg-white/60 border-border-default text-text-secondary hover:border-error-300 hover:text-error-500"
+                  }`}
+                  title={isFav ? "حذف از علاقه‌مندی‌ها" : "افزودن به علاقه‌مندی‌ها"}
+                >
+                  {favBusy ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Heart className={`w-5 h-5 ${isFav ? "fill-error-500" : ""}`} />
+                  )}
+                  {isFav ? "در علاقه‌مندی‌ها" : "علاقه‌مند شدن"}
+                </button>
                 {course.instituteMobile && (
                   <a
                     href={`https://wa.me/${course.instituteMobile.replace(/^0/, "+98")}`}
