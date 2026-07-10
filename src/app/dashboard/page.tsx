@@ -10,6 +10,7 @@ import {
   MessageCircle, Bell, Award, Wallet, Heart, Briefcase, Phone, User,
   Play, ArrowLeft, ChevronLeft, Clock, GraduationCap, PlusCircle, Menu,
   Sparkles, Check, X, MapPin, BadgeCheck, Search, FolderOpen, Building2,
+  Trash2, CheckCheck, LogOut,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
@@ -556,20 +557,82 @@ function ChatTab({ regs, user }: { regs: StudentReg[]; user: any }) {
   );
 }
 
-/* ============ NOTIFICATIONS TAB ============ */
+/* ============ NOTIFICATIONS TAB — functional ============ */
 function NotificationsTab({ user }: { user: any }) {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    if (!user) { setLoading(false); return; }
-    fetch(`/api/notifications?userId=${user.id}`)
-      .then((r) => r.json()).then((d) => { setItems(d || []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [user]);
+  const [busy, setBusy] = useState(false);
+
+  const load = () => {
+    setLoading(true);
+    fetch("/api/notifications")
+      .then((r) => r.json())
+      .then((d) => setItems(Array.isArray(d) ? d : []))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []);
+
+  const markRead = async (id: number) => {
+    await fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    setItems((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
+  };
+  const markAllRead = async () => {
+    setBusy(true);
+    await fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ markAllRead: true }) });
+    load();
+    setBusy(false);
+  };
+  const deleteOne = async (id: number) => {
+    await fetch("/api/notifications", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    load();
+  };
+  const deleteAll = async () => {
+    if (!confirm("حذف تمام اعلان‌ها؟")) return;
+    setBusy(true);
+    await fetch("/api/notifications", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ deleteAll: true }) });
+    load();
+    setBusy(false);
+  };
+
+  const unread = items.filter((n) => !n.isRead).length;
+
+  const typeIcon = (type: string) => {
+    if (type === "success") return "✅";
+    if (type === "error") return "❌";
+    if (type === "warning") return "⚠️";
+    if (type === "enrollment") return "📝";
+    if (type === "chat") return "💬";
+    return "🔔";
+  };
+  const typeColor = (type: string) => {
+    if (type === "success") return "border-emerald-500/40 bg-emerald-500/5";
+    if (type === "error") return "border-error-500/40 bg-error-500/5";
+    if (type === "warning") return "border-amber-500/40 bg-amber-500/5";
+    return "border-primary-500/40 bg-primary-500/5";
+  };
+
   return (
     <div>
-      <h2 className="text-xl font-black mb-6">اعلان‌ها</h2>
-      {loading ? <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary-500" /> :
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <div>
+          <h2 className="text-xl font-black">اعلان‌ها {unread > 0 && <span className="text-primary-300 text-sm">({unread} خوانده‌نشده)</span>}</h2>
+          <p className="text-slate-500 text-sm mt-1">جدیدترین اعلان‌های شما ({items.length})</p>
+        </div>
+        <div className="flex gap-2">
+          {unread > 0 && (
+            <button onClick={markAllRead} disabled={busy} className="px-3 py-2 rounded-[10px] bg-primary-500/15 text-primary-300 text-xs font-black flex items-center gap-1.5">
+              <CheckCheck className="w-3.5 h-3.5" /> علامت‌گذاری همه به‌عنوان خوانده‌شده
+            </button>
+          )}
+          {items.length > 0 && (
+            <button onClick={deleteAll} disabled={busy} className="px-3 py-2 rounded-[10px] bg-error-500/15 text-error-400 text-xs font-black flex items-center gap-1.5">
+              <Trash2 className="w-3.5 h-3.5" /> حذف همه
+            </button>
+          )}
+        </div>
+      </div>
+      {loading ? <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-primary-500" /></div> :
         items.length === 0 ? (
           <div className="text-center py-16 bg-white/5 border border-white/10 rounded-[16px]">
             <Bell className="w-12 h-12 mx-auto text-slate-600 mb-3" />
@@ -578,9 +641,33 @@ function NotificationsTab({ user }: { user: any }) {
         ) : (
           <div className="space-y-2">
             {items.map((n) => (
-              <div key={n.id} className={`bg-white/5 border rounded-[12px] p-4 ${n.isRead ? "border-white/10" : "border-primary-500/40 bg-primary-500/5"}`}>
-                <h4 className="font-black text-sm">{n.title}</h4>
-                {n.body && <p className="text-[12px] text-slate-400 mt-1">{n.body}</p>}
+              <div key={n.id} className={`bg-white/5 border rounded-[12px] p-4 relative ${n.isRead ? "border-white/10 opacity-75" : typeColor(n.type)}`}>
+                <div className="flex items-start gap-3">
+                  <div className="text-2xl shrink-0">{typeIcon(n.type)}</div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-black text-sm">{n.title}</h4>
+                    {n.body && <p className="text-[12px] text-slate-400 mt-1">{n.body}</p>}
+                    <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-600">
+                      <span dir="ltr">{new Date(n.createdAt).toLocaleString("fa-IR")}</span>
+                      {!n.isRead && <span className="text-primary-300 font-black">● جدید</span>}
+                    </div>
+                    {n.link && (
+                      <Link href={n.link} className="inline-block mt-2 text-primary-300 text-[11px] font-black">
+                        مشاهده جزئیات ←
+                      </Link>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1 shrink-0">
+                    {!n.isRead && (
+                      <button onClick={() => markRead(n.id)} className="p-1.5 rounded-[8px] hover:bg-white/10 text-primary-300" title="علامت خوانده‌شده">
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    <button onClick={() => deleteOne(n.id)} className="p-1.5 rounded-[8px] hover:bg-error-500/15 text-error-400" title="حذف">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
