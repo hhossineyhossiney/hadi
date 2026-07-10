@@ -11,8 +11,8 @@ export async function GET(
 ) {
   const { slug } = await params;
 
-  const course = await db
-    .select({
+  const runQuery = (withNew: boolean) => {
+    const fields: any = {
       id: courses.id,
       title: courses.title,
       slug: courses.slug,
@@ -27,8 +27,6 @@ export async function GET(
       schedule: courses.schedule,
       startDate: courses.startDate,
       bannerImages: courses.bannerImages,
-      registrationClosed: courses.registrationClosed,
-      registrationEnded: courses.registrationEnded,
       totalSessions: courses.totalSessions,
       level: courses.level,
       instructorTitle: courses.instructorTitle,
@@ -41,13 +39,32 @@ export async function GET(
       instituteMobile: institutes.mobile,
       instituteAddress: institutes.address,
       regionName: regions.name,
-    })
-    .from(courses)
-    .leftJoin(institutes, eq(courses.instituteId, institutes.id))
-    .leftJoin(categories, eq(courses.categoryId, categories.id))
-    .leftJoin(regions, eq(institutes.regionId, regions.id))
-    .where(eq(courses.slug, slug))
-    .then((res) => res[0]);
+    };
+    if (withNew) {
+      fields.registrationClosed = courses.registrationClosed;
+      fields.registrationEnded = courses.registrationEnded;
+    }
+    return db
+      .select(fields)
+      .from(courses)
+      .leftJoin(institutes, eq(courses.instituteId, institutes.id))
+      .leftJoin(categories, eq(courses.categoryId, categories.id))
+      .leftJoin(regions, eq(institutes.regionId, regions.id))
+      .where(eq(courses.slug, slug))
+      .then((res: any[]) => res[0]);
+  };
+
+  let course: any;
+  try {
+    course = await runQuery(true);
+  } catch (e: any) {
+    console.error("Fallback query in course/[slug]:", e?.message);
+    course = await runQuery(false);
+    if (course) {
+      course.registrationClosed = false;
+      course.registrationEnded = false;
+    }
+  }
 
   if (!course) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
