@@ -16,8 +16,6 @@ import { normalizePhone } from "@/lib/phone";
 import ProfileStoriesTab from "@/components/panel/ProfileStoriesTab";
 import InstituteProfileForm from "@/components/panel/InstituteProfileForm";
 import StudentDocumentsModal from "@/components/panel/StudentDocumentsModal";
-import MoneyInput from "@/components/MoneyInput";
-import PersianDatePicker from "@/components/PersianDatePicker";
 
 type TabKey = "dashboard" | "courses" | "students" | "chat" | "gallery" | "banner" | "profile" | "telegram";
 
@@ -128,9 +126,9 @@ export default function ManagerPanelPage() {
   return (
     <main className="min-h-screen bg-[#0B1120]">
       <Navbar />
-      <div className="pt-[132px] lg:pt-20 lg:flex lg:flex-row lg:min-h-screen">
-        {/* Mobile top compact bar - fixed directly under navbar */}
-        <div className="lg:hidden fixed top-20 left-0 right-0 z-30 bg-[#0B1120] border-b border-white/10 px-4 py-3 flex items-center gap-3">
+      <div className="pt-20 lg:flex lg:flex-row lg:min-h-screen">
+        {/* Mobile top compact bar */}
+        <div className="lg:hidden sticky top-20 z-30 bg-[#0B1120]/95 backdrop-blur-lg border-b border-white/10 px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => setDrawerOpen(true)}
             className="w-10 h-10 rounded-[12px] bg-primary-600/20 hover:bg-primary-600/30 border border-primary-500/30 flex items-center justify-center text-primary-300 cursor-pointer"
@@ -147,14 +145,14 @@ export default function ManagerPanelPage() {
         </div>
 
         {drawerOpen && (
-          <div onClick={() => setDrawerOpen(false)} className="lg:hidden panel-drawer-backdrop" />
+          <div onClick={() => setDrawerOpen(false)} className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" />
         )}
 
-        <aside
-          className={`panel-mobile-drawer bg-[#0B1120] text-white shrink-0 lg:min-h-[calc(100vh-80px)] lg:w-72 lg:static lg:translate-x-0 lg:border-l lg:border-white/5 lg:block
-          w-[85%] max-w-[320px] overflow-y-auto
-          ${drawerOpen ? "is-open" : ""}`}
-          style={{ boxShadow: drawerOpen ? "0 20px 40px rgba(0,0,0,0.5)" : undefined }}>
+        <aside className={`bg-[#0B1120] text-white shrink-0 lg:min-h-[calc(100vh-80px)] lg:w-72 lg:static lg:translate-x-0 lg:border-l lg:border-white/5 lg:block
+          fixed top-0 right-0 bottom-0 z-50 w-[85%] max-w-[320px] overflow-y-auto transition-transform duration-300 ease-out
+          ${drawerOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
+          ${drawerOpen ? "block" : "hidden lg:block"}`}
+          style={{ boxShadow: drawerOpen ? "-20px 0 60px rgba(0,0,0,0.5)" : undefined }}>
           <div className="p-5 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-9 h-9 rounded-[10px] bg-primary-600 flex items-center justify-center shrink-0">
@@ -312,12 +310,14 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
             <option value="">انتخاب رشته *</option>
             {categories?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          <MoneyInput value={newCourse.price} onChange={(v) => setNewCourse({ ...newCourse, price: v })} placeholder="شهریه دوره" />
-          <input placeholder="ظرفیت (نفر)" type="number" value={newCourse.capacity} onChange={(e) => setNewCourse({ ...newCourse, capacity: e.target.value })}
+          <input placeholder="شهریه (تومان)" value={newCourse.price} onChange={(e) => setNewCourse({ ...newCourse, price: e.target.value })}
+            className="px-4 py-3 rounded-[12px] bg-[#0B1120] border border-white/10 text-sm font-semibold text-white placeholder:text-slate-500" />
+          <input placeholder="ظرفیت" type="number" value={newCourse.capacity} onChange={(e) => setNewCourse({ ...newCourse, capacity: e.target.value })}
             className="px-4 py-3 rounded-[12px] bg-[#0B1120] border border-white/10 text-sm font-semibold text-white placeholder:text-slate-500" />
           <input placeholder="مدت دوره (مثلاً ۴۰ ساعت)" value={newCourse.duration} onChange={(e) => setNewCourse({ ...newCourse, duration: e.target.value })}
             className="px-4 py-3 rounded-[12px] bg-[#0B1120] border border-white/10 text-sm font-semibold text-white placeholder:text-slate-500" />
-          <PersianDatePicker value={newCourse.startDate} onChange={(v) => setNewCourse({ ...newCourse, startDate: v })} placeholder="تاریخ شروع دوره" />
+          <input placeholder="تاریخ شروع" value={newCourse.startDate} onChange={(e) => setNewCourse({ ...newCourse, startDate: e.target.value })}
+            className="px-4 py-3 rounded-[12px] bg-[#0B1120] border border-white/10 text-sm font-semibold text-white placeholder:text-slate-500" />
           <input placeholder="زمان‌بندی کلاس" value={newCourse.schedule} onChange={(e) => setNewCourse({ ...newCourse, schedule: e.target.value })}
             className="px-4 py-3 rounded-[12px] bg-[#0B1120] border border-white/10 text-sm font-semibold text-white placeholder:text-slate-500" />
           <input placeholder="نام مدرس" value={newCourse.instructor} onChange={(e) => setNewCourse({ ...newCourse, instructor: e.target.value })}
@@ -332,7 +332,8 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
             <option value="advanced">پیشرفته</option>
             <option value="comprehensive">جامع از صفر تا صد</option>
           </select>
-          <MoneyInput value={newCourse.originalPrice} onChange={(v) => setNewCourse({ ...newCourse, originalPrice: v })} placeholder="قیمت قبل از تخفیف (اختیاری)" />
+          <input placeholder="قیمت اصلی قبل تخفیف (اختیاری)" value={newCourse.originalPrice} onChange={(e) => setNewCourse({ ...newCourse, originalPrice: e.target.value })}
+            className="px-4 py-3 rounded-[12px] bg-[#0B1120] border border-white/10 text-sm font-semibold text-white placeholder:text-slate-500" />
           <input placeholder="تعداد کل جلسات (مثل: ۲۰)" type="number" value={newCourse.totalSessions} onChange={(e) => setNewCourse({ ...newCourse, totalSessions: e.target.value })}
             className="px-4 py-3 rounded-[12px] bg-[#0B1120] border border-white/10 text-sm font-semibold text-white placeholder:text-slate-500" />
           <textarea placeholder="توضیحات کوتاه (برای کارت)" rows={2} value={newCourse.description} onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })}
@@ -391,11 +392,12 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
             {editCourse?.id === c.id ? (
               <div className="space-y-3">
                 {[
-                  { k: "title", l: "عنوان دوره" },
-                  { k: "capacity", l: "ظرفیت (نفر)" }, { k: "duration", l: "مدت (مثل ۴۰ ساعت)" },
+                  { k: "title", l: "عنوان دوره" }, { k: "price", l: "شهریه (تومان)" },
+                  { k: "originalPrice", l: "قیمت اصلی قبل تخفیف" },
+                  { k: "capacity", l: "ظرفیت" }, { k: "duration", l: "مدت" },
                   { k: "totalSessions", l: "تعداد کل جلسات" },
-                  { k: "schedule", l: "زمان‌بندی کلاس" },
-                  { k: "instructor", l: "نام مدرس" },
+                  { k: "schedule", l: "زمان‌بندی" }, { k: "startDate", l: "تاریخ شروع" },
+                  { k: "instructor", l: "مدرس" },
                   { k: "instructorTitle", l: "عنوان مدرس" },
                 ].map((f) => (
                   <div key={f.k}>
@@ -404,24 +406,6 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
                       className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-xs font-semibold text-white mt-1" />
                   </div>
                 ))}
-                <div>
-                  <label className="text-[10px] font-bold text-slate-500">شهریه دوره</label>
-                  <div className="mt-1">
-                    <MoneyInput value={editCourse.price ?? ""} onChange={(v) => setEditCourse({ ...editCourse, price: v })} placeholder="شهریه" />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-slate-500">قیمت قبل از تخفیف</label>
-                  <div className="mt-1">
-                    <MoneyInput value={editCourse.originalPrice ?? ""} onChange={(v) => setEditCourse({ ...editCourse, originalPrice: v })} placeholder="قیمت قبل تخفیف" />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-slate-500">تاریخ شروع دوره</label>
-                  <div className="mt-1">
-                    <PersianDatePicker value={editCourse.startDate ?? ""} onChange={(v) => setEditCourse({ ...editCourse, startDate: v })} placeholder="تاریخ شروع" />
-                  </div>
-                </div>
                 <div>
                   <label className="text-[10px] font-bold text-slate-500">سطح دوره</label>
                   <select value={editCourse.level || ""} onChange={(e) => setEditCourse({ ...editCourse, level: e.target.value })}
@@ -494,19 +478,46 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
               </div>
             ) : (
               <>
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-black text-white">{c.title}</h3>
+                <div className="flex items-start justify-between mb-3 gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-black text-white">{c.title}</h3>
+                      {c.status === "rejected" && <span className="text-[9px] font-black bg-error-500/20 text-error-400 px-2 py-0.5 rounded-full">ثبت‌نام متوقف</span>}
+                      {c.status !== "rejected" && (c.capacity > 0 && c.enrolledCount >= c.capacity) && (
+                        <span className="text-[9px] font-black bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">تکمیل ظرفیت</span>
+                      )}
+                    </div>
                     <span className="text-[10px] text-slate-400">{c.categoryName}</span>
                   </div>
-                  <div className="flex gap-1.5">
-                    <button onClick={() => setEditCourse({ ...c })} className="p-2 rounded-[10px] bg-primary-500/15 text-primary-400 hover:bg-primary-500/30 cursor-pointer"><Pencil className="w-3.5 h-3.5" /></button>
+                  <div className="flex gap-1.5 shrink-0 flex-wrap">
+                    <button onClick={() => setEditCourse({ ...c })} className="p-2 rounded-[10px] bg-primary-500/15 text-primary-400 hover:bg-primary-500/30 cursor-pointer" title="ویرایش دوره"><Pencil className="w-3.5 h-3.5" /></button>
                     <button onClick={() => setBannerCourseId(bannerCourseId === c.id ? null : c.id)} className="p-2 rounded-[10px] bg-fuchsia-500/15 text-fuchsia-400 hover:bg-fuchsia-500/30 cursor-pointer" title="بنر تبلیغاتی دوره"><ImagePlus className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => handleDelete(c.id, c.title)} className="p-2 rounded-[10px] bg-error-500/15 text-error-400 hover:bg-error-500/30 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
+                    <button
+                      onClick={() => act({ action: "toggleCourseRegistration", courseId: c.id, closed: c.status !== "rejected" })}
+                      className={`p-2 rounded-[10px] cursor-pointer ${c.status === "rejected" ? "bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/30" : "bg-amber-500/15 text-amber-400 hover:bg-amber-500/30"}`}
+                      title={c.status === "rejected" ? "فعال‌سازی ثبت‌نام" : "توقف ثبت‌نام"}
+                    >
+                      {c.status === "rejected" ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const cur = c.capacity || 0;
+                        const raw = prompt(`ظرفیت جدید دوره «${c.title}» را وارد کنید (فعلی: ${cur})`, String(cur));
+                        if (raw === null) return;
+                        const capacity = parseInt(raw.replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))), 10);
+                        if (isNaN(capacity) || capacity < 0) { alert("عدد نامعتبر است"); return; }
+                        await act({ action: "updateCapacity", courseId: c.id, capacity });
+                      }}
+                      className="p-2 rounded-[10px] bg-sky-500/15 text-sky-400 hover:bg-sky-500/30 cursor-pointer"
+                      title="ویرایش ظرفیت"
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => handleDelete(c.id, c.title)} className="p-2 rounded-[10px] bg-error-500/15 text-error-400 hover:bg-error-500/30 cursor-pointer" title="حذف دوره"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-[11px]">
-                  <div className="bg-[#0B1120] rounded-[10px] p-2.5"><span className="text-slate-500">شهریه: </span><b className="text-emerald-400">{c.price ? `${Number(c.price).toLocaleString("fa-IR")} تومان` : "رایگان"}</b></div>
+                  <div className="bg-[#0B1120] rounded-[10px] p-2.5"><span className="text-slate-500">شهریه: </span><b className="text-emerald-400">{c.price ? Number(c.price).toLocaleString("fa-IR") + " تومان" : "رایگان"}</b></div>
                   <div className="bg-[#0B1120] rounded-[10px] p-2.5"><span className="text-slate-500">ظرفیت: </span><b className="text-white">{Number(c.enrolledCount).toLocaleString("fa-IR")}/{Number(c.capacity).toLocaleString("fa-IR")}</b></div>
                   <div className="bg-[#0B1120] rounded-[10px] p-2.5"><span className="text-slate-500">شروع: </span><b className="text-white">{c.startDate ? String(c.startDate).replace(/[0-9]/g, d => "۰۱۲۳۴۵۶۷۸۹"[+d]) : "—"}</b></div>
                   <div className="bg-[#0B1120] rounded-[10px] p-2.5"><span className="text-slate-500">مدرس: </span><b className="text-white">{c.instructor || "—"}</b></div>
