@@ -24,6 +24,8 @@ export default async function CoursesPage() {
       enrolledCount: courses.enrolledCount,
       instructor: courses.instructor,
       startDate: courses.startDate,
+      registrationClosed: courses.registrationClosed,
+      registrationEnded: courses.registrationEnded,
       categoryName: categories.name,
       instituteName: institutes.name,
       instituteSlug: institutes.slug,
@@ -112,9 +114,23 @@ export default async function CoursesPage() {
                       <span className="text-sm font-black text-primary-600">
                         {course.price ? Number(course.price).toLocaleString("fa-IR") + " تومان" : "رایگان"}
                       </span>
-                      <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${theme.badge}`}>
-                        ثبت‌نام سریع
-                      </span>
+                      {course.registrationClosed ? (
+                        <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-error-500/20 text-error-600">
+                          ثبت‌نام متوقف
+                        </span>
+                      ) : course.registrationEnded ? (
+                        <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-700">
+                          زمان تمام شده
+                        </span>
+                      ) : filled >= cap && cap > 0 ? (
+                        <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-700">
+                          تکمیل ظرفیت
+                        </span>
+                      ) : (
+                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${theme.badge}`}>
+                          ثبت‌نام سریع
+                        </span>
+                      )}
                     </div>
                   </div>
                 </Link>
