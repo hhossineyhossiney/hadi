@@ -13,6 +13,7 @@ export default function VerifyLicenseBanner() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           className="relative overflow-hidden rounded-[24px] border border-secondary-200 bg-gradient-to-br from-secondary-50 via-white to-primary-50 p-6 lg:p-10 flex flex-col lg:flex-row items-center gap-5"
+          style={{ color: "#0F172A" }}
         >
           <div
             className="absolute inset-0 opacity-[0.05]"
@@ -27,13 +28,22 @@ export default function VerifyLicenseBanner() {
           </div>
 
           <div className="relative flex-1 text-center lg:text-right">
-            <span className="text-[10px] font-black text-secondary-700 tracking-[0.2em] uppercase mb-1.5 block">
+            <span
+              className="text-[10px] font-black tracking-[0.2em] uppercase mb-1.5 block"
+              style={{ color: "#0F766E" }}
+            >
               TRUST & VERIFICATION
             </span>
-            <h3 className="text-xl lg:text-2xl font-black text-text-primary mb-2">
+            <h3
+              className="text-xl lg:text-2xl font-black mb-2"
+              style={{ color: "#04152A" }}
+            >
               استعلام رسمی و تایید اعتبار آموزشگاه‌ها
             </h3>
-            <p className="text-sm text-text-secondary max-w-2xl leading-relaxed">
+            <p
+              className="text-sm max-w-2xl leading-relaxed"
+              style={{ color: "#334155" }}
+            >
               شما می‌توانید با وارد کردن شماره پروانه هر آموزشگاه، اصالت آن را در سامانه نظارتی
               فنی و حرفه‌ای بررسی کنید و از اعتبار مدرک صادره اطمینان حاصل نمایید.
             </p>
