@@ -10,7 +10,8 @@ import {
   MessageCircle, Bell, Award, Wallet, Heart, Briefcase, Phone, User,
   Play, ArrowLeft, ChevronLeft, Clock, GraduationCap, PlusCircle, Menu,
   Sparkles, Check, X, MapPin, BadgeCheck, Search, FolderOpen, Building2,
-  Trash2, CheckCheck, LogOut,
+  Trash2, CheckCheck, LogOut, FileText, CreditCard, AlertTriangle,
+  Calendar, Landmark, Receipt, Timer, ShieldCheck,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
@@ -66,7 +67,7 @@ interface DashboardData {
   upcomingSessions: any[];
 }
 
-type TabKey = "dashboard" | "courses" | "progress" | "schedule" | "chat" | "notifications" | "certificates" | "wallet" | "favorites" | "portfolio" | "profile";
+type TabKey = "dashboard" | "courses" | "progress" | "schedule" | "chat" | "notifications" | "certificates" | "wallet" | "fees" | "favorites" | "portfolio" | "profile";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
@@ -77,6 +78,7 @@ const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "notifications", label: "اعلان‌ها", icon: Bell },
   { key: "certificates", label: "گواهینامه‌ها", icon: Award },
   { key: "wallet", label: "کیف پول و مالی", icon: Wallet },
+  { key: "fees", label: "شهریه و اقساط", icon: FileText },
   { key: "favorites", label: "علاقه‌مندی‌ها", icon: Heart },
   { key: "portfolio", label: "رزومه و نمونه‌کار", icon: Briefcase },
   { key: "profile", label: "ویرایش پروفایل", icon: User },
@@ -244,6 +246,7 @@ function StudentDashboardContent() {
           {tab === "favorites" && <FavoritesTab regs={regs} />}
           {tab === "portfolio" && <PortfolioTab user={data?.user} />}
           {tab === "profile" && <ProfileTab />}
+          {tab === "fees" && <FeesTab />}
         </main>
       </div>
     </div>
@@ -1520,6 +1523,372 @@ function PortfolioTab({ user }: { user: any }) {
           </div>
         )
       }
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FEES TAB — installment plans + extra fees, luxurious design
+   ═══════════════════════════════════════════════════════════════ */
+const FEE_TYPE_META: Record<string, { label: string; icon: any; color: string; bg: string; border: string }> = {
+  installment: { label: "قسط شهریه", icon: Calendar, color: "text-primary-300", bg: "bg-primary-500/10", border: "border-primary-500/30" },
+  certificate: { label: "هزینه صدور مدرک", icon: Award, color: "text-amber-300", bg: "bg-amber-500/10", border: "border-amber-500/40" },
+  exam_first: { label: "هزینه آزمون", icon: FileText, color: "text-cyan-300", bg: "bg-cyan-500/10", border: "border-cyan-500/30" },
+  exam_retry: { label: "هزینه آزمون مجدد", icon: AlertTriangle, color: "text-orange-300", bg: "bg-orange-500/10", border: "border-orange-500/40" },
+  government_dahak: { label: "هزینه دهک‌بندی دولت", icon: Landmark, color: "text-fuchsia-300", bg: "bg-fuchsia-500/10", border: "border-fuchsia-500/30" },
+  extra: { label: "هزینه اضافه", icon: Receipt, color: "text-slate-300", bg: "bg-white/5", border: "border-white/10" },
+};
+
+function FeesTab() {
+  const [groups, setGroups] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [balance, setBalance] = useState(0);
+  const [payingId, setPayingId] = useState<number | null>(null);
+  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const load = () => {
+    setLoading(true);
+    Promise.all([
+      fetch("/api/student/fees").then((r) => r.json()),
+      fetch("/api/student/wallet").then((r) => r.json()),
+    ])
+      .then(([f, w]) => {
+        setGroups(f.groups || []);
+        setBalance(w.balance || 0);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []);
+
+  const toPersian = (str: string | number) => String(str).replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[+d]);
+
+  const payFromWallet = async (feeId: number, feeAmount: number, feeTitle: string) => {
+    if (balance < feeAmount) {
+      setMsg({ type: "err", text: `موجودی کیف پول کافی نیست. کسری: ${(feeAmount - balance).toLocaleString("fa-IR")} تومان — ابتدا کیف پول را شارژ کنید.` });
+      return;
+    }
+    if (!confirm(`آیا از پرداخت ${feeAmount.toLocaleString("fa-IR")} تومان بابت «${feeTitle}» از کیف پول مطمئن هستید؟`)) return;
+
+    setPayingId(feeId);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/student/fees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feeId }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setMsg({ type: "ok", text: `✅ پرداخت با موفقیت انجام شد. کد پیگیری: ${d.fee?.paymentRefId || ""}` });
+        load();
+      } else {
+        setMsg({ type: "err", text: d.error || "خطا در پرداخت" });
+      }
+    } catch { setMsg({ type: "err", text: "خطا در ارتباط با سرور" }); }
+    finally { setPayingId(null); }
+  };
+
+  const payOnline = async (feeId: number, feeAmount: number) => {
+    setPayingId(feeId);
+    try {
+      const res = await fetch("/api/payment/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: feeAmount,
+          purpose: "course_payment",
+          meta: { feeId },
+        }),
+      });
+      const d = await res.json();
+      if (res.ok && d.paymentUrl) {
+        window.location.href = d.paymentUrl;
+      } else {
+        setMsg({ type: "err", text: d.error || "خطا در ایجاد درگاه پرداخت" });
+        setPayingId(null);
+      }
+    } catch {
+      setMsg({ type: "err", text: "خطا در ارتباط با درگاه" });
+      setPayingId(null);
+    }
+  };
+
+  const isPastDue = (dueDate: string | null): boolean => {
+    if (!dueDate) return false;
+    const clean = String(dueDate).replace(/[۰-۹]/g, (d: string) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[-.]/g, "/");
+    const parts = clean.split("/").map((x) => parseInt(x.trim(), 10));
+    if (parts.length !== 3 || parts.some(isNaN)) return false;
+    const feeDate = parts[0] * 10000 + parts[1] * 100 + parts[2];
+    const now = new Date();
+    const jy = now.getFullYear() - 621;
+    const todayApprox = jy * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+    return feeDate < todayApprox;
+  };
+
+  // Overall summary
+  const overall = groups.reduce(
+    (acc: any, g: any) => {
+      acc.totalPayable += g.summary.totalPayable;
+      acc.totalPaid += g.summary.totalPaid;
+      acc.totalRemaining += g.summary.totalRemaining;
+      return acc;
+    },
+    { totalPayable: 0, totalPaid: 0, totalRemaining: 0 }
+  );
+
+  if (loading) return <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary-500" /></div>;
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h2 className="text-xl font-black flex items-center gap-2">
+          <FileText className="w-6 h-6 text-primary-400" />
+          شهریه و اقساط
+        </h2>
+        <p className="text-slate-500 text-sm mt-1">
+          مدیریت پرداخت شهریه دوره‌ها، اقساط و هزینه‌های جانبی (مدرک، آزمون، دهک‌بندی و...)
+        </p>
+      </div>
+
+      {msg && (
+        <div className={`mb-4 p-3.5 rounded-[12px] text-xs font-bold ${msg.type === "ok" ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : "bg-error-500/15 text-error-400 border border-error-500/30"}`}>
+          {msg.text}
+        </div>
+      )}
+
+      {groups.length === 0 ? (
+        <div className="text-center py-16 bg-white/5 border border-white/10 rounded-[20px]">
+          <Receipt className="w-14 h-14 mx-auto text-slate-600 mb-3" />
+          <p className="text-slate-400 text-sm mb-1">هنوز هیچ برنامه پرداختی برای شما ثبت نشده است.</p>
+          <p className="text-slate-600 text-[11px]">مدیر آموزشگاه می‌تواند از پنل خود قسط‌بندی و هزینه‌های جانبی را برای شما تعریف کند.</p>
+        </div>
+      ) : (
+        <>
+          {/* ═════ OVERALL SUMMARY CARD (luxury) ═════ */}
+          <div className="relative overflow-hidden rounded-[24px] p-6 mb-6 border-2 border-primary-500/30"
+            style={{ background: "linear-gradient(135deg, rgba(11,79,139,0.35) 0%, rgba(20,184,166,0.15) 60%, rgba(212,175,55,0.1) 100%)" }}>
+            <div className="absolute top-0 left-0 w-40 h-40 rounded-full opacity-20 blur-3xl" style={{ background: "#14B8A6" }} />
+            <div className="absolute bottom-0 right-0 w-40 h-40 rounded-full opacity-15 blur-3xl" style={{ background: "#D4AF37" }} />
+
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-4">
+                <ShieldCheck className="w-5 h-5 text-primary-300" />
+                <span className="text-xs font-black text-primary-200 tracking-wider">وضعیت مالی کلی شما</span>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-black/20 rounded-[14px] p-3 border border-white/5">
+                  <div className="text-[10px] text-slate-400 font-bold mb-1">کل قابل پرداخت</div>
+                  <div className="text-base md:text-xl font-black text-white" dir="ltr">{toPersian(overall.totalPayable.toLocaleString("fa-IR"))}</div>
+                  <div className="text-[9px] text-slate-500 mt-0.5">تومان</div>
+                </div>
+                <div className="bg-emerald-500/10 rounded-[14px] p-3 border border-emerald-500/30">
+                  <div className="text-[10px] text-emerald-300 font-bold mb-1">پرداخت‌شده</div>
+                  <div className="text-base md:text-xl font-black text-emerald-300" dir="ltr">{toPersian(overall.totalPaid.toLocaleString("fa-IR"))}</div>
+                  <div className="text-[9px] text-emerald-400/60 mt-0.5">تومان</div>
+                </div>
+                <div className="bg-amber-500/10 rounded-[14px] p-3 border border-amber-500/30">
+                  <div className="text-[10px] text-amber-300 font-bold mb-1">باقی‌مانده</div>
+                  <div className="text-base md:text-xl font-black text-amber-300" dir="ltr">{toPersian(overall.totalRemaining.toLocaleString("fa-IR"))}</div>
+                  <div className="text-[9px] text-amber-400/60 mt-0.5">تومان</div>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center justify-between text-xs">
+                <span className="text-slate-300 flex items-center gap-1">
+                  <Wallet className="w-3.5 h-3.5" /> موجودی کیف پول: <b className="text-white">{toPersian(balance.toLocaleString("fa-IR"))} تومان</b>
+                </span>
+                <button onClick={() => window.location.href = "/dashboard?tab=wallet"}
+                  className="text-emerald-300 hover:text-emerald-200 font-black text-[11px] flex items-center gap-1">
+                  <PlusCircle className="w-3 h-3" /> شارژ کیف پول
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* ═════ COURSE GROUPS ═════ */}
+          {groups.map((g: any) => (
+            <div key={g.registrationId} className="mb-8 bg-white/5 border border-white/10 rounded-[20px] overflow-hidden">
+              {/* Header */}
+              <div className="p-5 border-b border-white/5 bg-gradient-to-l from-primary-500/10 to-transparent">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <h3 className="font-black text-white text-base flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-primary-400" />
+                      {g.courseTitle}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
+                      <Building2 className="w-3 h-3" /> {g.instituteName}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    {g.summary.installmentsTotal > 0 && (
+                      <div className="text-[10px] font-black text-primary-300 bg-primary-500/15 px-3 py-1 rounded-full">
+                        {toPersian(g.summary.installmentsPaid)} از {toPersian(g.summary.installmentsTotal)} قسط پرداخت‌شده
+                      </div>
+                    )}
+                    <div className="text-[10px] text-slate-400">
+                      باقی‌مانده: <b className="text-amber-300">{toPersian(g.summary.totalRemaining.toLocaleString("fa-IR"))}</b> تومان
+                    </div>
+                  </div>
+                </div>
+                {/* Progress bar */}
+                {g.summary.totalPayable > 0 && (
+                  <div className="mt-3">
+                    <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 transition-all"
+                        style={{ width: `${Math.min(100, (g.summary.totalPaid / g.summary.totalPayable) * 100)}%` }} />
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-1.5 text-center">
+                      {toPersian(Math.round((g.summary.totalPaid / g.summary.totalPayable) * 100))}% تکمیل شده
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Installments */}
+              {g.installments.length > 0 && (
+                <div className="p-4">
+                  <h4 className="text-xs font-black text-slate-300 mb-3 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5" /> اقساط شهریه
+                  </h4>
+                  <div className="space-y-2">
+                    {g.installments.map((fee: any) => {
+                      const meta = FEE_TYPE_META[fee.type];
+                      const paid = fee.status === "paid";
+                      const waived = fee.status === "waived";
+                      const overdue = !paid && !waived && isPastDue(fee.dueDate);
+                      return (
+                        <div key={fee.id} className={`rounded-[14px] p-4 border-2 transition-all ${
+                          paid ? "bg-emerald-500/5 border-emerald-500/40"
+                          : waived ? "bg-slate-500/5 border-slate-500/30 opacity-70"
+                          : overdue ? "bg-error-500/5 border-error-500/50"
+                          : "bg-white/5 border-white/10"
+                        }`}>
+                          <div className="flex items-center gap-3">
+                            <div className={`w-11 h-11 rounded-[12px] flex items-center justify-center shrink-0 ${
+                              paid ? "bg-emerald-500" : overdue ? "bg-error-500" : waived ? "bg-slate-500" : `${meta.bg} ${meta.color}`
+                            }`}>
+                              {paid ? <Check className="w-5 h-5 text-white" />
+                                : waived ? <X className="w-5 h-5 text-white" />
+                                : overdue ? <AlertTriangle className="w-5 h-5 text-white" />
+                                : <span className="text-lg font-black">{toPersian(fee.installmentNumber)}</span>}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-black text-white text-sm">{fee.title}</span>
+                                {paid && <span className="text-[9px] font-black bg-emerald-500 text-white px-2 py-0.5 rounded-full">✓ پرداخت شد</span>}
+                                {waived && <span className="text-[9px] font-black bg-slate-500 text-white px-2 py-0.5 rounded-full">بخشوده شده</span>}
+                                {overdue && <span className="text-[9px] font-black bg-error-500 text-white px-2 py-0.5 rounded-full">سررسید گذشته</span>}
+                              </div>
+                              <div className="flex items-center gap-3 mt-1 text-[10px] text-slate-400">
+                                <span className="font-black text-white text-sm" dir="ltr">
+                                  {toPersian(Number(fee.amount).toLocaleString("fa-IR"))} <span className="text-[10px] text-slate-500">تومان</span>
+                                </span>
+                                {fee.dueDate && (
+                                  <span className={`flex items-center gap-1 ${overdue ? "text-error-400" : "text-slate-500"}`}>
+                                    <Timer className="w-3 h-3" /> سررسید: {toPersian(fee.dueDate)}
+                                  </span>
+                                )}
+                                {paid && fee.paidAt && (
+                                  <span className="text-emerald-400 text-[10px]">
+                                    ✓ {new Date(fee.paidAt).toLocaleDateString("fa-IR")}
+                                    {fee.paymentRefId && ` • ${fee.paymentRefId}`}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {!paid && !waived && (
+                              <div className="flex flex-col gap-1.5 shrink-0">
+                                <button onClick={() => payFromWallet(fee.id, Number(fee.amount), fee.title)}
+                                  disabled={payingId === fee.id}
+                                  className="px-3 py-1.5 rounded-[8px] bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black flex items-center gap-1 disabled:opacity-50">
+                                  {payingId === fee.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wallet className="w-3 h-3" />}
+                                  از کیف پول
+                                </button>
+                                <button onClick={() => payOnline(fee.id, Number(fee.amount))}
+                                  disabled={payingId === fee.id}
+                                  className="px-3 py-1.5 rounded-[8px] bg-primary-600 hover:bg-primary-700 text-white text-[10px] font-black flex items-center gap-1 disabled:opacity-50">
+                                  <CreditCard className="w-3 h-3" /> آنلاین
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Extra fees */}
+              {g.extras.length > 0 && (
+                <div className="p-4 border-t border-white/5 bg-black/10">
+                  <h4 className="text-xs font-black text-slate-300 mb-3 flex items-center gap-1.5">
+                    <Receipt className="w-3.5 h-3.5" /> هزینه‌های جانبی
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {g.extras.map((fee: any) => {
+                      const meta = FEE_TYPE_META[fee.type] || FEE_TYPE_META.extra;
+                      const paid = fee.status === "paid";
+                      const waived = fee.status === "waived";
+                      const Icon = meta.icon;
+                      return (
+                        <div key={fee.id} className={`rounded-[14px] p-3.5 border-2 ${
+                          paid ? "bg-emerald-500/5 border-emerald-500/40"
+                          : waived ? "bg-slate-500/5 border-slate-500/30 opacity-70"
+                          : `${meta.bg} ${meta.border}`
+                        }`}>
+                          <div className="flex items-start gap-2.5">
+                            <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 ${
+                              paid ? "bg-emerald-500" : waived ? "bg-slate-500" : `${meta.bg}`
+                            }`}>
+                              {paid ? <Check className="w-4 h-4 text-white" />
+                                : waived ? <X className="w-4 h-4 text-white" />
+                                : <Icon className={`w-4 h-4 ${meta.color}`} />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`text-[9px] font-black uppercase tracking-wider ${meta.color}`}>{meta.label}</span>
+                                {fee.isOptional && <span className="text-[8px] font-black bg-slate-600 text-white px-1.5 py-0.5 rounded">اختیاری</span>}
+                              </div>
+                              <div className="font-black text-white text-xs mt-0.5">{fee.title}</div>
+                              <div className="text-xs font-black text-white mt-1" dir="ltr">
+                                {toPersian(Number(fee.amount).toLocaleString("fa-IR"))} <span className="text-[9px] text-slate-500">تومان</span>
+                              </div>
+                              {fee.description && <p className="text-[10px] text-slate-400 mt-1">{fee.description}</p>}
+                            </div>
+                          </div>
+                          {!paid && !waived && (
+                            <div className="flex gap-1.5 mt-3">
+                              <button onClick={() => payFromWallet(fee.id, Number(fee.amount), fee.title)}
+                                disabled={payingId === fee.id}
+                                className="flex-1 py-1.5 rounded-[8px] bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center gap-1 disabled:opacity-50">
+                                {payingId === fee.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wallet className="w-3 h-3" />}
+                                کیف پول
+                              </button>
+                              <button onClick={() => payOnline(fee.id, Number(fee.amount))}
+                                disabled={payingId === fee.id}
+                                className="flex-1 py-1.5 rounded-[8px] bg-primary-600 hover:bg-primary-700 text-white text-[10px] font-black flex items-center justify-center gap-1 disabled:opacity-50">
+                                <CreditCard className="w-3 h-3" /> آنلاین
+                              </button>
+                            </div>
+                          )}
+                          {paid && (
+                            <div className="mt-2 text-[10px] text-emerald-400 flex items-center gap-1">
+                              <Check className="w-3 h-3" /> پرداخت شد
+                              {fee.paymentRefId && <span className="opacity-70">• {fee.paymentRefId}</span>}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </>
+      )}
     </div>
   );
 }
