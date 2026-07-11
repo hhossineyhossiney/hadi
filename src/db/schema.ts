@@ -318,3 +318,48 @@ export const courseSessions = pgTable("course_sessions", {
   meetingUrl: text("meeting_url"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// ═══════════════════════════════════════════════════════════════
+// PAYMENT INSTALLMENTS SYSTEM — قسط‌بندی و هزینه‌های اضافی دوره
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Payment fees: each row is one fee (installment or extra fee) that a student must pay.
+ * `type` distinguishes between:
+ *   - "installment" — قسط شهریه دوره
+ *   - "certificate" — هزینه صدور مدرک
+ *   - "exam_first" — هزینه آزمون اول
+ *   - "exam_retry" — هزینه آزمون مجدد (در صورت مردودی)
+ *   - "government_dahak" — کسری/اضافه‌ی دهک‌بندی دولتی
+ *   - "extra" — سایر هزینه‌های آموزشگاه
+ */
+export const paymentFees = pgTable("payment_fees", {
+  id: serial("id").primaryKey(),
+  registrationId: integer("registration_id")
+    .references(() => registrations.id, { onDelete: "cascade" })
+    .notNull(),
+  userId: integer("user_id").notNull(), // for fast lookup
+  courseId: integer("course_id").notNull(),
+  instituteId: integer("institute_id").notNull(),
+
+  type: varchar("type", { length: 30 }).notNull().default("installment"),
+  installmentNumber: integer("installment_number").default(0), // 1, 2, 3 for installments; 0 for other fees
+  totalInstallments: integer("total_installments").default(0), // e.g., 3 (کل تعداد اقساط این پلان)
+
+  title: varchar("title", { length: 255 }).notNull(),
+  amount: decimal("amount", { precision: 12, scale: 0 }).notNull(),
+  dueDate: varchar("due_date", { length: 30 }), // Persian date "1404/06/15"
+
+  status: varchar("status", { length: 20 }).default("pending"), // pending | paid | overdue | waived
+  paidAt: timestamp("paid_at"),
+  paidAmount: decimal("paid_amount", { precision: 12, scale: 0 }),
+  paymentMethod: varchar("payment_method", { length: 30 }), // wallet | online | manual
+  paymentRefId: varchar("payment_ref_id", { length: 100 }),
+  transactionId: integer("transaction_id"), // FK to wallet_transactions.id
+
+  isOptional: boolean("is_optional").default(false), // e.g., dahak fee may not apply to all
+  description: text("description"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
