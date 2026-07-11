@@ -370,7 +370,7 @@ nav.fixed.top-0 {
   border-bottom: 1px solid var(--nav-border);
 }
 
-/* INPUTS */
+/* INPUTS — default dark theme */
 input:not([type="checkbox"]):not([type="radio"]),
 select,
 textarea {
@@ -387,6 +387,77 @@ input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--input-focus) !important;
   box-shadow: 0 0 0 3px var(--input-focus-ring);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CRITICAL FIX: Inputs with WHITE backgrounds (bg-white/60, /70, /80, /85, /90)
+   MUST show DARK text in both themes so user can read what they type.
+   The hero search box uses these classes on a dark hero background.
+   ═══════════════════════════════════════════════════════════════ */
+input.bg-white\/60, input.bg-white\/70, input.bg-white\/80, input.bg-white\/85, input.bg-white\/90, input.bg-white\/95,
+select.bg-white\/60, select.bg-white\/70, select.bg-white\/80, select.bg-white\/85, select.bg-white\/90, select.bg-white\/95,
+textarea.bg-white\/60, textarea.bg-white\/70, textarea.bg-white\/80, textarea.bg-white\/85, textarea.bg-white\/90, textarea.bg-white\/95,
+.bg-white\/60 input, .bg-white\/70 input, .bg-white\/80 input, .bg-white\/85 input, .bg-white\/90 input, .bg-white\/95 input,
+.bg-white\/60 select, .bg-white\/70 select, .bg-white\/80 select, .bg-white\/85 select, .bg-white\/90 select, .bg-white\/95 select,
+.bg-white\/60 textarea, .bg-white\/70 textarea, .bg-white\/80 textarea, .bg-white\/85 textarea, .bg-white\/90 textarea, .bg-white\/95 textarea {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: #0F172A !important;
+  border-color: rgba(11, 79, 139, 0.20) !important;
+}
+input.bg-white\/60::placeholder, input.bg-white\/70::placeholder, input.bg-white\/80::placeholder,
+input.bg-white\/85::placeholder, input.bg-white\/90::placeholder, input.bg-white\/95::placeholder,
+textarea.bg-white\/60::placeholder, textarea.bg-white\/70::placeholder, textarea.bg-white\/80::placeholder,
+textarea.bg-white\/85::placeholder, textarea.bg-white\/90::placeholder, textarea.bg-white\/95::placeholder {
+  color: rgba(15, 23, 42, 0.55) !important;
+}
+
+/* Also handle text inside div.bg-white/85 wrappers (like the hero search fields) */
+.bg-white\/60, .bg-white\/70, .bg-white\/80, .bg-white\/85, .bg-white\/90, .bg-white\/95 {
+  color: #0F172A !important;
+}
+.bg-white\/60 svg, .bg-white\/70 svg, .bg-white\/80 svg, .bg-white\/85 svg, .bg-white\/90 svg, .bg-white\/95 svg {
+  color: #334155 !important;
+}
+
+/* Select option contrast (works in both themes) */
+select option {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+  padding: 6px !important;
+}
+select option:checked, select option:hover, select option:focus {
+  background-color: #14B8A6 !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+}
+/* In dark theme, keep option contrast readable */
+html[data-theme="dark"] select option {
+  background-color: #082D53 !important;
+  color: #EAF3FB !important;
+}
+html[data-theme="dark"] select option:checked, html[data-theme="dark"] select option:hover {
+  background-color: #14B8A6 !important;
+  color: #04152A !important;
+}
+
+/* Autofill text visibility fix (Chrome yellow autofill) */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--text-primary) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-canvas-3) inset !important;
+  caret-color: var(--text-primary) !important;
+}
+/* Autofill on white/light input backgrounds */
+.bg-white\/60 input:-webkit-autofill, .bg-white\/70 input:-webkit-autofill, .bg-white\/80 input:-webkit-autofill,
+.bg-white\/85 input:-webkit-autofill, .bg-white\/90 input:-webkit-autofill, .bg-white\/95 input:-webkit-autofill,
+input.bg-white\/60:-webkit-autofill, input.bg-white\/70:-webkit-autofill, input.bg-white\/80:-webkit-autofill,
+input.bg-white\/85:-webkit-autofill, input.bg-white\/90:-webkit-autofill, input.bg-white\/95:-webkit-autofill {
+  -webkit-text-fill-color: #0F172A !important;
+  -webkit-box-shadow: 0 0 0 1000px rgba(255,255,255,0.97) inset !important;
+  caret-color: #0F172A !important;
 }
 
 /* Panels — dark bg colors */
@@ -454,61 +525,5 @@ button:active, a:active {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
-  }
-}
-
-/* ================== SELECT OPTION FIX ONLY (native dropdown text visibility) ================== */
-select option {
-  background-color: #04152A !important;
-  color: #EAF3FB !important;
-}
-select option:checked {
-  background-color: #14B8A6 !important;
-  color: #04152A !important;
-}
-html[data-theme="light"] select option {
-  background-color: #FFFFFF !important;
-  color: #04152A !important;
-}
-html[data-theme="light"] select option:checked {
-  background-color: #14B8A6 !important;
-  color: #FFFFFF !important;
-}
-
-/* ================== Mobile Panel Drawer (dropdown from mobile top bar) ================== */
-@media (max-width: 1023px) {
-  .panel-mobile-drawer {
-    position: fixed !important;
-    top: 132px !important;
-    right: 0 !important;
-    left: 0 !important;
-    bottom: auto !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    height: auto !important;
-    max-height: calc(100dvh - 132px) !important;
-    z-index: 70 !important;
-    overflow-y: auto !important;
-    transform: translateY(-100%) !important;
-    transition: transform 300ms ease-out, visibility 300ms !important;
-    display: block !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-    clip-path: inset(0 0 100% 0) !important;
-  }
-  .panel-mobile-drawer.is-open {
-    transform: translateY(0) !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-    clip-path: inset(0 0 0 0) !important;
-  }
-  .panel-drawer-backdrop {
-    position: fixed !important;
-    top: 132px !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    z-index: 60 !important;
-    background: rgba(0, 0, 0, 0.5) !important;
   }
 }
