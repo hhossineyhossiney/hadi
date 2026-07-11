@@ -419,25 +419,35 @@ textarea.bg-white\/85::placeholder, textarea.bg-white\/90::placeholder, textarea
   color: #334155 !important;
 }
 
-/* Select option contrast (works in both themes) */
+/* ═══════════════════════════════════════════════════════════════
+   Select dropdown fix — force LIGHT color-scheme so native option list
+   uses white background + dark text in every theme.
+   This does NOT affect the closed <select> box, only the popped-out list.
+   ═══════════════════════════════════════════════════════════════ */
+select {
+  color-scheme: light !important;
+}
 select option {
   background-color: #FFFFFF !important;
   color: #0F172A !important;
-  padding: 6px !important;
+  padding: 8px 12px !important;
+  font-weight: 600 !important;
 }
-select option:checked, select option:hover, select option:focus {
+select option:checked,
+select option:hover,
+select option:focus {
   background-color: #14B8A6 !important;
   color: #FFFFFF !important;
-  font-weight: 700 !important;
+  font-weight: 800 !important;
 }
-/* In dark theme, keep option contrast readable */
-html[data-theme="dark"] select option {
-  background-color: #082D53 !important;
-  color: #EAF3FB !important;
+select option:disabled {
+  color: #94A3B8 !important;
+  background-color: #F1F5F9 !important;
 }
-html[data-theme="dark"] select option:checked, html[data-theme="dark"] select option:hover {
-  background-color: #14B8A6 !important;
-  color: #04152A !important;
+/* Restore text color for the closed select box (uses our theme vars) */
+html[data-theme="dark"] select {
+  color: var(--text-primary) !important;
+  background-color: var(--input-bg) !important;
 }
 
 /* Autofill text visibility fix (Chrome yellow autofill) */
