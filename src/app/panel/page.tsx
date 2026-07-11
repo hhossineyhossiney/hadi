@@ -7,7 +7,7 @@ import {
   Wallet, Check, X, Pencil, ImagePlus, Trash2, Send, Lock, Phone,
   LayoutDashboard, Image as ImageIcon, Award, Plus, LogOut, ShieldCheck, Eye, EyeOff,
   UserCircle2, FolderOpen, Menu, Bell, TrendingUp, CalendarDays,
-  MessageCircle, Video, Link as LinkIcon,
+  MessageCircle, Video, Link as LinkIcon, Calendar,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSession, signIn, signOut } from "next-auth/react";
@@ -617,6 +617,7 @@ function StudentsTab({ data, refresh }: { data: any; refresh: () => void }) {
   const [uploadingId, setUploadingId] = useState<number | null>(null);
   const [msg, setMsg] = useState("");
   const [docsModalStudent, setDocsModalStudent] = useState<{ id: number; fullName: string } | null>(null);
+  const [feesModalStudent, setFeesModalStudent] = useState<{ id: number; fullName: string; courseTitle: string } | null>(null);
 
   const act = async (payload: any) => {
     const res = await fetch("/api/manager", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -648,6 +649,7 @@ function StudentsTab({ data, refresh }: { data: any; refresh: () => void }) {
             <th className="px-5 py-3.5">موبایل</th><th className="px-5 py-3.5">تاریخ</th>
             <th className="px-5 py-3.5">وضعیت</th><th className="px-5 py-3.5">اقدام</th><th className="px-5 py-3.5">گواهینامه</th>
             <th className="px-5 py-3.5">مدارک</th>
+            <th className="px-5 py-3.5">شهریه و اقساط</th>
           </tr></thead>
           <tbody className="divide-y divide-white/5">
             {students.map((s: any) => (
@@ -692,6 +694,14 @@ function StudentsTab({ data, refresh }: { data: any; refresh: () => void }) {
                     <FolderOpen className="w-3.5 h-3.5" /> مدیریت مدارک
                   </button>
                 </td>
+                <td className="px-5 py-3.5">
+                  <button
+                    onClick={() => setFeesModalStudent({ id: s.id, fullName: s.fullName, courseTitle: s.courseTitle })}
+                    className="px-3 py-1.5 rounded-[8px] bg-amber-500/15 hover:bg-amber-500/30 text-amber-400 text-[10px] font-black cursor-pointer flex items-center gap-1"
+                  >
+                    <Wallet className="w-3.5 h-3.5" /> اقساط و هزینه‌ها
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -704,6 +714,15 @@ function StudentsTab({ data, refresh }: { data: any; refresh: () => void }) {
           registrationId={docsModalStudent.id}
           studentName={docsModalStudent.fullName}
           onClose={() => setDocsModalStudent(null)}
+        />
+      )}
+
+      {feesModalStudent && (
+        <StudentFeesModal
+          registrationId={feesModalStudent.id}
+          studentName={feesModalStudent.fullName}
+          courseTitle={feesModalStudent.courseTitle}
+          onClose={() => setFeesModalStudent(null)}
         />
       )}
     </div>
@@ -1376,6 +1395,339 @@ function ProgressManagerTab({ data, refresh }: { data: any; refresh: () => void 
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STUDENT FEES MODAL — installments + extra fees management
+   ═══════════════════════════════════════════════════════════════ */
+type FeeExtraType = "certificate" | "exam_first" | "exam_retry" | "government_dahak" | "extra";
+
+const EXTRA_FEE_PRESETS: { type: FeeExtraType; label: string; icon: any; color: string; defaultTitle: string; defaultOptional: boolean }[] = [
+  { type: "certificate", label: "💎 هزینه صدور مدرک", icon: Award, color: "text-amber-300", defaultTitle: "هزینه صدور مدرک فنی و حرفه‌ای", defaultOptional: false },
+  { type: "exam_first", label: "📝 هزینه آزمون اول", icon: BookOpen, color: "text-cyan-300", defaultTitle: "هزینه آزمون اصلی دوره", defaultOptional: false },
+  { type: "exam_retry", label: "🔄 آزمون مجدد", icon: XCircle, color: "text-orange-300", defaultTitle: "هزینه آزمون مجدد (در صورت مردودی)", defaultOptional: true },
+  { type: "government_dahak", label: "🏛️ دهک‌بندی دولت", icon: ShieldCheck, color: "text-fuchsia-300", defaultTitle: "کسری دهک‌بندی دولتی", defaultOptional: true },
+  { type: "extra", label: "💰 سایر هزینه‌ها", icon: Plus, color: "text-slate-300", defaultTitle: "هزینه اضافه", defaultOptional: false },
+];
+
+function StudentFeesModal({ registrationId, studentName, courseTitle, onClose }: {
+  registrationId: number; studentName: string; courseTitle: string; onClose: () => void;
+}) {
+  const [fees, setFees] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Installments plan builder
+  const [showInstallments, setShowInstallments] = useState(false);
+  const [installmentRows, setInstallmentRows] = useState<{ amount: string; dueDate: string; title: string }[]>([
+    { amount: "", dueDate: "", title: "" },
+  ]);
+
+  // Extra fee form
+  const [showExtra, setShowExtra] = useState<FeeExtraType | null>(null);
+  const [extraForm, setExtraForm] = useState({ title: "", amount: "", dueDate: "", isOptional: false, description: "" });
+
+  const load = () => {
+    setLoading(true);
+    fetch(`/api/manager/fees?registrationId=${registrationId}`)
+      .then((r) => r.json())
+      .then((d) => setFees(Array.isArray(d) ? d : []))
+      .catch(() => setFees([]))
+      .finally(() => setLoading(false));
+  };
+  useEffect(load, [registrationId]);
+
+  const toPersian = (str: string | number) => String(str).replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[+d]);
+
+  const existingInstallments = fees.filter((f) => f.type === "installment");
+  const existingExtras = fees.filter((f) => f.type !== "installment");
+  const totalPayable = fees.filter((f) => f.status !== "waived").reduce((s, f) => s + Number(f.amount || 0), 0);
+  const totalPaid = fees.filter((f) => f.status === "paid").reduce((s, f) => s + Number(f.amount || 0), 0);
+
+  const addInstallmentRow = () => setInstallmentRows([...installmentRows, { amount: "", dueDate: "", title: "" }]);
+  const removeInstallmentRow = (i: number) => setInstallmentRows(installmentRows.filter((_, j) => j !== i));
+  const updateInstallmentRow = (i: number, k: string, v: string) => {
+    const rows = [...installmentRows];
+    (rows[i] as any)[k] = v;
+    setInstallmentRows(rows);
+  };
+
+  const saveInstallments = async () => {
+    const valid = installmentRows.filter((r) => Number(r.amount) > 0);
+    if (valid.length === 0) { setMsg({ type: "err", text: "حداقل یک قسط با مبلغ معتبر وارد کنید" }); return; }
+    setSaving(true); setMsg(null);
+    try {
+      const res = await fetch("/api/manager/fees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          registrationId, plan: "installments",
+          installments: valid.map((r) => ({ amount: Number(r.amount), dueDate: r.dueDate, title: r.title })),
+        }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setMsg({ type: "ok", text: `✅ ${valid.length} قسط ثبت شد.` });
+        setShowInstallments(false);
+        setInstallmentRows([{ amount: "", dueDate: "", title: "" }]);
+        load();
+      } else { setMsg({ type: "err", text: d.error || "خطا" }); }
+    } catch { setMsg({ type: "err", text: "خطا در ارتباط با سرور" }); }
+    finally { setSaving(false); }
+  };
+
+  const startExtra = (type: FeeExtraType) => {
+    const preset = EXTRA_FEE_PRESETS.find((p) => p.type === type)!;
+    setExtraForm({ title: preset.defaultTitle, amount: "", dueDate: "", isOptional: preset.defaultOptional, description: "" });
+    setShowExtra(type);
+  };
+
+  const saveExtra = async () => {
+    if (!extraForm.title.trim() || !Number(extraForm.amount)) {
+      setMsg({ type: "err", text: "عنوان و مبلغ الزامی است" }); return;
+    }
+    setSaving(true); setMsg(null);
+    try {
+      const res = await fetch("/api/manager/fees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          registrationId, plan: "extra",
+          type: showExtra,
+          title: extraForm.title,
+          amount: Number(extraForm.amount),
+          dueDate: extraForm.dueDate,
+          isOptional: extraForm.isOptional,
+          description: extraForm.description,
+        }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setMsg({ type: "ok", text: "✅ هزینه اضافه ثبت شد." });
+        setShowExtra(null);
+        load();
+      } else { setMsg({ type: "err", text: d.error || "خطا" }); }
+    } catch { setMsg({ type: "err", text: "خطا در ارتباط با سرور" }); }
+    finally { setSaving(false); }
+  };
+
+  const markPaid = async (id: number) => {
+    if (!confirm("تأیید پرداخت این قسط/هزینه (دستی/نقدی)؟")) return;
+    await fetch("/api/manager/fees", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, markPaid: true, method: "manual" }),
+    });
+    load();
+  };
+  const markUnpaid = async (id: number) => {
+    if (!confirm("لغو پرداخت این قسط؟")) return;
+    await fetch("/api/manager/fees", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, markUnpaid: true }),
+    });
+    load();
+  };
+  const markWaived = async (id: number) => {
+    if (!confirm("بخشیدن این هزینه (بدون پرداخت)؟")) return;
+    await fetch("/api/manager/fees", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, markWaived: true }),
+    });
+    load();
+  };
+  const removeFee = async (id: number) => {
+    if (!confirm("حذف کامل این ردیف؟")) return;
+    await fetch("/api/manager/fees", {
+      method: "DELETE", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    load();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#0B1120] rounded-[24px] border border-white/10 w-full max-w-3xl max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-gradient-to-l from-primary-500/20 via-primary-500/10 to-transparent border-b border-white/10 p-5 flex items-center justify-between backdrop-blur-lg">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Wallet className="w-5 h-5 text-amber-400" />
+              <h3 className="font-black text-white">مدیریت شهریه و اقساط</h3>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              هنرجو: <b className="text-white">{studentName}</b> • دوره: <b className="text-primary-300">{courseTitle}</b>
+            </p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-[10px] bg-white/10 hover:bg-white/20"><X className="w-4 h-4 text-white" /></button>
+        </div>
+
+        <div className="p-5">
+          {msg && (
+            <div className={`mb-4 p-3 rounded-[10px] text-xs font-bold ${msg.type === "ok" ? "bg-emerald-500/15 text-emerald-300" : "bg-error-500/15 text-error-400"}`}>{msg.text}</div>
+          )}
+
+          {/* Summary */}
+          <div className="grid grid-cols-3 gap-2 mb-5">
+            <div className="bg-[#111a2e] rounded-[12px] p-3 text-center">
+              <div className="text-[9px] text-slate-500 mb-1">کل قابل پرداخت</div>
+              <div className="text-sm font-black text-white" dir="ltr">{toPersian(totalPayable.toLocaleString("fa-IR"))}</div>
+            </div>
+            <div className="bg-emerald-500/10 rounded-[12px] p-3 text-center border border-emerald-500/30">
+              <div className="text-[9px] text-emerald-400 mb-1">پرداخت‌شده</div>
+              <div className="text-sm font-black text-emerald-300" dir="ltr">{toPersian(totalPaid.toLocaleString("fa-IR"))}</div>
+            </div>
+            <div className="bg-amber-500/10 rounded-[12px] p-3 text-center border border-amber-500/30">
+              <div className="text-[9px] text-amber-400 mb-1">باقی‌مانده</div>
+              <div className="text-sm font-black text-amber-300" dir="ltr">{toPersian((totalPayable - totalPaid).toLocaleString("fa-IR"))}</div>
+            </div>
+          </div>
+
+          {/* Add installments plan */}
+          <div className="mb-5">
+            <button onClick={() => setShowInstallments(!showInstallments)}
+              className="w-full py-3 rounded-[12px] bg-gradient-to-l from-primary-600 to-primary-700 text-white text-sm font-black flex items-center justify-center gap-2">
+              <Calendar className="w-4 h-4" /> {existingInstallments.length > 0 ? "ویرایش اقساط شهریه" : "ایجاد برنامه قسط‌بندی شهریه"}
+            </button>
+
+            {showInstallments && (
+              <div className="mt-3 bg-[#111a2e] rounded-[16px] p-4 border border-white/10">
+                <div className="text-xs font-black text-slate-300 mb-3">اقساط را وارد کنید:</div>
+                <div className="space-y-2 mb-3">
+                  {installmentRows.map((row, i) => (
+                    <div key={i} className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 items-start">
+                      <div className="w-8 h-10 rounded-[8px] bg-primary-500/20 text-primary-300 flex items-center justify-center text-xs font-black">
+                        {toPersian(i + 1)}
+                      </div>
+                      <MoneyInput value={row.amount} onChange={(v) => updateInstallmentRow(i, "amount", v)} placeholder={`مبلغ قسط ${i + 1}`} showWord={false} />
+                      <PersianDatePicker value={row.dueDate} onChange={(v) => updateInstallmentRow(i, "dueDate", v)} placeholder="تاریخ سررسید" />
+                      <button onClick={() => removeInstallmentRow(i)} disabled={installmentRows.length === 1}
+                        className="w-10 h-10 rounded-[8px] bg-error-500/15 text-error-400 disabled:opacity-30 flex items-center justify-center">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={addInstallmentRow}
+                  className="w-full py-2 rounded-[10px] bg-white/5 hover:bg-white/10 text-primary-300 text-[11px] font-black flex items-center justify-center gap-1 mb-3">
+                  <Plus className="w-3.5 h-3.5" /> افزودن قسط دیگر
+                </button>
+                <div className="flex gap-2">
+                  <button onClick={saveInstallments} disabled={saving}
+                    className="flex-1 py-2.5 rounded-[10px] bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black flex items-center justify-center gap-1">
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    ذخیره و اطلاع به هنرجو
+                  </button>
+                  <button onClick={() => setShowInstallments(false)} className="px-4 py-2.5 rounded-[10px] bg-white/10 text-white text-xs font-black">لغو</button>
+                </div>
+                <p className="text-[10px] text-slate-500 mt-2 text-center">⚠️ اقساط قبلی پرداخت‌نشده جایگزین می‌شوند</p>
+              </div>
+            )}
+          </div>
+
+          {/* Extra fees */}
+          <div className="mb-5">
+            <div className="text-xs font-black text-slate-300 mb-2">افزودن هزینه جانبی:</div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              {EXTRA_FEE_PRESETS.map((p) => (
+                <button key={p.type} onClick={() => startExtra(p.type)}
+                  className={`p-2.5 rounded-[10px] bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-black ${p.color} flex flex-col items-center gap-1`}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {showExtra && (
+              <div className="mt-3 bg-[#111a2e] rounded-[16px] p-4 border border-amber-500/30">
+                <div className="text-xs font-black text-amber-300 mb-3">{EXTRA_FEE_PRESETS.find((p) => p.type === showExtra)?.label}</div>
+                <div className="space-y-2">
+                  <input value={extraForm.title} onChange={(e) => setExtraForm({ ...extraForm, title: e.target.value })}
+                    placeholder="عنوان هزینه" className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white" />
+                  <MoneyInput value={extraForm.amount} onChange={(v) => setExtraForm({ ...extraForm, amount: v })} placeholder="مبلغ" />
+                  <PersianDatePicker value={extraForm.dueDate} onChange={(v) => setExtraForm({ ...extraForm, dueDate: v })} placeholder="تاریخ سررسید (اختیاری)" />
+                  <textarea value={extraForm.description} onChange={(e) => setExtraForm({ ...extraForm, description: e.target.value })}
+                    placeholder="توضیح (اختیاری)" rows={2} className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-xs text-white resize-none" />
+                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                    <input type="checkbox" checked={extraForm.isOptional} onChange={(e) => setExtraForm({ ...extraForm, isOptional: e.target.checked })} />
+                    این هزینه اختیاری است (مثل دهک‌بندی که برای همه اعمال نمی‌شود)
+                  </label>
+                  <div className="flex gap-2 pt-2">
+                    <button onClick={saveExtra} disabled={saving}
+                      className="flex-1 py-2.5 rounded-[10px] bg-amber-500 hover:bg-amber-600 text-white text-xs font-black">
+                      {saving ? "..." : "افزودن هزینه"}
+                    </button>
+                    <button onClick={() => setShowExtra(null)} className="px-4 py-2.5 rounded-[10px] bg-white/10 text-white text-xs font-black">لغو</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Existing fees list */}
+          {loading ? (
+            <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary-500" /></div>
+          ) : fees.length === 0 ? (
+            <div className="text-center py-8 bg-[#111a2e] rounded-[14px] text-slate-500 text-xs">
+              هنوز هیچ برنامه پرداخت یا هزینه‌ای برای این هنرجو ثبت نشده است.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {fees.map((f) => {
+                const paid = f.status === "paid";
+                const waived = f.status === "waived";
+                return (
+                  <div key={f.id} className={`rounded-[12px] p-3 border ${
+                    paid ? "bg-emerald-500/5 border-emerald-500/30"
+                    : waived ? "bg-slate-500/5 border-slate-500/30 opacity-70"
+                    : "bg-[#111a2e] border-white/10"
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 text-white text-xs font-black ${
+                        paid ? "bg-emerald-500" : waived ? "bg-slate-500" : f.type === "installment" ? "bg-primary-500" : "bg-amber-500"
+                      }`}>
+                        {paid ? <Check className="w-4 h-4" /> : waived ? <X className="w-4 h-4" /> : f.type === "installment" ? toPersian(f.installmentNumber) : "$"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-black text-white truncate">{f.title}</div>
+                        <div className="flex flex-wrap gap-2 text-[10px] text-slate-400 mt-0.5">
+                          <span className="font-black text-white" dir="ltr">{toPersian(Number(f.amount).toLocaleString("fa-IR"))} ت</span>
+                          {f.dueDate && <span>سررسید: {toPersian(f.dueDate)}</span>}
+                          {paid && f.paymentMethod && <span className="text-emerald-400">✓ {f.paymentMethod === "wallet" ? "کیف پول" : f.paymentMethod === "manual" ? "دستی" : "آنلاین"}</span>}
+                          {waived && <span className="text-slate-400">بخشوده</span>}
+                        </div>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        {!paid && !waived && (
+                          <>
+                            <button onClick={() => markPaid(f.id)} className="p-1.5 rounded-[6px] bg-emerald-500/15 text-emerald-400" title="ثبت پرداخت دستی">
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => markWaived(f.id)} className="p-1.5 rounded-[6px] bg-slate-500/15 text-slate-300" title="بخشیدن">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
+                        {paid && (
+                          <button onClick={() => markUnpaid(f.id)} className="p-1.5 rounded-[6px] bg-amber-500/15 text-amber-300" title="لغو پرداخت">
+                            <XCircle className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {!paid && (
+                          <button onClick={() => removeFee(f.id)} className="p-1.5 rounded-[6px] bg-error-500/15 text-error-400" title="حذف">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
