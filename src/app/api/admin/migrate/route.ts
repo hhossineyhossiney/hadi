@@ -185,6 +185,38 @@ const MIGRATIONS: { name: string; sql: string }[] = [
       CREATE INDEX IF NOT EXISTS idx_course_sessions_course ON course_sessions(course_id);
     `,
   },
+  // 9.5) Payment fees (installments + extra fees)
+  {
+    name: "payment_fees_table",
+    sql: `
+      CREATE TABLE IF NOT EXISTS payment_fees (
+        id SERIAL PRIMARY KEY,
+        registration_id INTEGER NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL,
+        course_id INTEGER NOT NULL,
+        institute_id INTEGER NOT NULL,
+        type VARCHAR(30) NOT NULL DEFAULT 'installment',
+        installment_number INTEGER DEFAULT 0,
+        total_installments INTEGER DEFAULT 0,
+        title VARCHAR(255) NOT NULL,
+        amount DECIMAL(12, 0) NOT NULL,
+        due_date VARCHAR(30),
+        status VARCHAR(20) DEFAULT 'pending',
+        paid_at TIMESTAMP,
+        paid_amount DECIMAL(12, 0),
+        payment_method VARCHAR(30),
+        payment_ref_id VARCHAR(100),
+        transaction_id INTEGER,
+        is_optional BOOLEAN DEFAULT false,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_payment_fees_registration ON payment_fees(registration_id);
+      CREATE INDEX IF NOT EXISTS idx_payment_fees_user ON payment_fees(user_id);
+      CREATE INDEX IF NOT EXISTS idx_payment_fees_status ON payment_fees(status);
+    `,
+  },
   // 10a) Extend chat_threads with archive/pin/block
   {
     name: "chat_threads_flags",
