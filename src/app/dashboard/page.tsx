@@ -940,30 +940,29 @@ function WalletTab({ user, balance }: { user: any; balance: number }) {
 
   const doCharge = async () => {
     const amt = parseAmount(chargeAmount);
-    if (amt < 10000) {
-      setMsg({ type: "err", text: "حداقل مبلغ شارژ ۱۰,۰۰۰ تومان است" });
+    if (amt < 1000) {
+      setMsg({ type: "err", text: "حداقل مبلغ شارژ ۱,۰۰۰ تومان است" });
       return;
     }
     setChargeLoading(true);
     setMsg(null);
     try {
-      const res = await fetch("/api/student/wallet", {
+      // Request payment through ZarinPal gateway
+      const res = await fetch("/api/payment/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "deposit", amount: amt, description: "شارژ آنلاین کیف پول" }),
+        body: JSON.stringify({ amount: amt, purpose: "wallet_charge" }),
       });
       const d = await res.json();
-      if (res.ok) {
-        setMsg({ type: "ok", text: `کیف پول با موفقیت ${amt.toLocaleString("fa-IR")} تومان شارژ شد.` });
-        setChargeAmount("");
-        setChargeOpen(false);
-        load();
+      if (res.ok && d.paymentUrl) {
+        // Redirect to ZarinPal payment page
+        window.location.href = d.paymentUrl;
       } else {
-        setMsg({ type: "err", text: d.error || "خطا در شارژ" });
+        setMsg({ type: "err", text: d.error || "خطا در ایجاد درخواست پرداخت" });
+        setChargeLoading(false);
       }
     } catch {
-      setMsg({ type: "err", text: "خطا در ارتباط با سرور" });
-    } finally {
+      setMsg({ type: "err", text: "خطا در ارتباط با درگاه پرداخت" });
       setChargeLoading(false);
     }
   };
@@ -1055,8 +1054,8 @@ function WalletTab({ user, balance }: { user: any; balance: number }) {
               انصراف
             </button>
           </div>
-          <p className="text-[10px] text-slate-500 mt-3">
-            💡 در حال حاضر پرداخت آزمایشی است. با راه‌اندازی درگاه، پرداخت واقعی فعال می‌شود.
+          <p className="text-[10px] text-emerald-400 mt-3 flex items-center gap-1">
+            🔒 پرداخت از طریق درگاه امن زرین‌پال — اطلاعات کارت شما در اختیار ما قرار نمی‌گیرد
           </p>
         </div>
       )}
