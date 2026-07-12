@@ -33,6 +33,11 @@ export const telegramChats = pgTable("telegram_chats", {
   username: varchar("username", { length: 255 }),
   role: varchar("role", { length: 50 }).default("subscriber"),
   instituteId: integer("institute_id"),
+  userId: integer("user_id"),           // link to users table (for students/managers)
+  phone: varchar("phone", { length: 20 }), // linked phone number
+  state: varchar("state", { length: 50 }), // conversational state (e.g., awaiting_phone)
+  stateData: text("state_data"),           // JSON data for state machine
+  lastSeen: timestamp("last_seen").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
