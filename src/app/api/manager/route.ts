@@ -131,6 +131,11 @@ export async function GET() {
           bannerImages: courses.bannerImages,
           registrationClosed: courses.registrationClosed,
           registrationEnded: courses.registrationEnded,
+          scheduleDays: (courses as any).scheduleDays,
+          scheduleTime: (courses as any).scheduleTime,
+          sessionDuration: (courses as any).sessionDuration,
+          totalHours: (courses as any).totalHours,
+          endDate: (courses as any).endDate,
         })
         .from(courses)
         .leftJoin(categories, eq(courses.categoryId, categories.id))
@@ -237,7 +242,8 @@ export async function POST(request: Request) {
     const { action } = body;
 
     if (action === "createCourse") {
-      const { title, description, fullDescription, price, originalPrice, capacity, duration, schedule, startDate, instructor, instructorTitle, level, totalSessions, syllabus, categoryId, requirements } = body;
+      const { title, description, fullDescription, price, originalPrice, capacity, duration, schedule, startDate, instructor, instructorTitle, level, totalSessions, syllabus, categoryId, requirements,
+        scheduleDays, scheduleTime, sessionDuration, totalHours } = body;
       if (!title || !String(title).trim()) {
         return NextResponse.json({ error: "عنوان دوره الزامی است" }, { status: 400 });
       }
@@ -255,7 +261,23 @@ export async function POST(request: Request) {
       const parsedSessions = parseOptionalNonNegativeNumber(totalSessions, "تعداد جلسات");
       if (!parsedSessions.ok) return NextResponse.json({ error: parsedSessions.error }, { status: 400 });
 
-      const [newCourse] = await db.insert(courses).values({
+      // Structured schedule calculation
+      const { calculateCourseSchedule } = await import("@/lib/schedule");
+      const days = Array.isArray(scheduleDays) ? scheduleDays : [];
+      const sesDuration = Number(sessionDuration) || 0;
+      const totHours = Number(totalHours) || 0;
+      let computedTotalSessions = parsedSessions.value !== undefined ? parsedSessions.value : 0;
+      let computedEndDate: string | null = null;
+
+      if (startDate && days.length > 0 && sesDuration > 0 && totHours > 0) {
+        const calc = calculateCourseSchedule(startDate, days, sesDuration, totHours);
+        if (!calc.error) {
+          computedTotalSessions = calc.totalSessions;
+          computedEndDate = calc.endDate;
+        }
+      }
+
+      const insertData: any = {
         instituteId: inst.id,
         categoryId: categoryNumber,
         title: String(title).trim(),
@@ -265,22 +287,45 @@ export async function POST(request: Request) {
         price: parsedPrice.value !== undefined ? String(parsedPrice.value) : "0",
         originalPrice: parsedOrig.value !== undefined ? String(parsedOrig.value) : null,
         capacity: parsedCapacity.value !== undefined ? parsedCapacity.value : 0,
-        duration: duration || null,
+        duration: duration || (totHours > 0 ? `${totHours} ساعت` : null),
         schedule: schedule || null,
         startDate: startDate || null,
         instructor: instructor || null,
         instructorTitle: instructorTitle || null,
         level: level || null,
-        totalSessions: parsedSessions.value !== undefined ? parsedSessions.value : 0,
+        totalSessions: computedTotalSessions,
         syllabus: Array.isArray(syllabus) ? syllabus.filter((x: unknown) => typeof x === "string" && (x as string).trim()) : [],
         requirements: requirements || null,
         status: "approved",
-      }).returning();
-      return NextResponse.json({ ok: true, course: newCourse });
+      };
+      // Add new schedule fields (fault-tolerant)
+      try {
+        insertData.scheduleDays = days;
+        insertData.scheduleTime = scheduleTime || null;
+        insertData.sessionDuration = sesDuration;
+        insertData.totalHours = totHours;
+        insertData.endDate = computedEndDate;
+      } catch {}
+
+      let newCourse: any;
+      try {
+        [newCourse] = await db.insert(courses).values(insertData).returning();
+      } catch (e: any) {
+        // Fallback if new columns don't exist yet
+        console.error("Insert with new schedule fields failed, retrying legacy:", e?.message);
+        delete insertData.scheduleDays;
+        delete insertData.scheduleTime;
+        delete insertData.sessionDuration;
+        delete insertData.totalHours;
+        delete insertData.endDate;
+        [newCourse] = await db.insert(courses).values(insertData).returning();
+      }
+      return NextResponse.json({ ok: true, course: newCourse, endDate: computedEndDate });
     }
 
     if (action === "updateCourse") {
-      const { courseId, title, description, fullDescription, price, originalPrice, capacity, duration, schedule, startDate, instructor, instructorTitle, level, totalSessions, syllabus, categoryId, requirements } = body;
+      const { courseId, title, description, fullDescription, price, originalPrice, capacity, duration, schedule, startDate, instructor, instructorTitle, level, totalSessions, syllabus, categoryId, requirements,
+        scheduleDays, scheduleTime, sessionDuration, totalHours } = body;
       const c = await db.select().from(courses)
         .where(and(eq(courses.id, courseId), eq(courses.instituteId, inst.id)))
         .then((r) => r[0]);
@@ -300,25 +345,62 @@ export async function POST(request: Request) {
       const parsedSess2 = parseOptionalNonNegativeNumber(totalSessions, "تعداد جلسات");
       if (!parsedSess2.ok) return NextResponse.json({ error: parsedSess2.error }, { status: 400 });
 
-      const [updated] = await db.update(courses).set({
+      // Compute end date if schedule fields provided
+      const { calculateCourseSchedule } = await import("@/lib/schedule");
+      const days = Array.isArray(scheduleDays) ? scheduleDays : ((c as any).scheduleDays as string[]) || [];
+      const sesDuration = sessionDuration !== undefined ? Number(sessionDuration) : (Number((c as any).sessionDuration) || 0);
+      const totHours = totalHours !== undefined ? Number(totalHours) : (Number((c as any).totalHours) || 0);
+      const startDateUse = startDate ?? c.startDate;
+
+      let computedTotalSessions = parsedSess2.value !== undefined ? parsedSess2.value : c.totalSessions;
+      let computedEndDate: string | null = ((c as any).endDate as string) || null;
+      if (startDateUse && days.length > 0 && sesDuration > 0 && totHours > 0) {
+        const calc = calculateCourseSchedule(startDateUse, days, sesDuration, totHours);
+        if (!calc.error) {
+          computedTotalSessions = calc.totalSessions;
+          computedEndDate = calc.endDate;
+        }
+      }
+
+      const updateData: any = {
         title: title ?? c.title,
         description: description ?? c.description,
         fullDescription: fullDescription ?? c.fullDescription,
         price: parsedPrice.value !== undefined ? String(parsedPrice.value) : c.price,
         originalPrice: parsedOrig2.value !== undefined ? String(parsedOrig2.value) : c.originalPrice,
         capacity: parsedCapacity.value !== undefined ? parsedCapacity.value : c.capacity,
-        duration: duration ?? c.duration,
+        duration: duration ?? (totHours > 0 ? `${totHours} ساعت` : c.duration),
         schedule: schedule ?? c.schedule,
-        startDate: startDate ?? c.startDate,
+        startDate: startDateUse,
         instructor: instructor ?? c.instructor,
         instructorTitle: instructorTitle ?? c.instructorTitle,
         level: level ?? c.level,
-        totalSessions: parsedSess2.value !== undefined ? parsedSess2.value : c.totalSessions,
+        totalSessions: computedTotalSessions,
         syllabus: Array.isArray(syllabus) ? syllabus.filter((x: unknown) => typeof x === "string" && (x as string).trim()) : c.syllabus,
         requirements: requirements ?? c.requirements,
         categoryId: categoryNumber !== undefined ? categoryNumber : c.categoryId,
-      }).where(eq(courses.id, courseId)).returning();
-      return NextResponse.json({ ok: true, course: updated });
+      };
+      try {
+        updateData.scheduleDays = days;
+        updateData.scheduleTime = scheduleTime ?? (c as any).scheduleTime ?? null;
+        updateData.sessionDuration = sesDuration;
+        updateData.totalHours = totHours;
+        updateData.endDate = computedEndDate;
+      } catch {}
+
+      let updated: any;
+      try {
+        [updated] = await db.update(courses).set(updateData).where(eq(courses.id, courseId)).returning();
+      } catch (e: any) {
+        console.error("Update with new schedule fields failed, falling back:", e?.message);
+        delete updateData.scheduleDays;
+        delete updateData.scheduleTime;
+        delete updateData.sessionDuration;
+        delete updateData.totalHours;
+        delete updateData.endDate;
+        [updated] = await db.update(courses).set(updateData).where(eq(courses.id, courseId)).returning();
+      }
+      return NextResponse.json({ ok: true, course: updated, endDate: computedEndDate });
     }
 
     if (action === "deleteCourse") {
