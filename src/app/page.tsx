@@ -9,6 +9,7 @@ import CoursesShowcase from "@/components/CoursesShowcase";
 import StatsSection from "@/components/StatsSection";
 import FaqSection from "@/components/FaqSection";
 import VerifyLicenseBanner from "@/components/VerifyLicenseBanner";
+import ShopShowcase from "@/components/ShopShowcase";
 import { db } from "@/db";
 import { categories, institutes, regions, courses, siteSettings } from "@/db/schema";
 import { eq, count, sql, inArray, and } from "drizzle-orm";
@@ -141,6 +142,8 @@ export default async function HomePage() {
       <InstitutesShowcase institutes={institutesWithCourseCount} />
 
       <VerifyLicenseBanner />
+
+      <ShopShowcase />
 
       <CoursesShowcase
         courses={latestCourses}
