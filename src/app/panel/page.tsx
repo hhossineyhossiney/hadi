@@ -661,6 +661,8 @@ function StudentsTab({ data, refresh }: { data: any; refresh: () => void }) {
   const [msg, setMsg] = useState("");
   const [docsModalStudent, setDocsModalStudent] = useState<{ id: number; fullName: string } | null>(null);
   const [feesModalStudent, setFeesModalStudent] = useState<{ id: number; fullName: string; courseTitle: string } | null>(null);
+  const [editStudent, setEditStudent] = useState<any>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
   const [search, setSearch] = useState("");
@@ -860,6 +862,7 @@ function StudentsTab({ data, refresh }: { data: any; refresh: () => void }) {
                           <th className="px-5 py-3">گواهینامه</th>
                           <th className="px-5 py-3">مدارک</th>
                           <th className="px-5 py-3">شهریه و اقساط</th>
+                          <th className="px-5 py-3">مدیریت</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
@@ -907,6 +910,31 @@ function StudentsTab({ data, refresh }: { data: any; refresh: () => void }) {
                                 <Wallet className="w-3.5 h-3.5" /> اقساط و هزینه‌ها
                               </button>
                             </td>
+                            <td className="px-5 py-3.5">
+                              <div className="flex gap-1.5">
+                                <button
+                                  onClick={() => setEditStudent({ ...s })}
+                                  title="ویرایش اطلاعات هنرجو"
+                                  className="p-1.5 rounded-[8px] bg-sky-500/15 text-sky-400 hover:bg-sky-500/30 cursor-pointer"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    if (!confirm(`❗ آیا مطمئن هستید که می‌خواهید ثبت‌نام «${s.fullName}» در دوره «${s.courseTitle}» را حذف کنید؟\n\nاین عملیات:\n• ثبت‌نام هنرجو را کاملاً حذف می‌کند\n• همه اقساط، هزینه‌ها و مدارک مرتبط پاک می‌شوند\n• قابل بازگشت نیست!`)) return;
+                                    setDeletingId(s.id);
+                                    const ok = await act({ action: "deleteStudent", registrationId: s.id });
+                                    setDeletingId(null);
+                                    if (ok) setMsg(`✅ ثبت‌نام «${s.fullName}» با موفقیت حذف شد`);
+                                  }}
+                                  disabled={deletingId === s.id}
+                                  title="حذف ثبت‌نام هنرجو"
+                                  className="p-1.5 rounded-[8px] bg-error-500/15 text-error-400 hover:bg-error-500/30 disabled:opacity-40 cursor-pointer"
+                                >
+                                  {deletingId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                </button>
+                              </div>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -917,6 +945,17 @@ function StudentsTab({ data, refresh }: { data: any; refresh: () => void }) {
             );
           })}
         </div>
+      )}
+
+      {editStudent && (
+        <EditStudentModal
+          student={editStudent}
+          onClose={() => setEditStudent(null)}
+          onSave={async (payload) => {
+            const ok = await act({ action: "updateStudent", registrationId: editStudent.id, ...payload });
+            if (ok) { setEditStudent(null); setMsg("✅ اطلاعات هنرجو با موفقیت بروزرسانی شد"); }
+          }}
+        />
       )}
 
       {docsModalStudent && (
@@ -935,6 +974,89 @@ function StudentsTab({ data, refresh }: { data: any; refresh: () => void }) {
           onClose={() => setFeesModalStudent(null)}
         />
       )}
+    </div>
+  );
+}
+
+/* ============================= EDIT STUDENT MODAL ============================= */
+function EditStudentModal({ student, onClose, onSave }: { student: any; onClose: () => void; onSave: (payload: any) => Promise<void> }) {
+  const [fullName, setFullName] = useState(student.fullName || "");
+  const [phone, setPhone] = useState(student.phone || "");
+  const [email, setEmail] = useState(student.email || "");
+  const [notes, setNotes] = useState(student.notes || "");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  const submit = async () => {
+    setErr("");
+    if (!fullName.trim()) { setErr("نام و نام‌خانوادگی الزامی است"); return; }
+    if (!/^09\d{9}$/.test(phone.trim())) { setErr("شماره موبایل باید با 09 شروع شده و 11 رقم باشد"); return; }
+    setSaving(true);
+    try {
+      await onSave({ fullName: fullName.trim(), phone: phone.trim(), email: email.trim(), notes });
+    } catch { setErr("خطا در ذخیره‌سازی"); }
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="w-full max-w-lg bg-[#0f1a30] border border-white/10 rounded-[22px] shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-l from-sky-500/20 to-transparent border-b border-white/5">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-[10px] bg-sky-500/20 text-sky-300 flex items-center justify-center">
+              <Pencil className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="font-black text-white text-sm">ویرایش اطلاعات هنرجو</div>
+              <div className="text-[10px] text-slate-400">دوره: {student.courseTitle}</div>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-[8px] hover:bg-white/10 text-slate-400 cursor-pointer">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-3">
+          {err && <div className="p-3 rounded-[10px] bg-error-500/15 text-error-400 text-xs font-bold">{err}</div>}
+
+          <div>
+            <label className="block text-[10px] font-black text-slate-300 mb-1.5">نام و نام‌خانوادگی *</label>
+            <input value={fullName} onChange={(e) => setFullName(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-[#0F172A] text-sm font-bold outline-none focus:ring-2 focus:ring-sky-500" />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-black text-slate-300 mb-1.5">موبایل *</label>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" maxLength={11}
+              className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-[#0F172A] text-sm font-bold outline-none focus:ring-2 focus:ring-sky-500" />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-black text-slate-300 mb-1.5">ایمیل (اختیاری)</label>
+            <input value={email} onChange={(e) => setEmail(e.target.value)} dir="ltr" type="email"
+              className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-[#0F172A] text-sm font-bold outline-none focus:ring-2 focus:ring-sky-500" />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-black text-slate-300 mb-1.5">یادداشت مدیر (اختیاری)</label>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3}
+              className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-[#0F172A] text-xs font-bold outline-none focus:ring-2 focus:ring-sky-500 resize-none" />
+          </div>
+
+          <div className="p-3 rounded-[10px] bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-300 font-bold leading-relaxed">
+            💡 توجه: اطلاعات دوره ثبت‌نام شده و وضعیت (تأیید/رد) از این بخش قابل تغییر نیست. برای تغییر وضعیت از دکمه‌های ✓ / ✕ در جدول استفاده کنید.
+          </div>
+        </div>
+
+        <div className="flex gap-2 px-5 py-4 bg-white/[0.02] border-t border-white/5">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-[10px] bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-black cursor-pointer">
+            انصراف
+          </button>
+          <button onClick={submit} disabled={saving} className="flex-1 py-2.5 rounded-[10px] bg-gradient-to-l from-sky-500 to-primary-500 text-white text-xs font-black cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4" /> ذخیره تغییرات</>}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
