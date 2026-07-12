@@ -654,13 +654,17 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
   );
 }
 
-/* ============================= STUDENTS TAB ============================= */
+/* ============================= STUDENTS TAB (grouped by course) ============================= */
 function StudentsTab({ data, refresh }: { data: any; refresh: () => void }) {
-  const { students } = data;
+  const students = (data?.students || []) as any[];
   const [uploadingId, setUploadingId] = useState<number | null>(null);
   const [msg, setMsg] = useState("");
   const [docsModalStudent, setDocsModalStudent] = useState<{ id: number; fullName: string } | null>(null);
   const [feesModalStudent, setFeesModalStudent] = useState<{ id: number; fullName: string; courseTitle: string } | null>(null);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [search, setSearch] = useState("");
+  const [selectedGroup, setSelectedGroup] = useState<string>("all");
 
   const act = async (payload: any) => {
     const res = await fetch("/api/manager", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -680,77 +684,240 @@ function StudentsTab({ data, refresh }: { data: any; refresh: () => void }) {
     reader.readAsDataURL(file);
   };
 
+  // فیلتر اولیه
+  const filtered = students.filter((s: any) => {
+    if (statusFilter !== "all" && s.status !== statusFilter) return false;
+    if (search) {
+      const q = search.trim().toLowerCase();
+      const hay = `${s.fullName || ""} ${s.phone || ""} ${s.courseTitle || ""}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // گروه‌بندی بر اساس دوره
+  const groupsMap = new Map<string, { key: string; courseId: any; courseTitle: string; items: any[] }>();
+  for (const s of filtered) {
+    const key = String(s.courseId ?? s.courseTitle ?? "unknown");
+    if (!groupsMap.has(key)) groupsMap.set(key, { key, courseId: s.courseId, courseTitle: s.courseTitle || "بدون دوره", items: [] });
+    groupsMap.get(key)!.items.push(s);
+  }
+  let groups = Array.from(groupsMap.values()).sort((a, b) => (a.courseTitle || "").localeCompare(b.courseTitle || "", "fa"));
+  if (selectedGroup !== "all") groups = groups.filter((g) => g.key === selectedGroup);
+
+  const toggle = (k: string) => setExpanded((prev) => ({ ...prev, [k]: !(prev[k] ?? true) }));
+  const isOpen = (k: string) => expanded[k] ?? true;
+
+  const expandAll = () => {
+    const o: Record<string, boolean> = {};
+    groups.forEach((g) => (o[g.key] = true));
+    setExpanded(o);
+  };
+  const collapseAll = () => {
+    const o: Record<string, boolean> = {};
+    groups.forEach((g) => (o[g.key] = false));
+    setExpanded(o);
+  };
+
+  const totalStudents = students.length;
+  const totalApproved = students.filter((s: any) => s.status === "approved").length;
+  const totalPending = students.filter((s: any) => s.status === "pending").length;
+  const totalGroups = new Set(students.map((s: any) => String(s.courseId ?? s.courseTitle))).size;
+
+  const statusChip = (status: string) => (
+    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black ${
+      status === "approved" ? "bg-emerald-500/15 text-emerald-400" : status === "rejected" ? "bg-error-500/15 text-error-400" : "bg-amber-500/15 text-amber-400"}`}>
+      {status === "approved" ? "تأیید شد" : status === "rejected" ? "رد شد" : "در انتظار"}
+    </span>
+  );
+
   return (
     <div>
       <h2 className="text-2xl font-black mb-1">لیست هنرجویان</h2>
-      <p className="text-slate-400 text-sm mb-6">تأیید/رد ثبت‌نام و بارگذاری گواهینامه برای هنرجویان تأییدشده</p>
+      <p className="text-slate-400 text-sm mb-6">هنرجویان به تفکیک گروه/دوره — روی هر گروه کلیک کن تا هنرجویان آن دوره نمایش داده شوند</p>
       {msg && <div className="mb-4 p-3 rounded-[10px] bg-error-500/10 text-error-400 text-xs font-bold">{msg}</div>}
-      <div className="overflow-x-auto bg-[#111a2e] border border-white/5 rounded-[18px]">
-        <table className="w-full text-xs">
-          <thead><tr className="text-right text-[10px] font-black text-slate-500 border-b border-white/5">
-            <th className="px-5 py-3.5">هنرجو</th><th className="px-5 py-3.5">دوره</th>
-            <th className="px-5 py-3.5">موبایل</th><th className="px-5 py-3.5">تاریخ</th>
-            <th className="px-5 py-3.5">وضعیت</th><th className="px-5 py-3.5">اقدام</th><th className="px-5 py-3.5">گواهینامه</th>
-            <th className="px-5 py-3.5">مدارک</th>
-            <th className="px-5 py-3.5">شهریه و اقساط</th>
-          </tr></thead>
-          <tbody className="divide-y divide-white/5">
-            {students.map((s: any) => (
-              <tr key={s.id} className="hover:bg-white/5">
-                <td className="px-5 py-3.5 font-bold text-white">{s.fullName}
-                  {s.notes && <div className="text-[10px] text-slate-500 font-normal line-clamp-1">{s.notes}</div>}
-                </td>
-                <td className="px-5 py-3.5 text-slate-300">{s.courseTitle}</td>
-                <td className="px-5 py-3.5 font-bold text-white" dir="ltr">{s.phone}</td>
-                <td className="px-5 py-3.5 text-slate-500 text-[10px]">{new Date(s.createdAt).toLocaleDateString("fa-IR")}</td>
-                <td className="px-5 py-3.5">
-                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black ${
-                    s.status === "approved" ? "bg-emerald-500/15 text-emerald-400" : s.status === "rejected" ? "bg-error-500/15 text-error-400" : "bg-amber-500/15 text-amber-400"}`}>
-                    {s.status === "approved" ? "تأیید شد" : s.status === "rejected" ? "رد شد" : "در انتظار"}
-                  </span>
-                </td>
-                <td className="px-5 py-3.5">
-                  <div className="flex gap-1.5">
-                    <button disabled={s.status === "approved"} onClick={() => act({ action: "updateStatus", registrationId: s.id, status: "approved" })}
-                      className="p-1.5 rounded-[8px] bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/30 disabled:opacity-30 cursor-pointer"><Check className="w-3.5 h-3.5" /></button>
-                    <button disabled={s.status === "rejected"} onClick={() => act({ action: "updateStatus", registrationId: s.id, status: "rejected" })}
-                      className="p-1.5 rounded-[8px] bg-error-500/15 text-error-400 hover:bg-error-500/30 disabled:opacity-30 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
-                  </div>
-                </td>
-                <td className="px-5 py-3.5">
-                  {s.status === "approved" ? (
-                    s.certificateUrl ? (
-                      <a href={s.certificateUrl} download={`گواهینامه-${s.fullName}.png`} className="text-emerald-400 hover:underline font-bold flex items-center gap-1"><Award className="w-3.5 h-3.5" /> دانلود</a>
-                    ) : (
-                      <label className="text-primary-400 hover:underline font-bold cursor-pointer flex items-center gap-1">
-                        {uploadingId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />} بارگذاری
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadCertificate(s.id, e.target.files[0])} />
-                      </label>
-                    )
-                  ) : <span className="text-slate-600">—</span>}
-                </td>
-                <td className="px-5 py-3.5">
-                  <button
-                    onClick={() => setDocsModalStudent({ id: s.id, fullName: s.fullName })}
-                    className="px-3 py-1.5 rounded-[8px] bg-primary-500/15 hover:bg-primary-500/30 text-primary-400 text-[10px] font-black cursor-pointer flex items-center gap-1"
-                  >
-                    <FolderOpen className="w-3.5 h-3.5" /> مدیریت مدارک
-                  </button>
-                </td>
-                <td className="px-5 py-3.5">
-                  <button
-                    onClick={() => setFeesModalStudent({ id: s.id, fullName: s.fullName, courseTitle: s.courseTitle })}
-                    className="px-3 py-1.5 rounded-[8px] bg-amber-500/15 hover:bg-amber-500/30 text-amber-400 text-[10px] font-black cursor-pointer flex items-center gap-1"
-                  >
-                    <Wallet className="w-3.5 h-3.5" /> اقساط و هزینه‌ها
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {students.length === 0 && <div className="p-10 text-center text-slate-500 text-sm">هنوز هنرجویی ثبت‌نام نکرده است</div>}
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div className="p-4 rounded-[14px] bg-gradient-to-br from-primary-500/15 to-primary-500/5 border border-primary-500/20">
+          <div className="text-[10px] text-slate-400 font-bold mb-1">کل گروه‌های درسی</div>
+          <div className="text-2xl font-black text-primary-300">{totalGroups.toLocaleString("fa-IR")}</div>
+        </div>
+        <div className="p-4 rounded-[14px] bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 border border-emerald-500/20">
+          <div className="text-[10px] text-slate-400 font-bold mb-1">تأیید شده</div>
+          <div className="text-2xl font-black text-emerald-300">{totalApproved.toLocaleString("fa-IR")}</div>
+        </div>
+        <div className="p-4 rounded-[14px] bg-gradient-to-br from-amber-500/15 to-amber-500/5 border border-amber-500/20">
+          <div className="text-[10px] text-slate-400 font-bold mb-1">در انتظار</div>
+          <div className="text-2xl font-black text-amber-300">{totalPending.toLocaleString("fa-IR")}</div>
+        </div>
+        <div className="p-4 rounded-[14px] bg-gradient-to-br from-indigo-500/15 to-indigo-500/5 border border-indigo-500/20">
+          <div className="text-[10px] text-slate-400 font-bold mb-1">کل هنرجویان</div>
+          <div className="text-2xl font-black text-indigo-300">{totalStudents.toLocaleString("fa-IR")}</div>
+        </div>
       </div>
+
+      {/* Filters */}
+      <div className="flex flex-col md:flex-row gap-3 mb-4 p-4 rounded-[14px] bg-[#111a2e] border border-white/5">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="🔍 جستجو در نام، موبایل یا دوره..."
+          className="flex-1 px-3 py-2 rounded-[10px] bg-white/85 text-[#0F172A] text-xs font-bold outline-none focus:ring-2 focus:ring-primary-500"
+        />
+        <select
+          value={selectedGroup}
+          onChange={(e) => setSelectedGroup(e.target.value)}
+          className="px-3 py-2 rounded-[10px] bg-white/85 text-[#0F172A] text-xs font-bold outline-none min-w-[180px]"
+          style={{ colorScheme: "light" }}
+        >
+          <option value="all">همه گروه‌ها</option>
+          {Array.from(new Map(students.map((s: any) => [String(s.courseId ?? s.courseTitle), s])).values()).map((s: any) => (
+            <option key={String(s.courseId ?? s.courseTitle)} value={String(s.courseId ?? s.courseTitle)}>
+              {s.courseTitle}
+            </option>
+          ))}
+        </select>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as any)}
+          className="px-3 py-2 rounded-[10px] bg-white/85 text-[#0F172A] text-xs font-bold outline-none min-w-[130px]"
+          style={{ colorScheme: "light" }}
+        >
+          <option value="all">همه وضعیت‌ها</option>
+          <option value="pending">در انتظار</option>
+          <option value="approved">تأیید شده</option>
+          <option value="rejected">رد شده</option>
+        </select>
+        <div className="flex gap-2">
+          <button onClick={expandAll} className="px-3 py-2 rounded-[10px] bg-primary-500/15 text-primary-300 text-[10px] font-black hover:bg-primary-500/25 cursor-pointer">باز کردن همه</button>
+          <button onClick={collapseAll} className="px-3 py-2 rounded-[10px] bg-slate-500/15 text-slate-300 text-[10px] font-black hover:bg-slate-500/25 cursor-pointer">بستن همه</button>
+        </div>
+      </div>
+
+      {/* Groups */}
+      {groups.length === 0 ? (
+        <div className="p-10 text-center text-slate-500 text-sm bg-[#111a2e] border border-white/5 rounded-[18px]">
+          {students.length === 0 ? "هنوز هنرجویی ثبت‌نام نکرده است" : "با فیلترهای فعلی نتیجه‌ای یافت نشد"}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {groups.map((g) => {
+            const approvedCount = g.items.filter((s: any) => s.status === "approved").length;
+            const pendingCount = g.items.filter((s: any) => s.status === "pending").length;
+            const rejectedCount = g.items.filter((s: any) => s.status === "rejected").length;
+            const open = isOpen(g.key);
+            return (
+              <div key={g.key} className="bg-[#111a2e] border border-white/5 rounded-[18px] overflow-hidden">
+                {/* Group Header */}
+                <button
+                  onClick={() => toggle(g.key)}
+                  className="w-full flex items-center justify-between gap-3 px-5 py-4 bg-gradient-to-l from-primary-500/10 to-transparent hover:from-primary-500/20 transition-all cursor-pointer text-right"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center transition-transform ${open ? "rotate-90" : ""} bg-primary-500/20 text-primary-300`}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M9 6l6 6-6 6" /></svg>
+                    </div>
+                    <div>
+                      <div className="font-black text-white text-sm flex items-center gap-2">
+                        📚 {g.courseTitle}
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">
+                        {g.items.length.toLocaleString("fa-IR")} هنرجو در این دوره
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {approvedCount > 0 && (
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-400">
+                        {approvedCount.toLocaleString("fa-IR")} تأیید
+                      </span>
+                    )}
+                    {pendingCount > 0 && (
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-500/15 text-amber-400">
+                        {pendingCount.toLocaleString("fa-IR")} در انتظار
+                      </span>
+                    )}
+                    {rejectedCount > 0 && (
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-error-500/15 text-error-400">
+                        {rejectedCount.toLocaleString("fa-IR")} رد
+                      </span>
+                    )}
+                  </div>
+                </button>
+
+                {/* Group Body */}
+                {open && (
+                  <div className="overflow-x-auto border-t border-white/5">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-right text-[10px] font-black text-slate-500 border-b border-white/5 bg-white/[0.02]">
+                          <th className="px-5 py-3">هنرجو</th>
+                          <th className="px-5 py-3">موبایل</th>
+                          <th className="px-5 py-3">تاریخ</th>
+                          <th className="px-5 py-3">وضعیت</th>
+                          <th className="px-5 py-3">اقدام</th>
+                          <th className="px-5 py-3">گواهینامه</th>
+                          <th className="px-5 py-3">مدارک</th>
+                          <th className="px-5 py-3">شهریه و اقساط</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {g.items.map((s: any) => (
+                          <tr key={s.id} className="hover:bg-white/5">
+                            <td className="px-5 py-3.5 font-bold text-white">{s.fullName}
+                              {s.notes && <div className="text-[10px] text-slate-500 font-normal line-clamp-1">{s.notes}</div>}
+                            </td>
+                            <td className="px-5 py-3.5 font-bold text-white" dir="ltr">{s.phone}</td>
+                            <td className="px-5 py-3.5 text-slate-500 text-[10px]">{new Date(s.createdAt).toLocaleDateString("fa-IR")}</td>
+                            <td className="px-5 py-3.5">{statusChip(s.status)}</td>
+                            <td className="px-5 py-3.5">
+                              <div className="flex gap-1.5">
+                                <button disabled={s.status === "approved"} onClick={() => act({ action: "updateStatus", registrationId: s.id, status: "approved" })}
+                                  className="p-1.5 rounded-[8px] bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/30 disabled:opacity-30 cursor-pointer"><Check className="w-3.5 h-3.5" /></button>
+                                <button disabled={s.status === "rejected"} onClick={() => act({ action: "updateStatus", registrationId: s.id, status: "rejected" })}
+                                  className="p-1.5 rounded-[8px] bg-error-500/15 text-error-400 hover:bg-error-500/30 disabled:opacity-30 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+                              </div>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              {s.status === "approved" ? (
+                                s.certificateUrl ? (
+                                  <a href={s.certificateUrl} download={`گواهینامه-${s.fullName}.png`} className="text-emerald-400 hover:underline font-bold flex items-center gap-1"><Award className="w-3.5 h-3.5" /> دانلود</a>
+                                ) : (
+                                  <label className="text-primary-400 hover:underline font-bold cursor-pointer flex items-center gap-1">
+                                    {uploadingId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />} بارگذاری
+                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadCertificate(s.id, e.target.files[0])} />
+                                  </label>
+                                )
+                              ) : <span className="text-slate-600">—</span>}
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <button
+                                onClick={() => setDocsModalStudent({ id: s.id, fullName: s.fullName })}
+                                className="px-3 py-1.5 rounded-[8px] bg-primary-500/15 hover:bg-primary-500/30 text-primary-400 text-[10px] font-black cursor-pointer flex items-center gap-1"
+                              >
+                                <FolderOpen className="w-3.5 h-3.5" /> مدیریت مدارک
+                              </button>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <button
+                                onClick={() => setFeesModalStudent({ id: s.id, fullName: s.fullName, courseTitle: s.courseTitle })}
+                                className="px-3 py-1.5 rounded-[8px] bg-amber-500/15 hover:bg-amber-500/30 text-amber-400 text-[10px] font-black cursor-pointer flex items-center gap-1"
+                              >
+                                <Wallet className="w-3.5 h-3.5" /> اقساط و هزینه‌ها
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {docsModalStudent && (
         <StudentDocumentsModal
