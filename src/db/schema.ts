@@ -150,6 +150,12 @@ export const courses = pgTable("courses", {
   bannerImages: jsonb("banner_images").default([]),
   isFeatured: boolean("is_featured").default(false),
   totalSessions: integer("total_sessions").default(0),
+  // Structured schedule fields (new)
+  scheduleDays: jsonb("schedule_days").default([]), // e.g., ["saturday", "monday", "wednesday"]
+  scheduleTime: varchar("schedule_time", { length: 30 }), // e.g., "16:00" - session start time
+  sessionDuration: integer("session_duration").default(0), // minutes per session, e.g., 120
+  totalHours: integer("total_hours").default(0), // total course hours, e.g., 40
+  endDate: varchar("end_date", { length: 100 }), // auto-calculated end date (Jalali)
   registrationClosed: boolean("registration_closed").default(false), // مدیر ثبت‌نام رو دستی متوقف کرده
   registrationEnded: boolean("registration_ended").default(false),   // زمان ثبت‌نام تمام شده
   status: statusEnum("status").default("pending"),
