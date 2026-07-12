@@ -252,6 +252,225 @@ const MIGRATIONS: { name: string; sql: string }[] = [
       WHERE NOT EXISTS (SELECT 1 FROM faqs);
     `,
   },
+  // 11) SHOP: Sellable courses tables
+  {
+    name: "shop_tables",
+    sql: `
+      CREATE TABLE IF NOT EXISTS sellable_permissions (
+        id SERIAL PRIMARY KEY,
+        institute_id INTEGER NOT NULL UNIQUE REFERENCES institutes(id) ON DELETE CASCADE,
+        max_courses INTEGER DEFAULT 0,
+        is_enabled BOOLEAN DEFAULT false,
+        commission_percent DECIMAL(5,2) DEFAULT 10.00,
+        approved_by INTEGER,
+        approved_at TIMESTAMP,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS sellable_courses (
+        id SERIAL PRIMARY KEY,
+        institute_id INTEGER NOT NULL REFERENCES institutes(id) ON DELETE CASCADE,
+        slug VARCHAR(255) NOT NULL UNIQUE,
+        title VARCHAR(255) NOT NULL,
+        subtitle VARCHAR(500),
+        description TEXT,
+        cover_image TEXT,
+        trailer_video TEXT,
+        category_id INTEGER REFERENCES categories(id),
+        instructor VARCHAR(255),
+        instructor_title VARCHAR(255),
+        instructor_avatar TEXT,
+        instructor_bio TEXT,
+        level VARCHAR(30),
+        language VARCHAR(20) DEFAULT 'fa',
+        total_duration INTEGER DEFAULT 0,
+        total_lessons INTEGER DEFAULT 0,
+        total_chapters INTEGER DEFAULT 0,
+        students_count INTEGER DEFAULT 0,
+        rating DECIMAL(3,2) DEFAULT 0,
+        rating_count INTEGER DEFAULT 0,
+        price DECIMAL(12,0) NOT NULL,
+        original_price DECIMAL(12,0),
+        discount_percent INTEGER DEFAULT 0,
+        discount_ends_at TIMESTAMP,
+        features JSONB DEFAULT '[]'::jsonb,
+        requirements JSONB DEFAULT '[]'::jsonb,
+        target_audience JSONB DEFAULT '[]'::jsonb,
+        has_support BOOLEAN DEFAULT true,
+        has_certificate BOOLEAN DEFAULT true,
+        has_download BOOLEAN DEFAULT false,
+        lifetime_access BOOLEAN DEFAULT true,
+        access_duration_days INTEGER,
+        is_published BOOLEAN DEFAULT false,
+        is_featured BOOLEAN DEFAULT false,
+        status VARCHAR(20) DEFAULT 'draft',
+        published_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_sellable_courses_institute ON sellable_courses(institute_id);
+      CREATE INDEX IF NOT EXISTS idx_sellable_courses_status ON sellable_courses(status);
+      CREATE INDEX IF NOT EXISTS idx_sellable_courses_featured ON sellable_courses(is_featured) WHERE is_featured = true;
+
+      CREATE TABLE IF NOT EXISTS sellable_chapters (
+        id SERIAL PRIMARY KEY,
+        course_id INTEGER NOT NULL REFERENCES sellable_courses(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        order_index INTEGER DEFAULT 0,
+        is_free BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_sellable_chapters_course ON sellable_chapters(course_id);
+
+      CREATE TABLE IF NOT EXISTS sellable_lessons (
+        id SERIAL PRIMARY KEY,
+        chapter_id INTEGER NOT NULL REFERENCES sellable_chapters(id) ON DELETE CASCADE,
+        course_id INTEGER NOT NULL REFERENCES sellable_courses(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        type VARCHAR(20) DEFAULT 'video',
+        description TEXT,
+        video_url TEXT,
+        video_provider VARCHAR(30) DEFAULT 'direct',
+        video_duration INTEGER DEFAULT 0,
+        content TEXT,
+        attachment_url TEXT,
+        is_free BOOLEAN DEFAULT false,
+        is_locked BOOLEAN DEFAULT true,
+        order_index INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_sellable_lessons_chapter ON sellable_lessons(chapter_id);
+      CREATE INDEX IF NOT EXISTS idx_sellable_lessons_course ON sellable_lessons(course_id);
+
+      CREATE TABLE IF NOT EXISTS sellable_purchases (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        course_id INTEGER NOT NULL REFERENCES sellable_courses(id) ON DELETE CASCADE,
+        institute_id INTEGER NOT NULL REFERENCES institutes(id),
+        amount DECIMAL(12,0) NOT NULL,
+        commission DECIMAL(12,0) DEFAULT 0,
+        net_amount DECIMAL(12,0) DEFAULT 0,
+        payment_method VARCHAR(30) DEFAULT 'wallet',
+        payment_ref VARCHAR(100),
+        status VARCHAR(20) DEFAULT 'pending',
+        access_expires_at TIMESTAMP,
+        progress INTEGER DEFAULT 0,
+        last_lesson_id INTEGER,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_sellable_purchases_user ON sellable_purchases(user_id);
+      CREATE INDEX IF NOT EXISTS idx_sellable_purchases_course ON sellable_purchases(course_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_sellable_purchase_user_course ON sellable_purchases(user_id, course_id) WHERE status = 'paid';
+
+      CREATE TABLE IF NOT EXISTS sellable_lesson_progress (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        purchase_id INTEGER NOT NULL REFERENCES sellable_purchases(id) ON DELETE CASCADE,
+        lesson_id INTEGER NOT NULL REFERENCES sellable_lessons(id) ON DELETE CASCADE,
+        is_completed BOOLEAN DEFAULT false,
+        watched_seconds INTEGER DEFAULT 0,
+        completed_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_sellable_progress_purchase ON sellable_lesson_progress(purchase_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_sellable_progress_user_lesson ON sellable_lesson_progress(user_id, lesson_id);
+    `,
+  },
+  // 12) SEED: Sample sellable courses for آموزشگاه کامپیوتر هدف (institute id = 1)
+  {
+    name: "seed_shop_samples",
+    sql: `
+      -- Grant permission to institute 1 (کامپیوتر هدف)
+      INSERT INTO sellable_permissions (institute_id, max_courses, is_enabled, commission_percent)
+      SELECT 1, 10, true, 10.00
+      WHERE EXISTS (SELECT 1 FROM institutes WHERE id = 1)
+        AND NOT EXISTS (SELECT 1 FROM sellable_permissions WHERE institute_id = 1);
+
+      -- Sample course 1: Photoshop
+      INSERT INTO sellable_courses (institute_id, slug, title, subtitle, description, cover_image, instructor, instructor_title, level, price, original_price, discount_percent, features, requirements, target_audience, is_published, is_featured, status, published_at, total_chapters, total_lessons, total_duration, students_count, rating, rating_count)
+      SELECT 1, 'photoshop-pro-package',
+        'دوره جامع فتوشاپ حرفه‌ای',
+        'از صفر تا تولید پروژه واقعی — ۲۵ ساعت آموزش پروژه‌محور با گواهینامه',
+        E'در این دوره جامع، از پایه‌ای‌ترین ابزارهای فتوشاپ تا تکنیک‌های حرفه‌ای رتوش، طراحی پوستر، طراحی بنر و ادیت عکس‌های تبلیغاتی را یاد می‌گیرید.\n\nهر فصل شامل ویدئوهای HD، تمرین عملی و پروژه پایانی است. پس از اتمام دوره، گواهینامه معتبر آموزشگاه دریافت می‌کنید.',
+        '',
+        'مهندس حمید حسینی', 'مدرس رسمی فنی و حرفه‌ای',
+        'beginner', 1290000, 2490000, 48,
+        '["آموزش پروژه‌محور با ۲۵ ساعت ویدئو HD", "پشتیبانی ۶ ماهه رایگان", "گواهینامه معتبر فنی و حرفه‌ای", "دسترسی مادام‌العمر", "دانلود ویدئوها بدون محدودیت"]'::jsonb,
+        '["داشتن کامپیوتر با حداقل ۴ گیگ رم", "نصب نرم‌افزار فتوشاپ 2020 به بالا", "علاقه به طراحی گرافیک"]'::jsonb,
+        '["علاقه‌مندان به طراحی گرافیک", "مدیران شبکه‌های اجتماعی", "دانشجویان هنر و رسانه", "فریلنسرها"]'::jsonb,
+        true, true, 'published', NOW(), 6, 42, 1500, 178, 4.8, 89
+      WHERE EXISTS (SELECT 1 FROM institutes WHERE id = 1)
+        AND NOT EXISTS (SELECT 1 FROM sellable_courses WHERE slug = 'photoshop-pro-package');
+
+      -- Sample course 2: AI
+      INSERT INTO sellable_courses (institute_id, slug, title, subtitle, description, instructor, instructor_title, level, price, original_price, discount_percent, features, requirements, target_audience, is_published, is_featured, status, published_at, total_chapters, total_lessons, total_duration, students_count, rating, rating_count)
+      SELECT 1, 'ai-complete-package',
+        'دوره جامع هوش مصنوعی و ChatGPT',
+        'یاد بگیر چطور با هوش مصنوعی درآمد میلیونی بسازی — ۳۰ ساعت آموزش کاربردی',
+        E'دوره کامل کاربرد هوش مصنوعی در کسب‌وکار، تولید محتوا، طراحی، کدنویسی و... همراه با پروژه‌های عملی و درآمدزا.\n\nهم برای مبتدی‌ها و هم افراد حرفه‌ای مناسب است.',
+        'دکتر سعید کاظمی', 'متخصص هوش مصنوعی',
+        'intermediate', 1990000, 3990000, 50,
+        '["۳۰ ساعت ویدئو کیفیت HD", "۱۵ پروژه کاربردی و درآمدزا", "گواهینامه معتبر", "پشتیبانی ۱ ساله", "دسترسی مادام‌العمر", "آپدیت رایگان محتوا"]'::jsonb,
+        '["کامپیوتر با اتصال اینترنت", "آشنایی مقدماتی با کامپیوتر", "علاقه به یادگیری تکنولوژی"]'::jsonb,
+        '["صاحبان کسب‌وکار", "تولیدکنندگان محتوا", "برنامه‌نویسان", "بازاریابان دیجیتال"]'::jsonb,
+        true, true, 'published', NOW(), 8, 56, 1800, 312, 4.9, 156
+      WHERE EXISTS (SELECT 1 FROM institutes WHERE id = 1)
+        AND NOT EXISTS (SELECT 1 FROM sellable_courses WHERE slug = 'ai-complete-package');
+
+      -- Sample course 3: Admin
+      INSERT INTO sellable_courses (institute_id, slug, title, subtitle, description, instructor, instructor_title, level, price, original_price, discount_percent, features, requirements, target_audience, is_published, is_featured, status, published_at, total_chapters, total_lessons, total_duration, students_count, rating, rating_count)
+      SELECT 1, 'admin-office-package',
+        'دوره جامع ادمینی و مدیریت دفتری',
+        'ورود سریع به بازار کار به عنوان کارشناس دفتری با مدرک رسمی',
+        E'یاد بگیر چطور به عنوان یک ادمین حرفه‌ای در دفاتر و شرکت‌ها کار کنی. شامل Word, Excel, PowerPoint, ایمیل حرفه‌ای، مدیریت زمان و اصول ارتباط سازمانی.',
+        'استاد سارا احمدی', 'مدرس دوره‌های ICDL',
+        'beginner', 890000, 1590000, 44,
+        '["۲۰ ساعت آموزش عملی", "چک‌لیست‌ها و قالب‌های آماده", "گواهینامه فنی و حرفه‌ای", "پشتیبانی مستقیم مدرس", "دسترسی دائمی"]'::jsonb,
+        '["کامپیوتر یا لپ‌تاپ", "علاقه به کار دفتری"]'::jsonb,
+        '["جویندگان کار", "کارآموزان", "افرادی که می‌خواهند به عنوان منشی/کارشناس دفتری استخدام شوند"]'::jsonb,
+        true, false, 'published', NOW(), 5, 30, 1200, 89, 4.7, 42
+      WHERE EXISTS (SELECT 1 FROM institutes WHERE id = 1)
+        AND NOT EXISTS (SELECT 1 FROM sellable_courses WHERE slug = 'admin-office-package');
+
+      -- Sample chapters & lessons for Photoshop
+      DO $$
+      DECLARE
+        v_course_id INTEGER;
+        v_ch1 INTEGER; v_ch2 INTEGER; v_ch3 INTEGER; v_ch4 INTEGER; v_ch5 INTEGER; v_ch6 INTEGER;
+      BEGIN
+        SELECT id INTO v_course_id FROM sellable_courses WHERE slug = 'photoshop-pro-package';
+        IF v_course_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM sellable_chapters WHERE course_id = v_course_id) THEN
+          INSERT INTO sellable_chapters (course_id, title, order_index, is_free) VALUES (v_course_id, 'فصل ۱: آشنایی با محیط فتوشاپ', 1, true) RETURNING id INTO v_ch1;
+          INSERT INTO sellable_chapters (course_id, title, order_index) VALUES (v_course_id, 'فصل ۲: ابزارهای انتخاب و برش', 2) RETURNING id INTO v_ch2;
+          INSERT INTO sellable_chapters (course_id, title, order_index) VALUES (v_course_id, 'فصل ۳: لایه‌ها و ماسک', 3) RETURNING id INTO v_ch3;
+          INSERT INTO sellable_chapters (course_id, title, order_index) VALUES (v_course_id, 'فصل ۴: رتوش و ادیت پرتره', 4) RETURNING id INTO v_ch4;
+          INSERT INTO sellable_chapters (course_id, title, order_index) VALUES (v_course_id, 'فصل ۵: طراحی پوستر و بنر', 5) RETURNING id INTO v_ch5;
+          INSERT INTO sellable_chapters (course_id, title, order_index) VALUES (v_course_id, 'فصل ۶: پروژه پایانی', 6) RETURNING id INTO v_ch6;
+
+          INSERT INTO sellable_lessons (chapter_id, course_id, title, type, video_duration, is_free, is_locked, order_index) VALUES
+            (v_ch1, v_course_id, 'معرفی دوره و منابع مورد نیاز', 'video', 420, true, false, 1),
+            (v_ch1, v_course_id, 'نصب فتوشاپ و آشنایی با محیط', 'video', 780, true, false, 2),
+            (v_ch1, v_course_id, 'شخصی‌سازی پنل‌ها و کارگاه', 'video', 540, true, false, 3),
+            (v_ch2, v_course_id, 'ابزار Marquee و Lasso', 'video', 720, false, true, 1),
+            (v_ch2, v_course_id, 'ابزار Magic Wand و Quick Selection', 'video', 660, false, true, 2),
+            (v_ch2, v_course_id, 'برش دقیق با Pen Tool', 'video', 900, false, true, 3),
+            (v_ch3, v_course_id, 'مفهوم لایه‌ها', 'video', 480, false, true, 1),
+            (v_ch3, v_course_id, 'Layer Mask و Clipping Mask', 'video', 720, false, true, 2),
+            (v_ch3, v_course_id, 'Adjustment Layers', 'video', 600, false, true, 3),
+            (v_ch4, v_course_id, 'رتوش پوست و حذف جوش', 'video', 840, false, true, 1),
+            (v_ch4, v_course_id, 'میکاپ دیجیتال', 'video', 780, false, true, 2),
+            (v_ch5, v_course_id, 'اصول طراحی پوستر', 'video', 900, false, true, 1),
+            (v_ch5, v_course_id, 'ساخت بنر تبلیغاتی اینستاگرام', 'video', 720, false, true, 2),
+            (v_ch6, v_course_id, 'تعریف پروژه و بریف', 'video', 540, false, true, 1),
+            (v_ch6, v_course_id, 'اجرای پروژه با راهنمای مدرس', 'video', 1200, false, true, 2);
+        END IF;
+      END $$;
+    `,
+  },
 ];
 
 async function isAuthorized(req: Request): Promise<boolean> {
