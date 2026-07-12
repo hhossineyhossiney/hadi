@@ -43,6 +43,11 @@ export async function GET(
     if (withNew) {
       fields.registrationClosed = courses.registrationClosed;
       fields.registrationEnded = courses.registrationEnded;
+      fields.scheduleDays = (courses as any).scheduleDays;
+      fields.scheduleTime = (courses as any).scheduleTime;
+      fields.sessionDuration = (courses as any).sessionDuration;
+      fields.totalHours = (courses as any).totalHours;
+      fields.endDate = (courses as any).endDate;
     }
     return db
       .select(fields)
