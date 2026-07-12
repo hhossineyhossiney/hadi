@@ -287,10 +287,18 @@ export default function ShopCourseDetail({ params }: { params: Promise<{ slug: s
                     )}
 
                     {hasPurchased ? (
-                      <div className="p-4 rounded-[14px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-center">
-                        <CheckCircle2 className="w-8 h-8 mx-auto mb-2" />
-                        <div className="font-black text-sm">شما این دوره را خریداری کرده‌اید</div>
-                        <div className="text-[11px] mt-1 opacity-80">همه فصل‌ها برای شما آزاد هستند</div>
+                      <div className="space-y-2">
+                        <div className="p-4 rounded-[14px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-center">
+                          <CheckCircle2 className="w-8 h-8 mx-auto mb-2" />
+                          <div className="font-black text-sm">شما این دوره را خریداری کرده‌اید</div>
+                          <div className="text-[11px] mt-1 opacity-80">همه فصل‌ها برای شما آزاد هستند</div>
+                        </div>
+                        <Link
+                          href="/dashboard?tab=shop"
+                          className="w-full py-3.5 rounded-[14px] gradient-button hover:gradient-button-hover text-white font-black text-sm shadow-lg shadow-primary-500/30 flex items-center justify-center gap-2 transition-all"
+                        >
+                          <Play className="w-4 h-4" /> ورود به پنل و ادامه یادگیری
+                        </Link>
                       </div>
                     ) : (
                       <div className="space-y-2">
