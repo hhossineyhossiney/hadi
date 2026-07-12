@@ -153,16 +153,16 @@ export default function ManagerPanelPage() {
 
       {/* Drawer overlay */}
       {drawerOpen && (
-        <div onClick={() => setDrawerOpen(false)} className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" />
+        <div onClick={() => setDrawerOpen(false)} className="lg:hidden fixed inset-0 z-[55] bg-black/70 backdrop-blur-sm" />
       )}
 
       <div className="pt-[136px] lg:pt-20 lg:flex lg:flex-row lg:min-h-screen">
         <aside className={`bg-[#0B1120] text-white shrink-0 lg:min-h-[calc(100vh-80px)] lg:w-72 lg:static lg:translate-x-0 lg:border-l lg:border-white/5 lg:block
-          fixed top-20 right-0 bottom-0 z-50 w-[85%] max-w-[320px] overflow-y-auto transition-transform duration-300 ease-out
+          fixed top-0 right-0 bottom-0 z-[60] w-[85%] max-w-[320px] overflow-y-auto transition-transform duration-300 ease-out
           ${drawerOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
           ${drawerOpen ? "block" : "hidden lg:block"}`}
           style={{ boxShadow: drawerOpen ? "-20px 0 60px rgba(0,0,0,0.5)" : undefined }}>
-          <div className="p-5 border-b border-white/10 flex items-center justify-between">
+          <div className="p-5 border-b border-white/10 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-9 h-9 rounded-[10px] bg-primary-600 flex items-center justify-center shrink-0">
                 <Building2 className="w-5 h-5 text-white" />
@@ -172,9 +172,14 @@ export default function ManagerPanelPage() {
                 <div className="text-[10px] text-primary-300 font-bold">پنل مدیریت آموزشگاه</div>
               </div>
             </div>
-            <button onClick={() => signOut({ callbackUrl: "/" })} className="p-2 rounded-[10px] hover:bg-white/10 text-error-400 cursor-pointer shrink-0" title="خروج">
-              <LogOut className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <button onClick={() => signOut({ callbackUrl: "/" })} className="p-2 rounded-[10px] hover:bg-white/10 text-error-400 cursor-pointer" title="خروج">
+                <LogOut className="w-4 h-4" />
+              </button>
+              <button onClick={() => setDrawerOpen(false)} className="lg:hidden p-2 rounded-[10px] hover:bg-white/10 text-slate-300 cursor-pointer" title="بستن منو">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
           <nav className="p-3 space-y-1">
             {NAV_ITEMS.map((item) => (
