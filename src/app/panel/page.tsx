@@ -133,30 +133,32 @@ export default function ManagerPanelPage() {
   return (
     <main className="min-h-screen bg-[#0B1120]">
       <Navbar />
-      <div className="pt-20 lg:flex lg:flex-row lg:min-h-screen">
-        {/* Mobile top compact bar */}
-        <div className="lg:hidden sticky top-20 z-30 bg-[#0B1120]/95 backdrop-blur-lg border-b border-white/10 px-4 py-3 flex items-center gap-3">
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="w-10 h-10 rounded-[12px] bg-primary-600/20 hover:bg-primary-600/30 border border-primary-500/30 flex items-center justify-center text-primary-300 cursor-pointer"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-black text-white truncate">{NAV_ITEMS.find(n => n.key === tab)?.label || institute?.name || "پنل آموزشگاه"}</div>
-            <div className="text-[10px] text-primary-300 font-bold truncate">{institute?.name || "پنل مدیریت"}</div>
-          </div>
-          <button onClick={() => signOut({ callbackUrl: "/" })} className="w-9 h-9 rounded-[10px] bg-error-500/15 hover:bg-error-500/25 text-error-400 flex items-center justify-center cursor-pointer">
-            <LogOut className="w-4 h-4" />
-          </button>
+
+      {/* Mobile top compact bar — چسبیده به Navbar */}
+      <div className="lg:hidden fixed top-20 left-0 right-0 z-40 bg-[#0B1120]/95 backdrop-blur-lg border-b border-white/10 px-4 py-2.5 flex items-center gap-3">
+        <button
+          onClick={() => setDrawerOpen(true)}
+          className="w-10 h-10 rounded-[12px] bg-primary-600/20 hover:bg-primary-600/30 border border-primary-500/30 flex items-center justify-center text-primary-300 cursor-pointer shrink-0"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-black text-white truncate">{NAV_ITEMS.find(n => n.key === tab)?.label || institute?.name || "پنل آموزشگاه"}</div>
+          <div className="text-[10px] text-primary-300 font-bold truncate">{institute?.name || "پنل مدیریت"}</div>
         </div>
+        <button onClick={() => signOut({ callbackUrl: "/" })} className="w-9 h-9 rounded-[10px] bg-error-500/15 hover:bg-error-500/25 text-error-400 flex items-center justify-center cursor-pointer shrink-0">
+          <LogOut className="w-4 h-4" />
+        </button>
+      </div>
 
-        {drawerOpen && (
-          <div onClick={() => setDrawerOpen(false)} className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" />
-        )}
+      {/* Drawer overlay */}
+      {drawerOpen && (
+        <div onClick={() => setDrawerOpen(false)} className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" />
+      )}
 
+      <div className="pt-[136px] lg:pt-20 lg:flex lg:flex-row lg:min-h-screen">
         <aside className={`bg-[#0B1120] text-white shrink-0 lg:min-h-[calc(100vh-80px)] lg:w-72 lg:static lg:translate-x-0 lg:border-l lg:border-white/5 lg:block
-          fixed top-0 right-0 bottom-0 z-50 w-[85%] max-w-[320px] overflow-y-auto transition-transform duration-300 ease-out
+          fixed top-20 right-0 bottom-0 z-50 w-[85%] max-w-[320px] overflow-y-auto transition-transform duration-300 ease-out
           ${drawerOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
           ${drawerOpen ? "block" : "hidden lg:block"}`}
           style={{ boxShadow: drawerOpen ? "-20px 0 60px rgba(0,0,0,0.5)" : undefined }}>
