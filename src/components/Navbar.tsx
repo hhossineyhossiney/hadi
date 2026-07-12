@@ -20,6 +20,7 @@ export default function Navbar() {
 
   const navLinks = [
     { href: "/", label: "صفحه اصلی" },
+    { href: "/shop", label: "فروشگاه" },
     { href: "/fields", label: "رشته‌ها" },
     { href: "/institutes", label: "آموزشگاه‌ها" },
     { href: "/courses", label: "دوره‌ها" },
