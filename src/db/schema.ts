@@ -446,6 +446,7 @@ export const sellableChapters = pgTable("sellable_chapters", {
   courseId: integer("course_id").references(() => sellableCourses.id, { onDelete: "cascade" }).notNull(),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
+  coverImage: text("cover_image"),
   orderIndex: integer("order_index").default(0),
   isFree: boolean("is_free").default(false),
   createdAt: timestamp("created_at").defaultNow(),
@@ -459,6 +460,7 @@ export const sellableLessons = pgTable("sellable_lessons", {
   title: varchar("title", { length: 255 }).notNull(),
   type: varchar("type", { length: 20 }).default("video"), // video|text|quiz|live|file
   description: text("description"),
+  coverImage: text("cover_image"),
   videoUrl: text("video_url"), // آدرس ویدئو (Google Drive/YouTube/direct)
   videoProvider: varchar("video_provider", { length: 30 }).default("direct"), // direct|youtube|drive|vimeo|aparat
   videoDuration: integer("video_duration").default(0), // seconds
