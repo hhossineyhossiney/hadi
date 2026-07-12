@@ -1,4 +1,4 @@
-const BOT_TOKEN =
+export const BOT_TOKEN =
   process.env.TELEGRAM_BOT_TOKEN ||
   "8961723308:AAEMOiqT_D8GZ2U2EYQQfkbtk-rufunkXU0";
 
@@ -20,6 +20,7 @@ export async function sendTelegramMessage(
         text,
         parse_mode: "HTML",
         reply_markup: replyMarkup,
+        disable_web_page_preview: true,
       }),
     });
     const data = await response.json();
@@ -27,6 +28,57 @@ export async function sendTelegramMessage(
   } catch (error) {
     console.error("Telegram sendMessage error:", error);
     return null;
+  }
+}
+
+export async function editTelegramMessage(
+  chatId: string | number,
+  messageId: number,
+  text: string,
+  replyMarkup?: any
+) {
+  try {
+    const url = `https://api.telegram.org/bot${BOT_TOKEN}/editMessageText`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        text,
+        parse_mode: "HTML",
+        reply_markup: replyMarkup,
+        disable_web_page_preview: true,
+      }),
+    });
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function answerCallbackQuery(callbackId: string, text?: string, showAlert = false) {
+  try {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ callback_query_id: callbackId, text, show_alert: showAlert }),
+    });
+  } catch {}
+}
+
+// Notify a specific user via telegram (if they've linked their account)
+export async function notifyUserByTelegram(userId: number, message: string, replyMarkup?: any) {
+  try {
+    const { db } = await import("@/db");
+    const { telegramChats } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const chats = await db.select().from(telegramChats).where(eq(telegramChats.userId, userId));
+    for (const c of chats) {
+      await sendTelegramMessage(c.chatId, message, replyMarkup);
+    }
+  } catch (e) {
+    console.error("notifyUserByTelegram error:", e);
   }
 }
 
