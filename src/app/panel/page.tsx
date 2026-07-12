@@ -1362,17 +1362,27 @@ function ProgressManagerTab({ data, refresh }: { data: any; refresh: () => void 
                   <div className="h-2 rounded-full bg-white/5 overflow-hidden mb-2">
                     <div className="h-full bg-gradient-to-r from-cyan-500 to-primary-500 transition-all" style={{ width: `${curProgress}%` }} />
                   </div>
-                  <input type="range" min="0" max="100" step="5" value={curProgress}
-                    onChange={(e) => setDrafts({ ...drafts, [s.id]: { ...drafts[s.id], progress: Number(e.target.value) } })}
+                  <input type="range" min="0" max="100" step="1" value={curProgress}
+                    onChange={(e) => {
+                      const p = Number(e.target.value);
+                      // Auto-sync sessions if totalSess known
+                      const syncedSessions = totalSess > 0 ? Math.round((p / 100) * totalSess) : drafts[s.id]?.sessionsAttended;
+                      setDrafts({ ...drafts, [s.id]: { ...drafts[s.id], progress: p, sessionsAttended: syncedSessions } });
+                    }}
                     className="w-full accent-primary-500" />
                 </div>
 
-                {/* Sessions attended */}
+                {/* Sessions attended (auto-sync with progress) */}
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   <div>
                     <label className="text-[10px] font-bold text-slate-400 mb-1 block">جلسات شرکت‌کرده</label>
                     <input type="number" min="0" max={totalSess || 100} value={curSessions}
-                      onChange={(e) => setDrafts({ ...drafts, [s.id]: { ...drafts[s.id], sessionsAttended: Number(e.target.value) } })}
+                      onChange={(e) => {
+                        const sess = Math.max(0, Number(e.target.value) || 0);
+                        // Auto-sync progress from sessions if totalSess known
+                        const syncedProgress = totalSess > 0 ? Math.min(100, Math.round((sess / totalSess) * 100)) : drafts[s.id]?.progress;
+                        setDrafts({ ...drafts, [s.id]: { ...drafts[s.id], sessionsAttended: sess, progress: syncedProgress } });
+                      }}
                       className="w-full px-3 py-2 rounded-[8px] bg-[#0B1120] border border-white/10 text-sm text-white" />
                   </div>
                   <div>
@@ -1382,6 +1392,11 @@ function ProgressManagerTab({ data, refresh }: { data: any; refresh: () => void 
                     </div>
                   </div>
                 </div>
+                {totalSess === 0 && (
+                  <div className="mb-3 p-2 rounded-[8px] bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-300">
+                    ⚠️ کل جلسات این دوره تعیین نشده — برای همگام‌سازی خودکار، در تب «مدیریت دوره‌ها» تعداد کل جلسات دوره را وارد کنید.
+                  </div>
+                )}
 
                 {hasChanges && (
                   <button onClick={() => save(s.id, s.courseTitle, s.fullName)} disabled={savingId === s.id}
