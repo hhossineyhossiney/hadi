@@ -537,3 +537,243 @@ button:active, a:active {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT THEME OVERRIDES — comprehensive
+   وقتی کاربر حالت روشن رو انتخاب می‌کنه، همه پس‌زمینه‌ها/متن‌های
+   hardcoded تیره باید معادل روشن‌شون رو نمایش بدن.
+   این overrides scope‌شده به [data-theme="light"] تا حالت dark سالم بمونه.
+   ═══════════════════════════════════════════════════════════════ */
+
+html[data-theme="light"] {
+  /* ---------- سطوح تیره → سفید/کرم روشن ---------- */
+  --panel-surface:      #FFFFFF;
+  --panel-surface-2:    #F5F9FE;
+  --panel-surface-3:    #E4EEF8;
+  --panel-text:         #04152A;
+  --panel-text-sub:     #3A5878;
+  --panel-text-mute:    #6B8AAB;
+  --panel-border:       rgba(11, 79, 139, 0.14);
+  --panel-border-soft:  rgba(11, 79, 139, 0.08);
+  --panel-hover:        rgba(11, 79, 139, 0.06);
+}
+
+/* Panels & solid dark backgrounds → سفید */
+html[data-theme="light"] .bg-\[\#0B1120\],
+html[data-theme="light"] .bg-\[\#04152A\],
+html[data-theme="light"] .bg-\[\#0f1a30\],
+html[data-theme="light"] .bg-\[\#0f172a\],
+html[data-theme="light"] .bg-\[\#0f1729\] {
+  background-color: var(--panel-surface) !important;
+  color: var(--panel-text);
+}
+html[data-theme="light"] .bg-\[\#111a2e\],
+html[data-theme="light"] .bg-\[\#1e293b\],
+html[data-theme="light"] .bg-\[\#082D53\],
+html[data-theme="light"] .bg-\[\#061F3B\],
+html[data-theme="light"] .bg-\[\#0A3D6E\] {
+  background-color: var(--panel-surface-2) !important;
+  color: var(--panel-text);
+}
+
+/* Gradients hardcoded */
+html[data-theme="light"] [class*="from-[#0B1B3A]"],
+html[data-theme="light"] [class*="to-[#0B1B3A]"] {
+  --tw-gradient-from: #F5F9FE !important;
+  --tw-gradient-to:   #E4EEF8 !important;
+}
+
+/* text-white in light panel context — تبدیل به تیره */
+html[data-theme="light"] .bg-\[\#0B1120\] .text-white,
+html[data-theme="light"] .bg-\[\#111a2e\] .text-white,
+html[data-theme="light"] .bg-\[\#0f172a\] .text-white,
+html[data-theme="light"] .bg-\[\#0f1729\] .text-white,
+html[data-theme="light"] .bg-\[\#04152A\] .text-white,
+html[data-theme="light"] .bg-\[\#082D53\] .text-white,
+html[data-theme="light"] .bg-\[\#061F3B\] .text-white,
+html[data-theme="light"] .bg-\[\#0A3D6E\] .text-white,
+html[data-theme="light"] .bg-\[\#1e293b\] .text-white,
+html[data-theme="light"] .bg-\[\#0f1a30\] .text-white,
+html[data-theme="light"] aside .text-white,
+html[data-theme="light"] main.min-h-screen .text-white {
+  color: var(--panel-text) !important;
+}
+
+/* slate text tones — روشن‌سازی */
+html[data-theme="light"] .bg-\[\#0B1120\] .text-slate-300,
+html[data-theme="light"] .bg-\[\#111a2e\] .text-slate-300,
+html[data-theme="light"] .bg-\[\#0f172a\] .text-slate-300,
+html[data-theme="light"] .bg-\[\#04152A\] .text-slate-300,
+html[data-theme="light"] .bg-\[\#082D53\] .text-slate-300,
+html[data-theme="light"] .bg-\[\#0A3D6E\] .text-slate-300,
+html[data-theme="light"] aside .text-slate-300,
+html[data-theme="light"] .bg-\[\#0B1120\] .text-slate-400,
+html[data-theme="light"] .bg-\[\#111a2e\] .text-slate-400,
+html[data-theme="light"] .bg-\[\#0f172a\] .text-slate-400,
+html[data-theme="light"] .bg-\[\#04152A\] .text-slate-400,
+html[data-theme="light"] .bg-\[\#082D53\] .text-slate-400,
+html[data-theme="light"] .bg-\[\#0A3D6E\] .text-slate-400,
+html[data-theme="light"] aside .text-slate-400 {
+  color: var(--panel-text-sub) !important;
+}
+html[data-theme="light"] .bg-\[\#0B1120\] .text-slate-500,
+html[data-theme="light"] .bg-\[\#111a2e\] .text-slate-500,
+html[data-theme="light"] .bg-\[\#0f172a\] .text-slate-500,
+html[data-theme="light"] .bg-\[\#04152A\] .text-slate-500,
+html[data-theme="light"] .bg-\[\#082D53\] .text-slate-500,
+html[data-theme="light"] .bg-\[\#0A3D6E\] .text-slate-500,
+html[data-theme="light"] aside .text-slate-500,
+html[data-theme="light"] .bg-\[\#0B1120\] .text-slate-600,
+html[data-theme="light"] .bg-\[\#111a2e\] .text-slate-600,
+html[data-theme="light"] .bg-\[\#082D53\] .text-slate-600,
+html[data-theme="light"] aside .text-slate-600 {
+  color: var(--panel-text-mute) !important;
+}
+
+/* borders on dark surfaces → تیره روشن */
+html[data-theme="light"] .bg-\[\#0B1120\] .border-white\/10,
+html[data-theme="light"] .bg-\[\#111a2e\] .border-white\/10,
+html[data-theme="light"] .bg-\[\#0f172a\] .border-white\/10,
+html[data-theme="light"] .bg-\[\#04152A\] .border-white\/10,
+html[data-theme="light"] .bg-\[\#082D53\] .border-white\/10,
+html[data-theme="light"] aside .border-white\/10,
+html[data-theme="light"] .bg-\[\#0B1120\] .border-white\/5,
+html[data-theme="light"] .bg-\[\#111a2e\] .border-white\/5,
+html[data-theme="light"] .bg-\[\#0f172a\] .border-white\/5,
+html[data-theme="light"] .bg-\[\#082D53\] .border-white\/5,
+html[data-theme="light"] aside .border-white\/5 {
+  border-color: var(--panel-border) !important;
+}
+html[data-theme="light"] .bg-\[\#0B1120\] .divide-white\/5 > *,
+html[data-theme="light"] .bg-\[\#111a2e\] .divide-white\/5 > *,
+html[data-theme="light"] .bg-\[\#082D53\] .divide-white\/5 > *,
+html[data-theme="light"] aside .divide-white\/5 > * {
+  border-color: var(--panel-border-soft) !important;
+}
+
+/* بلاک‌های شفاف white/5..30 روی سطوح تیره → کارت سفید ملایم */
+html[data-theme="light"] .bg-\[\#0B1120\] .bg-white\/5,
+html[data-theme="light"] .bg-\[\#111a2e\] .bg-white\/5,
+html[data-theme="light"] .bg-\[\#0f172a\] .bg-white\/5,
+html[data-theme="light"] .bg-\[\#04152A\] .bg-white\/5,
+html[data-theme="light"] .bg-\[\#082D53\] .bg-white\/5,
+html[data-theme="light"] aside .bg-white\/5,
+html[data-theme="light"] .bg-\[\#0B1120\] .bg-white\/10,
+html[data-theme="light"] .bg-\[\#111a2e\] .bg-white\/10,
+html[data-theme="light"] .bg-\[\#0f172a\] .bg-white\/10,
+html[data-theme="light"] .bg-\[\#04152A\] .bg-white\/10,
+html[data-theme="light"] .bg-\[\#082D53\] .bg-white\/10,
+html[data-theme="light"] aside .bg-white\/10 {
+  background-color: rgba(11, 79, 139, 0.06) !important;
+}
+html[data-theme="light"] .bg-\[\#0B1120\] .bg-white\/20,
+html[data-theme="light"] .bg-\[\#111a2e\] .bg-white\/20,
+html[data-theme="light"] aside .bg-white\/20 {
+  background-color: rgba(11, 79, 139, 0.10) !important;
+}
+
+/* hover:bg-white/xx در پنل روشن */
+html[data-theme="light"] .bg-\[\#0B1120\] .hover\:bg-white\/5:hover,
+html[data-theme="light"] .bg-\[\#111a2e\] .hover\:bg-white\/5:hover,
+html[data-theme="light"] .bg-\[\#082D53\] .hover\:bg-white\/5:hover,
+html[data-theme="light"] aside .hover\:bg-white\/5:hover,
+html[data-theme="light"] .bg-\[\#0B1120\] .hover\:bg-white\/10:hover,
+html[data-theme="light"] .bg-\[\#111a2e\] .hover\:bg-white\/10:hover,
+html[data-theme="light"] aside .hover\:bg-white\/10:hover {
+  background-color: rgba(11, 79, 139, 0.08) !important;
+}
+
+/* Backdrop / overlay drawer stays dark (backdrop) but not underneath */
+/* Drop shadows too dark in light — softer */
+html[data-theme="light"] aside[class*="fixed"] {
+  box-shadow: -20px 0 40px rgba(11, 79, 139, 0.15) !important;
+}
+
+/* Selects on dark panels — نگه‌داشتن قابل خوندن در light */
+html[data-theme="light"] .bg-\[\#0B1120\] select,
+html[data-theme="light"] .bg-\[\#111a2e\] select,
+html[data-theme="light"] .bg-\[\#082D53\] select,
+html[data-theme="light"] aside select,
+html[data-theme="light"] .bg-\[\#0B1120\] input:not([type=checkbox]):not([type=radio]),
+html[data-theme="light"] .bg-\[\#111a2e\] input:not([type=checkbox]):not([type=radio]),
+html[data-theme="light"] .bg-\[\#082D53\] input:not([type=checkbox]):not([type=radio]),
+html[data-theme="light"] aside input:not([type=checkbox]):not([type=radio]),
+html[data-theme="light"] .bg-\[\#0B1120\] textarea,
+html[data-theme="light"] .bg-\[\#111a2e\] textarea,
+html[data-theme="light"] .bg-\[\#082D53\] textarea,
+html[data-theme="light"] aside textarea {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+  border-color: rgba(11, 79, 139, 0.18) !important;
+}
+
+/* modal / dialog with hardcoded dark bg */
+html[data-theme="light"] .bg-black\/60,
+html[data-theme="light"] .bg-black\/70,
+html[data-theme="light"] .bg-black\/80 {
+  /* backdrops می‌مانند تا focus بره روی modal */
+}
+
+/* mobile bottom nav (dark bar at bottom) — نگه می‌داریم dark چون این یک surface تیره اختصاصی است
+   ولی متن‌های داخلش رو باید خوانا کنیم */
+
+/* Chart / stat cards - نمی‌شکنیم چون gradient دارن */
+
+/* Placeholder روی input‌های سفید که در سایدبار/پنل ما بازتعریف کردیم */
+html[data-theme="light"] .bg-\[\#0B1120\] input::placeholder,
+html[data-theme="light"] .bg-\[\#111a2e\] input::placeholder,
+html[data-theme="light"] .bg-\[\#082D53\] input::placeholder,
+html[data-theme="light"] aside input::placeholder,
+html[data-theme="light"] .bg-\[\#0B1120\] textarea::placeholder,
+html[data-theme="light"] .bg-\[\#111a2e\] textarea::placeholder,
+html[data-theme="light"] .bg-\[\#082D53\] textarea::placeholder,
+html[data-theme="light"] aside textarea::placeholder {
+  color: rgba(15, 23, 42, 0.55) !important;
+}
+
+/* دکمه‌های ورود/خروج آیکون‌دار در سایدبار روشن باید در light هم مشخص باشن */
+html[data-theme="light"] aside .text-error-400 { color: #DC2626 !important; }
+html[data-theme="light"] aside .bg-error-500\/15 { background-color: rgba(220, 38, 38, 0.10) !important; }
+html[data-theme="light"] aside .hover\:bg-error-500\/25:hover { background-color: rgba(220, 38, 38, 0.18) !important; }
+
+/* Progress bars / tab headers که در پنل بودن */
+html[data-theme="light"] .bg-\[\#0B1120\] .bg-primary-500\/15,
+html[data-theme="light"] .bg-\[\#111a2e\] .bg-primary-500\/15,
+html[data-theme="light"] .bg-\[\#082D53\] .bg-primary-500\/15,
+html[data-theme="light"] aside .bg-primary-500\/15 {
+  background-color: rgba(20, 184, 166, 0.12) !important;
+}
+html[data-theme="light"] .bg-\[\#0B1120\] .bg-primary-600\/20,
+html[data-theme="light"] .bg-\[\#111a2e\] .bg-primary-600\/20,
+html[data-theme="light"] aside .bg-primary-600\/20 {
+  background-color: rgba(11, 79, 139, 0.10) !important;
+}
+
+/* پیام‌های خطا و اطلاعات در پنل روشن */
+html[data-theme="light"] .bg-\[\#0B1120\] .bg-error-500\/10,
+html[data-theme="light"] .bg-\[\#111a2e\] .bg-error-500\/10 {
+  background-color: rgba(220, 38, 38, 0.08) !important;
+}
+html[data-theme="light"] .bg-\[\#0B1120\] .bg-emerald-500\/15,
+html[data-theme="light"] .bg-\[\#111a2e\] .bg-emerald-500\/15 {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+}
+html[data-theme="light"] .bg-\[\#0B1120\] .bg-amber-500\/15,
+html[data-theme="light"] .bg-\[\#111a2e\] .bg-amber-500\/15 {
+  background-color: rgba(245, 158, 11, 0.14) !important;
+}
+
+/* اطمینان از خوانایی input در حالت light در همه‌ی پنل‌ها */
+html[data-theme="light"] input[dir="ltr"] {
+  color: #0F172A !important;
+}
+
+/* اطمینان که autofill در پنل روشن هم مشکل نداشته باشه */
+html[data-theme="light"] .bg-\[\#0B1120\] input:-webkit-autofill,
+html[data-theme="light"] .bg-\[\#111a2e\] input:-webkit-autofill,
+html[data-theme="light"] .bg-\[\#082D53\] input:-webkit-autofill,
+html[data-theme="light"] aside input:-webkit-autofill {
+  -webkit-text-fill-color: #0F172A !important;
+  -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+  caret-color: #0F172A !important;
+}
