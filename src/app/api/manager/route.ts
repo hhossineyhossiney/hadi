@@ -173,6 +173,9 @@ export async function GET() {
       notes: registrations.notes, createdAt: registrations.createdAt,
       courseTitle: courses.title, courseId: registrations.courseId,
       certificateUrl: registrations.certificateUrl,
+      userId: registrations.userId,
+      progress: registrations.progress,
+      sessionsAttended: registrations.sessionsAttended,
     })
     .from(registrations)
     .leftJoin(courses, eq(registrations.courseId, courses.id))
