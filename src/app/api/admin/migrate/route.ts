@@ -48,6 +48,11 @@ const MIGRATIONS: { name: string; sql: string }[] = [
       ALTER TABLE courses ADD COLUMN IF NOT EXISTS total_sessions INTEGER DEFAULT 0;
       ALTER TABLE courses ADD COLUMN IF NOT EXISTS registration_closed BOOLEAN DEFAULT FALSE;
       ALTER TABLE courses ADD COLUMN IF NOT EXISTS registration_ended BOOLEAN DEFAULT FALSE;
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS schedule_days JSONB DEFAULT '[]'::jsonb;
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS schedule_time VARCHAR(30);
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS session_duration INTEGER DEFAULT 0;
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS total_hours INTEGER DEFAULT 0;
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS end_date VARCHAR(100);
     `,
   },
   // 3) Extend registrations
