@@ -202,7 +202,12 @@ export default function ShopCourseDetail({ params }: { params: Promise<{ slug: s
                 </div>
 
                 <h1 className="text-2xl md:text-4xl lg:text-5xl font-black leading-tight mb-4">{course.title}</h1>
-                {course.subtitle && <p className="text-sm md:text-lg text-slate-300 mb-6 leading-relaxed">{course.subtitle}</p>}
+                <p className="text-sm md:text-lg text-slate-300 mb-6 leading-relaxed">
+                  {course.subtitle
+                    || (course.description
+                          ? (course.description.split(/[\n\r]/)[0] || course.description).slice(0, 220) + (course.description.length > 220 ? "..." : "")
+                          : `${course.title} را ساده اما حرفه‌ای یاد بگیرید — آموزش پروژه‌محور با گواهینامه معتبر، پشتیبانی مستقیم مدرس و دسترسی مادام‌العمر`)}
+                </p>
 
                 {/* Meta stats */}
                 <div className="flex flex-wrap items-center gap-4 mb-6">
