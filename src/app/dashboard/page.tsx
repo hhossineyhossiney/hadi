@@ -170,12 +170,12 @@ function StudentDashboardContent() {
       </div>
 
       {drawerOpen && (
-        <div onClick={() => setDrawerOpen(false)} className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" />
+        <div onClick={() => setDrawerOpen(false)} className="lg:hidden fixed inset-0 z-[55] bg-black/70 backdrop-blur-sm" />
       )}
 
       <div className="pt-[136px] lg:pt-20 lg:flex lg:flex-row lg:min-h-[calc(100vh-80px)]">
         <aside className={`shrink-0 bg-[#0B1120] lg:border-l lg:border-white/5 lg:w-72 lg:static lg:translate-x-0
-          fixed top-20 right-0 bottom-0 z-50 w-[85%] max-w-[320px] overflow-y-auto transition-transform duration-300 ease-out
+          fixed top-0 right-0 bottom-0 z-[60] w-[85%] max-w-[320px] overflow-y-auto transition-transform duration-300 ease-out
           ${drawerOpen ? "translate-x-0 block" : "translate-x-full hidden lg:block lg:translate-x-0"}`}
           style={{ boxShadow: drawerOpen ? "-20px 0 60px rgba(0,0,0,0.5)" : undefined }}>
           <div className="p-5 flex items-center justify-between border-b border-white/10">
@@ -183,6 +183,9 @@ function StudentDashboardContent() {
               <div className="w-3 h-3 rounded-full bg-primary-500 animate-pulse" />
               <span className="text-base font-black">پنل هنرجو</span>
             </div>
+            <button onClick={() => setDrawerOpen(false)} className="lg:hidden p-2 rounded-[10px] hover:bg-white/10 text-slate-300 cursor-pointer" title="بستن منو">
+              <X className="w-4 h-4" />
+            </button>
           </div>
           <nav className="p-3 space-y-1">
             {NAV_ITEMS.map((item) => (
