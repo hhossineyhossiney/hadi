@@ -7,7 +7,7 @@ import {
   Wallet, Check, X, Pencil, ImagePlus, Trash2, Send, Lock, Phone,
   LayoutDashboard, Image as ImageIcon, Award, Plus, LogOut, ShieldCheck, Eye, EyeOff,
   UserCircle2, FolderOpen, Menu, Bell, TrendingUp, CalendarDays,
-  MessageCircle, Video, Link as LinkIcon, Calendar,
+  MessageCircle, Video, Link as LinkIcon, Calendar, ShoppingBag, PlayCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSession, signIn, signOut } from "next-auth/react";
@@ -21,11 +21,12 @@ import MoneyInput from "@/components/MoneyInput";
 import WeekdayPicker from "@/components/WeekdayPicker";
 import { calculateCourseSchedule, formatScheduleDays } from "@/lib/schedule";
 
-type TabKey = "dashboard" | "courses" | "students" | "sessions" | "progress" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
+type TabKey = "dashboard" | "courses" | "students" | "sessions" | "progress" | "shop" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
   { key: "courses", label: "مدیریت دوره‌ها", icon: BookOpen },
+  { key: "shop", label: "فروش آنلاین دوره", icon: Wallet },
   { key: "students", label: "لیست هنرجویان", icon: Users },
   { key: "progress", label: "وضعیت پیشرفت هنرجویان", icon: TrendingUp },
   { key: "sessions", label: "تقویم جلسات دوره‌ها", icon: CalendarDays },
@@ -220,9 +221,379 @@ export default function ManagerPanelPage() {
           {tab === "sessions" && <SessionsManagerTab data={data} />}
           {tab === "progress" && <ProgressManagerTab data={data} refresh={fetchData} />}
           {tab === "telegram" && <TelegramTab institute={institute} />}
+          {tab === "shop" && <ShopTab />}
         </div>
       </div>
     </main>
+  );
+}
+
+/* ============================= SHOP TAB (فروش آنلاین دوره) ============================= */
+function ShopTab() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<any>(null);
+  const [managingCourseId, setManagingCourseId] = useState<number | null>(null);
+  const [form, setForm] = useState<any>({
+    title: "", subtitle: "", description: "", price: "", originalPrice: "",
+    level: "beginner", instructor: "", instructorTitle: "", coverImage: "",
+    features: [""], requirements: [""], targetAudience: [""],
+  });
+
+  const fetchData = () => {
+    setLoading(true);
+    fetch("/api/manager/shop-courses").then(r => r.json()).then(d => { setData(d); setLoading(false); });
+  };
+  useEffect(() => { fetchData(); }, []);
+
+  const act = async (payload: any) => {
+    const res = await fetch("/api/manager/shop-courses", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const d = await res.json();
+    if (!res.ok) { setMsg("❌ " + (d.error || "خطا")); return null; }
+    fetchData();
+    return d;
+  };
+
+  if (loading) return <div className="p-10 text-center text-slate-500"><Loader2 className="w-8 h-8 animate-spin mx-auto" /></div>;
+
+  const perm = data?.permission;
+  const courses = data?.courses || [];
+  const canCreate = perm?.isEnabled && courses.length < (perm?.maxCourses || 0);
+
+  return (
+    <div>
+      <h2 className="text-2xl font-black mb-1">فروش آنلاین دوره‌ها</h2>
+      <p className="text-slate-400 text-sm mb-6">دوره‌های پکیجی خود را برای فروش آنلاین ثبت کنید — با پخش ویدئو، فصل‌بندی و قفل خرید</p>
+
+      {msg && <div className={`mb-4 p-3 rounded-[10px] text-xs font-bold ${msg.startsWith("❌") ? "bg-error-500/15 text-error-400" : "bg-emerald-500/15 text-emerald-400"}`}>{msg}</div>}
+
+      {/* Permission status card */}
+      {!perm?.isEnabled ? (
+        <div className="p-6 rounded-[16px] bg-gradient-to-l from-amber-500/15 to-transparent border border-amber-500/30 mb-6">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-[12px] bg-amber-500/25 text-amber-400 flex items-center justify-center shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-black text-amber-300 text-sm mb-1">دسترسی فروش آنلاین شما فعال نیست</div>
+              <div className="text-xs text-slate-300 leading-relaxed">
+                برای فعال‌سازی امکان فروش دوره‌های آنلاین، با مدیر کل سامانه تماس بگیرید. مدیر کل تعداد دوره‌های مجاز و درصد کمیسیون را تعیین می‌کند.
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div className="p-4 rounded-[14px] bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 border border-emerald-500/25">
+            <div className="text-[10px] text-slate-400 font-bold mb-1">وضعیت فروش</div>
+            <div className="text-sm font-black text-emerald-300 flex items-center gap-1"><Check className="w-4 h-4" /> فعال</div>
+          </div>
+          <div className="p-4 rounded-[14px] bg-gradient-to-br from-primary-500/15 to-primary-500/5 border border-primary-500/25">
+            <div className="text-[10px] text-slate-400 font-bold mb-1">سقف مجاز</div>
+            <div className="text-lg font-black text-primary-300">{Number(perm.maxCourses).toLocaleString("fa-IR")}</div>
+          </div>
+          <div className="p-4 rounded-[14px] bg-gradient-to-br from-indigo-500/15 to-indigo-500/5 border border-indigo-500/25">
+            <div className="text-[10px] text-slate-400 font-bold mb-1">دوره‌های ثبت‌شده</div>
+            <div className="text-lg font-black text-indigo-300">{courses.length.toLocaleString("fa-IR")}</div>
+          </div>
+          <div className="p-4 rounded-[14px] bg-gradient-to-br from-amber-500/15 to-amber-500/5 border border-amber-500/25">
+            <div className="text-[10px] text-slate-400 font-bold mb-1">کمیسیون سامانه</div>
+            <div className="text-lg font-black text-amber-300">{perm.commissionPercent}٪</div>
+          </div>
+        </div>
+      )}
+
+      {/* Add new course */}
+      {perm?.isEnabled && (
+        <div className="mb-6">
+          <button
+            onClick={() => setCreating(!creating)}
+            disabled={!canCreate}
+            className={`px-5 py-2.5 rounded-[12px] font-black text-sm flex items-center gap-2 transition-all ${
+              canCreate
+                ? "bg-gradient-to-l from-primary-500 to-secondary-500 text-white shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40 cursor-pointer"
+                : "bg-slate-500/20 text-slate-500 cursor-not-allowed"
+            }`}
+          >
+            <Plus className="w-4 h-4" /> {creating ? "بستن فرم" : "افزودن دوره فروشی جدید"}
+          </button>
+          {!canCreate && perm?.maxCourses > 0 && courses.length >= perm.maxCourses && (
+            <div className="mt-2 text-[11px] text-amber-400 font-bold">
+              ⚠ سقف {perm.maxCourses} دوره پر است. برای افزایش با مدیر کل تماس بگیرید.
+            </div>
+          )}
+        </div>
+      )}
+
+      {creating && (
+        <div className="mb-6 p-6 rounded-[18px] bg-[#111a2e] border border-white/10">
+          <h3 className="font-black text-white mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-primary-400" /> دوره فروشی جدید</h3>
+          <div className="grid md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-black text-slate-400 mb-1 block">عنوان دوره *</label>
+              <input value={form.title} onChange={(e) => setForm({...form, title: e.target.value})} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 mb-1 block">سطح</label>
+              <select value={form.level} onChange={(e) => setForm({...form, level: e.target.value})} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold">
+                <option value="beginner">مقدماتی</option>
+                <option value="intermediate">متوسط</option>
+                <option value="advanced">پیشرفته</option>
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-[10px] font-black text-slate-400 mb-1 block">توضیح کوتاه</label>
+              <input value={form.subtitle} onChange={(e) => setForm({...form, subtitle: e.target.value})} placeholder="یک جمله جذاب — نمایش در کارت دوره" className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 mb-1 block">قیمت فروش (تومان) *</label>
+              <MoneyInput value={form.price} onChange={(v) => setForm({...form, price: v})} placeholder="مثلا: 1200000" />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 mb-1 block">قیمت قبل تخفیف</label>
+              <MoneyInput value={form.originalPrice} onChange={(v) => setForm({...form, originalPrice: v})} placeholder="اختیاری" />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 mb-1 block">نام مدرس</label>
+              <input value={form.instructor} onChange={(e) => setForm({...form, instructor: e.target.value})} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 mb-1 block">تخصص مدرس</label>
+              <input value={form.instructorTitle} onChange={(e) => setForm({...form, instructorTitle: e.target.value})} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-[10px] font-black text-slate-400 mb-1 block">توضیحات کامل دوره</label>
+              <textarea value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} rows={4} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-xs font-bold resize-none" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-[10px] font-black text-slate-400 mb-1 block">تصویر کاور (لینک یا Base64)</label>
+              <input value={form.coverImage} onChange={(e) => setForm({...form, coverImage: e.target.value})} placeholder="https://... یا data:image/..." className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-xs font-bold" dir="ltr" />
+            </div>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={async () => {
+                if (!form.title || !form.price) { setMsg("❌ عنوان و قیمت الزامی است"); return; }
+                const d = await act({ action: "create", ...form,
+                  features: form.features.filter((s: string) => s.trim()),
+                  requirements: form.requirements.filter((s: string) => s.trim()),
+                  targetAudience: form.targetAudience.filter((s: string) => s.trim()),
+                });
+                if (d) { setCreating(false); setMsg("✅ دوره ایجاد شد. حالا فصل‌ها و ویدئوها را اضافه کنید"); setForm({ title: "", subtitle: "", description: "", price: "", originalPrice: "", level: "beginner", instructor: "", instructorTitle: "", coverImage: "", features: [""], requirements: [""], targetAudience: [""] }); }
+              }}
+              className="px-5 py-2.5 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white font-black text-sm"
+            >
+              ذخیره دوره
+            </button>
+            <button onClick={() => setCreating(false)} className="px-5 py-2.5 rounded-[10px] bg-white/5 hover:bg-white/10 text-slate-300 font-black text-sm">انصراف</button>
+          </div>
+        </div>
+      )}
+
+      {/* Courses grid */}
+      {courses.length === 0 && !creating ? (
+        <div className="p-10 text-center rounded-[18px] bg-[#111a2e] border border-white/5">
+          <ShoppingBag className="w-12 h-12 mx-auto text-slate-500 mb-3" />
+          <div className="text-sm font-bold text-slate-400">
+            {perm?.isEnabled
+              ? "هنوز دوره فروشی ثبت نکرده‌اید. با دکمه بالا شروع کنید."
+              : "پس از فعال‌سازی مجوز توسط مدیر کل، اینجا می‌توانید دوره‌های خود را ثبت کنید."}
+          </div>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {courses.map((c: any) => (
+            <div key={c.id} className="rounded-[16px] bg-[#111a2e] border border-white/10 overflow-hidden hover:border-primary-500/40 transition-all">
+              <div className="relative aspect-[16/9] bg-gradient-to-br from-primary-600 to-secondary-600">
+                {c.coverImage && <img src={c.coverImage} className="absolute inset-0 w-full h-full object-cover opacity-80" />}
+                <div className="absolute top-2 right-2 flex flex-col gap-1">
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${c.isPublished ? "bg-emerald-500 text-white" : "bg-amber-500 text-black"}`}>
+                    {c.isPublished ? "منتشر شده" : "پیش‌نویس"}
+                  </span>
+                  {c.isFeatured && <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-gradient-to-l from-amber-400 to-yellow-500 text-black">ویژه</span>}
+                </div>
+              </div>
+              <div className="p-4">
+                <h3 className="font-black text-white text-sm mb-1 line-clamp-2 min-h-[40px]">{c.title}</h3>
+                <div className="flex items-center gap-3 text-[10px] text-slate-400 mb-3">
+                  <span>{c.chaptersCount} فصل</span>
+                  <span>•</span>
+                  <span>{c.lessonsCount} درس</span>
+                  <span>•</span>
+                  <span>{c.studentsCount || 0} خرید</span>
+                </div>
+                <div className="text-base font-black gradient-text mb-3" dir="ltr">{Number(c.price).toLocaleString("fa-IR")} تومان</div>
+                <div className="flex gap-2">
+                  <button onClick={() => setManagingCourseId(c.id)} className="flex-1 px-3 py-2 rounded-[8px] bg-primary-600 hover:bg-primary-700 text-white text-[11px] font-black flex items-center justify-center gap-1">
+                    <Video className="w-3 h-3" /> فصل‌ها و درس‌ها
+                  </button>
+                  <button onClick={() => act({ action: "publish", courseId: c.id, publish: !c.isPublished })} className={`px-3 py-2 rounded-[8px] text-[11px] font-black ${c.isPublished ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400"}`}>
+                    {c.isPublished ? "پیش‌نویس" : "انتشار"}
+                  </button>
+                  <button onClick={() => { if (confirm("این دوره و همه محتویاتش حذف شود؟")) act({ action: "delete", courseId: c.id }); }} className="px-3 py-2 rounded-[8px] bg-error-500/20 text-error-400 text-[11px] font-black">
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {managingCourseId && (
+        <ShopCourseManagerModal
+          courseId={managingCourseId}
+          onClose={() => { setManagingCourseId(null); fetchData(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* Manager modal for a single sellable course — chapters + lessons */
+function ShopCourseManagerModal({ courseId, onClose }: { courseId: number; onClose: () => void }) {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState("");
+  const [addingChapter, setAddingChapter] = useState(false);
+  const [newCh, setNewCh] = useState({ title: "", isFree: false });
+  const [addingLessonTo, setAddingLessonTo] = useState<number | null>(null);
+  const [newLesson, setNewLesson] = useState({ title: "", type: "video", videoUrl: "", videoProvider: "direct", videoDuration: 0, isFree: false, description: "" });
+
+  const load = () => {
+    setLoading(true);
+    fetch("/api/manager/shop-courses", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ courseId }) })
+      .then(r => r.json()).then(d => { setData(d); setLoading(false); });
+  };
+  useEffect(load, [courseId]);
+
+  const act = async (payload: any) => {
+    const res = await fetch("/api/manager/shop-courses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const d = await res.json();
+    if (!res.ok) { setMsg("❌ " + (d.error || "خطا")); return false; }
+    setMsg("✅ ذخیره شد");
+    load();
+    return true;
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3">
+      <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-[#082D53] rounded-[20px] border border-white/10 shadow-2xl">
+        <div className="sticky top-0 z-10 bg-gradient-to-l from-primary-500/25 to-transparent border-b border-white/10 p-5 flex items-center justify-between backdrop-blur-lg">
+          <div>
+            <div className="text-lg font-black text-white">{data?.course?.title || "..."}</div>
+            <div className="text-[11px] text-slate-400">مدیریت فصل‌ها و درس‌های دوره فروشی</div>
+          </div>
+          <button onClick={onClose} className="w-9 h-9 rounded-[10px] bg-white/10 hover:bg-white/20 text-white flex items-center justify-center">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-5">
+          {msg && <div className={`mb-4 p-2.5 rounded-[8px] text-[11px] font-bold ${msg.startsWith("❌") ? "bg-error-500/20 text-error-400" : "bg-emerald-500/20 text-emerald-400"}`}>{msg}</div>}
+          {loading ? (
+            <div className="text-center py-10"><Loader2 className="w-8 h-8 animate-spin text-primary-400 mx-auto" /></div>
+          ) : (
+            <>
+              <div className="mb-4 flex items-center justify-between">
+                <div className="text-sm font-black text-white">فصل‌ها ({data?.chapters?.length || 0})</div>
+                <button onClick={() => setAddingChapter(!addingChapter)} className="px-3 py-1.5 rounded-[8px] bg-primary-600 hover:bg-primary-700 text-white text-[11px] font-black flex items-center gap-1">
+                  <Plus className="w-3 h-3" /> افزودن فصل
+                </button>
+              </div>
+
+              {addingChapter && (
+                <div className="mb-4 p-4 rounded-[12px] bg-white/5 border border-white/10">
+                  <div className="grid gap-2">
+                    <input value={newCh.title} onChange={(e) => setNewCh({...newCh, title: e.target.value})} placeholder="عنوان فصل" className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" />
+                    <label className="flex items-center gap-2 text-xs text-slate-300 font-bold">
+                      <input type="checkbox" checked={newCh.isFree} onChange={(e) => setNewCh({...newCh, isFree: e.target.checked})} /> فصل رایگان (پیش‌نمایش)
+                    </label>
+                    <div className="flex gap-2">
+                      <button onClick={async () => { if (await act({ action: "addChapter", courseId, ...newCh })) { setAddingChapter(false); setNewCh({title:"",isFree:false}); }}} className="px-4 py-2 rounded-[8px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black">ذخیره فصل</button>
+                      <button onClick={() => setAddingChapter(false)} className="px-4 py-2 rounded-[8px] bg-white/10 text-slate-300 text-xs font-black">انصراف</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {(data?.chapters || []).map((ch: any, i: number) => (
+                  <div key={ch.id} className="rounded-[12px] bg-white/5 border border-white/10 overflow-hidden">
+                    <div className="p-4 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="w-8 h-8 rounded-[8px] bg-primary-500/20 text-primary-300 flex items-center justify-center text-xs font-black">{i+1}</div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-black text-white truncate">{ch.title}</div>
+                          <div className="text-[10px] text-slate-400">{ch.lessons?.length || 0} درس {ch.isFree && "• رایگان"}</div>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <button onClick={() => setAddingLessonTo(addingLessonTo === ch.id ? null : ch.id)} className="p-1.5 rounded-[6px] bg-primary-600/25 text-primary-300 hover:bg-primary-600/40" title="افزودن درس">
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => { if (confirm("حذف این فصل و همه درس‌هایش؟")) act({ action: "deleteChapter", chapterId: ch.id }); }} className="p-1.5 rounded-[6px] bg-error-500/20 text-error-400 hover:bg-error-500/30">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {addingLessonTo === ch.id && (
+                      <div className="p-4 border-t border-white/5 bg-white/[0.02] space-y-2">
+                        <input value={newLesson.title} onChange={(e) => setNewLesson({...newLesson, title: e.target.value})} placeholder="عنوان درس" className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" />
+                        <div className="grid md:grid-cols-2 gap-2">
+                          <select value={newLesson.videoProvider} onChange={(e) => setNewLesson({...newLesson, videoProvider: e.target.value})} className="px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold">
+                            <option value="direct">آپلود مستقیم (Direct URL)</option>
+                            <option value="youtube">یوتیوب</option>
+                            <option value="aparat">آپارات</option>
+                            <option value="drive">Google Drive</option>
+                            <option value="vimeo">Vimeo</option>
+                          </select>
+                          <input type="number" value={newLesson.videoDuration} onChange={(e) => setNewLesson({...newLesson, videoDuration: Number(e.target.value)})} placeholder="مدت (ثانیه)" className="px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold" dir="ltr" />
+                        </div>
+                        <input value={newLesson.videoUrl} onChange={(e) => setNewLesson({...newLesson, videoUrl: e.target.value})} placeholder="لینک ویدئو (URL)" className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold" dir="ltr" />
+                        <textarea value={newLesson.description} onChange={(e) => setNewLesson({...newLesson, description: e.target.value})} placeholder="توضیح کوتاه درس (اختیاری)" rows={2} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold resize-none" />
+                        <label className="flex items-center gap-2 text-xs text-slate-300 font-bold">
+                          <input type="checkbox" checked={newLesson.isFree} onChange={(e) => setNewLesson({...newLesson, isFree: e.target.checked})} /> این درس رایگان و پیش‌نمایش باشد (بدون قفل)
+                        </label>
+                        <div className="flex gap-2">
+                          <button onClick={async () => { if (!newLesson.title) return; if (await act({ action: "addLesson", chapterId: ch.id, ...newLesson })) { setAddingLessonTo(null); setNewLesson({title:"",type:"video",videoUrl:"",videoProvider:"direct",videoDuration:0,isFree:false,description:""}); }}} className="px-4 py-2 rounded-[8px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black">افزودن درس</button>
+                          <button onClick={() => setAddingLessonTo(null)} className="px-4 py-2 rounded-[8px] bg-white/10 text-slate-300 text-xs font-black">انصراف</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {ch.lessons && ch.lessons.length > 0 && (
+                      <div className="border-t border-white/5 divide-y divide-white/5">
+                        {ch.lessons.map((l: any, li: number) => (
+                          <div key={l.id} className="p-3 flex items-center gap-3">
+                            <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-slate-300 font-black">{li+1}</div>
+                            {l.isFree ? <PlayCircle className="w-4 h-4 text-emerald-400" /> : <Lock className="w-4 h-4 text-slate-500" />}
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-bold text-white truncate">{l.title}</div>
+                              <div className="text-[9px] text-slate-500">{l.videoDuration ? `${Math.floor(l.videoDuration/60)}:${String(l.videoDuration%60).padStart(2,"0")}` : ""} {l.videoProvider !== "direct" && `• ${l.videoProvider}`}</div>
+                            </div>
+                            <button onClick={() => act({ action: "updateLesson", lessonId: l.id, isFree: !l.isFree })} className={`text-[10px] font-black px-2 py-1 rounded-[6px] ${l.isFree ? "bg-emerald-500/20 text-emerald-400" : "bg-slate-500/20 text-slate-400"}`}>
+                              {l.isFree ? "رایگان" : "قفل"}
+                            </button>
+                            <button onClick={() => { if (confirm("حذف این درس؟")) act({ action: "deleteLesson", lessonId: l.id }); }} className="p-1 rounded-[4px] bg-error-500/20 text-error-400"><Trash2 className="w-3 h-3" /></button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
