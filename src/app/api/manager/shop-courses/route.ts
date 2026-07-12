@@ -2,23 +2,41 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/db";
-import { institutes, sellableCourses, sellablePermissions, sellableChapters, sellableLessons } from "@/db/schema";
+import { institutes, sellableCourses, sellablePermissions, sellableChapters, sellableLessons, users } from "@/db/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { normalizePhone } from "@/lib/phone";
 
+// Same resolver logic as /api/manager/route.ts — with autoheal by mobile
 async function findInstitute() {
   const s = await getServerSession(authOptions);
   const u = s?.user as any;
-  if (!u) return null;
-  const phone = normalizePhone(u.phone || "");
-  if (!phone) return null;
-  // try by mobile
-  let inst = await db.select().from(institutes).where(eq(institutes.mobile, phone)).then(r => r[0]);
-  if (!inst) {
-    // try by phone
-    inst = await db.select().from(institutes).where(eq(institutes.phone, phone)).then(r => r[0]);
+  if (!u?.id) return null;
+
+  // 1) Primary: linked userId
+  let inst = await db.select().from(institutes).where(eq(institutes.userId, Number(u.id))).then(r => r[0]);
+  if (inst) return inst;
+
+  // 2) AUTOHEAL: match by phone
+  if (u.phone) {
+    const clean = normalizePhone(String(u.phone));
+    const all = await db.select().from(institutes);
+    const candidates = all.filter((i) => {
+      const phones = [
+        i.mobile ? normalizePhone(String(i.mobile)) : null,
+        i.phone ? normalizePhone(String(i.phone)) : null,
+      ].filter(Boolean);
+      return phones.includes(clean) && (!i.userId || i.userId === Number(u.id));
+    });
+    if (candidates.length >= 1) {
+      const target = candidates.find(c => !c.userId) || candidates[0];
+      const [linked] = await db.update(institutes).set({ userId: Number(u.id) }).where(eq(institutes.id, target.id)).returning();
+      if (u.role !== "institute") {
+        try { await db.update(users).set({ role: "institute" as any }).where(eq(users.id, Number(u.id))); } catch {}
+      }
+      return linked;
+    }
   }
-  return inst || null;
+  return null;
 }
 
 function makeSlug(title: string) {
