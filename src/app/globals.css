@@ -203,9 +203,9 @@ body {
   position: relative;
 }
 
-main, nav, footer, section, aside, header, article {
-  position: relative;
-}
+/* یادداشت: از سلکتور کلی aside/nav/... استفاده نمی‌کنیم چون
+   position:relative اجباری باعث می‌شه کلاس‌های Tailwind مثل fixed/absolute
+   روی این عناصر بی‌اثر بشن. اگه به این ترتیب نیاز شد، فقط روی سلکتورهای دقیق اعمال شه. */
 
 h1, h2 { letter-spacing: -0.02em; }
 h3 { letter-spacing: -0.015em; }
