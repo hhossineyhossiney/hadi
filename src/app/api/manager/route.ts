@@ -174,7 +174,8 @@ export async function GET() {
   const students = await db
     .select({
       id: registrations.id, fullName: registrations.fullName,
-      phone: registrations.phone, status: registrations.status,
+      phone: registrations.phone, email: registrations.email,
+      status: registrations.status,
       notes: registrations.notes, createdAt: registrations.createdAt,
       courseTitle: courses.title, courseId: registrations.courseId,
       certificateUrl: registrations.certificateUrl,
@@ -553,6 +554,82 @@ export async function POST(request: Request) {
         }))
       ).returning();
       return NextResponse.json({ ok: true, sent: rows.length });
+    }
+
+    // ═══════════════════ MANAGER: Update student registration info ═══════════════════
+    if (action === "updateStudent") {
+      const { registrationId, fullName, phone, email, notes } = body;
+      const reg = await db.select().from(registrations)
+        .where(and(eq(registrations.id, registrationId), eq(registrations.instituteId, inst.id)))
+        .then((r) => r[0]);
+      if (!reg) return NextResponse.json({ error: "ثبت‌نام متعلق به آموزشگاه شما نیست" }, { status: 403 });
+
+      const updateData: any = {};
+      if (typeof fullName === "string" && fullName.trim()) updateData.fullName = fullName.trim().slice(0, 255);
+      if (typeof phone === "string" && phone.trim()) {
+        const cleanPhone = phone.trim().replace(/\s+/g, "").slice(0, 50);
+        if (!/^09\d{9}$/.test(cleanPhone)) {
+          return NextResponse.json({ error: "شماره موبایل نامعتبر است (باید با 09 شروع شده و 11 رقم باشد)" }, { status: 400 });
+        }
+        updateData.phone = cleanPhone;
+      }
+      if (typeof email === "string") updateData.email = email.trim().slice(0, 255) || null;
+      if (typeof notes === "string") updateData.notes = notes.slice(0, 2000);
+
+      if (Object.keys(updateData).length === 0) {
+        return NextResponse.json({ error: "هیچ فیلدی برای بروزرسانی ارسال نشد" }, { status: 400 });
+      }
+
+      const [updated] = await db.update(registrations).set(updateData)
+        .where(eq(registrations.id, registrationId)).returning();
+      return NextResponse.json({ ok: true, registration: updated });
+    }
+
+    // ═══════════════════ MANAGER: Delete student registration ═══════════════════
+    if (action === "deleteStudent") {
+      const { registrationId } = body;
+      const reg = await db.select().from(registrations)
+        .where(and(eq(registrations.id, registrationId), eq(registrations.instituteId, inst.id)))
+        .then((r) => r[0]);
+      if (!reg) return NextResponse.json({ error: "ثبت‌نام متعلق به آموزشگاه شما نیست" }, { status: 403 });
+
+      // 1) Delete dependent rows first (student_documents & wallet_transactions do NOT cascade)
+      try {
+        const { studentDocuments, walletTransactions } = await import("@/db/schema");
+        await db.delete(studentDocuments).where(eq(studentDocuments.registrationId, registrationId));
+        // wallet_transactions.registrationId is optional → just delete rows linked to this reg
+        await db.delete(walletTransactions).where(eq(walletTransactions.registrationId, registrationId));
+      } catch (e) {
+        console.error("delete dependents failed (non-fatal, retrying with raw SQL):", e);
+        try {
+          const { sql } = await import("drizzle-orm");
+          await db.execute(sql`DELETE FROM student_documents WHERE registration_id = ${registrationId}`);
+          await db.execute(sql`DELETE FROM wallet_transactions WHERE registration_id = ${registrationId}`);
+        } catch (e2) { console.error("raw sql cleanup failed:", e2); }
+      }
+
+      // 2) payment_fees has ON DELETE CASCADE — will be removed automatically
+      // 3) Delete the registration itself
+      await db.delete(registrations).where(eq(registrations.id, registrationId));
+
+      // 4) Notify student (best-effort)
+      if (reg.userId) {
+        try {
+          const { notifications } = await import("@/db/schema");
+          const courseInfo = await db.select({ title: courses.title }).from(courses)
+            .where(eq(courses.id, reg.courseId)).then((r) => r[0]);
+          await db.insert(notifications).values({
+            userId: reg.userId,
+            userRole: "student",
+            title: `🗑 ثبت‌نام شما حذف شد`,
+            body: `${inst.name}: ثبت‌نام دوره «${courseInfo?.title || "دوره"}» توسط مدیر آموزشگاه حذف شد`,
+            type: "warning",
+            link: "/dashboard",
+          });
+        } catch (e) { console.error("notify student on delete failed:", e); }
+      }
+
+      return NextResponse.json({ ok: true, deleted: registrationId });
     }
 
     if (action === "uploadCertificate") {
