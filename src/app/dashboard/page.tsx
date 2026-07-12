@@ -11,7 +11,7 @@ import {
   Play, ArrowLeft, ChevronLeft, Clock, GraduationCap, PlusCircle, Menu,
   Sparkles, Check, X, MapPin, BadgeCheck, Search, FolderOpen, Building2,
   Trash2, CheckCheck, LogOut, FileText, CreditCard, AlertTriangle,
-  Calendar, Landmark, Receipt, Timer, ShieldCheck, PlayCircle, Lock, Video,
+  Calendar, Landmark, Receipt, Timer, ShieldCheck, PlayCircle, Video,
   ChevronDown, ChevronUp, ShoppingBag,
 } from "lucide-react";
 import { motion } from "framer-motion";
