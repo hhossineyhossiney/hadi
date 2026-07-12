@@ -369,3 +369,134 @@ export const paymentFees = pgTable("payment_fees", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+/* ═══════════════════════════════════════════════════════════════
+   ONLINE SHOP — Sellable Courses (پکیج فروش دوره‌های آنلاین)
+   ═══════════════════════════════════════════════════════════════
+   
+   جریان:
+   - مدیر کل به هر آموزشگاه یک سقف تعداد "دوره فروشی" می‌ده (sellablePermissions)
+   - مدیر آموزشگاه در محدوده سقف، دوره‌های فروشی ثبت می‌کنه (sellableCourses)
+   - هر دوره فصل‌ها (chapters) و درس‌ها (lessons) داره
+   - هر درس می‌تونه: video, text, quiz, live باشه
+   - هر درس می‌تونه رایگان (preview) یا قفل باشه — بعد از خرید باز می‌شه
+   - ویدئوها یا مستقیم آپلود می‌شن یا لینک از فضای ابری (Google Drive, S3, etc.)
+*/
+
+// سقف مجاز فروش هر آموزشگاه (توسط مدیر کل تعیین می‌شه)
+export const sellablePermissions = pgTable("sellable_permissions", {
+  id: serial("id").primaryKey(),
+  instituteId: integer("institute_id").references(() => institutes.id, { onDelete: "cascade" }).notNull().unique(),
+  maxCourses: integer("max_courses").default(0), // تعداد مجاز دوره فروشی
+  isEnabled: boolean("is_enabled").default(false), // آیا فعال است؟
+  commissionPercent: decimal("commission_percent", { precision: 5, scale: 2 }).default("10.00"), // درصد کمیسیون مدیر کل
+  approvedBy: integer("approved_by"), // admin user id
+  approvedAt: timestamp("approved_at"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// دوره فروشی
+export const sellableCourses = pgTable("sellable_courses", {
+  id: serial("id").primaryKey(),
+  instituteId: integer("institute_id").references(() => institutes.id, { onDelete: "cascade" }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  title: varchar("title", { length: 255 }).notNull(),
+  subtitle: varchar("subtitle", { length: 500 }),
+  description: text("description"), // markdown / html
+  coverImage: text("cover_image"), // data URL or URL
+  trailerVideo: text("trailer_video"), // URL to preview
+  categoryId: integer("category_id").references(() => categories.id),
+  instructor: varchar("instructor", { length: 255 }),
+  instructorTitle: varchar("instructor_title", { length: 255 }),
+  instructorAvatar: text("instructor_avatar"),
+  instructorBio: text("instructor_bio"),
+  level: varchar("level", { length: 30 }), // beginner|intermediate|advanced
+  language: varchar("language", { length: 20 }).default("fa"),
+  totalDuration: integer("total_duration").default(0), // minutes
+  totalLessons: integer("total_lessons").default(0),
+  totalChapters: integer("total_chapters").default(0),
+  studentsCount: integer("students_count").default(0),
+  rating: decimal("rating", { precision: 3, scale: 2 }).default("0"),
+  ratingCount: integer("rating_count").default(0),
+  price: decimal("price", { precision: 12, scale: 0 }).notNull(),
+  originalPrice: decimal("original_price", { precision: 12, scale: 0 }),
+  discountPercent: integer("discount_percent").default(0),
+  discountEndsAt: timestamp("discount_ends_at"),
+  features: jsonb("features").default([]), // array of strings: what you learn
+  requirements: jsonb("requirements").default([]),
+  targetAudience: jsonb("target_audience").default([]),
+  hasSupport: boolean("has_support").default(true),
+  hasCertificate: boolean("has_certificate").default(true),
+  hasDownload: boolean("has_download").default(false),
+  lifetimeAccess: boolean("lifetime_access").default(true),
+  accessDurationDays: integer("access_duration_days"), // if not lifetime
+  isPublished: boolean("is_published").default(false),
+  isFeatured: boolean("is_featured").default(false),
+  status: varchar("status", { length: 20 }).default("draft"), // draft|pending|published|archived
+  publishedAt: timestamp("published_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// فصل‌های دوره
+export const sellableChapters = pgTable("sellable_chapters", {
+  id: serial("id").primaryKey(),
+  courseId: integer("course_id").references(() => sellableCourses.id, { onDelete: "cascade" }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  orderIndex: integer("order_index").default(0),
+  isFree: boolean("is_free").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// درس‌های هر فصل
+export const sellableLessons = pgTable("sellable_lessons", {
+  id: serial("id").primaryKey(),
+  chapterId: integer("chapter_id").references(() => sellableChapters.id, { onDelete: "cascade" }).notNull(),
+  courseId: integer("course_id").references(() => sellableCourses.id, { onDelete: "cascade" }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  type: varchar("type", { length: 20 }).default("video"), // video|text|quiz|live|file
+  description: text("description"),
+  videoUrl: text("video_url"), // آدرس ویدئو (Google Drive/YouTube/direct)
+  videoProvider: varchar("video_provider", { length: 30 }).default("direct"), // direct|youtube|drive|vimeo|aparat
+  videoDuration: integer("video_duration").default(0), // seconds
+  content: text("content"), // for text lessons (markdown)
+  attachmentUrl: text("attachment_url"),
+  isFree: boolean("is_free").default(false), // پیش‌نمایش رایگان
+  isLocked: boolean("is_locked").default(true),
+  orderIndex: integer("order_index").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// خرید دوره
+export const sellablePurchases = pgTable("sellable_purchases", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  courseId: integer("course_id").references(() => sellableCourses.id, { onDelete: "cascade" }).notNull(),
+  instituteId: integer("institute_id").references(() => institutes.id).notNull(),
+  amount: decimal("amount", { precision: 12, scale: 0 }).notNull(),
+  commission: decimal("commission", { precision: 12, scale: 0 }).default("0"),
+  netAmount: decimal("net_amount", { precision: 12, scale: 0 }).default("0"), // آموزشگاه دریافت می‌کند
+  paymentMethod: varchar("payment_method", { length: 30 }).default("wallet"),
+  paymentRef: varchar("payment_ref", { length: 100 }),
+  status: varchar("status", { length: 20 }).default("pending"), // pending|paid|failed|refunded
+  accessExpiresAt: timestamp("access_expires_at"), // null = lifetime
+  progress: integer("progress").default(0), // 0..100
+  lastLessonId: integer("last_lesson_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// پیشرفت درس‌به‌درس
+export const sellableLessonProgress = pgTable("sellable_lesson_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  purchaseId: integer("purchase_id").references(() => sellablePurchases.id, { onDelete: "cascade" }).notNull(),
+  lessonId: integer("lesson_id").references(() => sellableLessons.id, { onDelete: "cascade" }).notNull(),
+  isCompleted: boolean("is_completed").default(false),
+  watchedSeconds: integer("watched_seconds").default(0),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
