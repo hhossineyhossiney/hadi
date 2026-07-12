@@ -7,14 +7,14 @@ import {
   LayoutDashboard, Building2, Users2, ClipboardList, Wallet, Settings2, Send,
   Loader2, Phone, Lock, ShieldCheck, Eye, EyeOff, LogOut, Plus, Trash2, Ban,
   CheckCircle2, Search, Check, X, Clock, TrendingUp, BookOpen, GraduationCap,
-  Award, MapPin, HelpCircle, Star, Edit3, Save, XCircle, MessageCircle, Menu,
+  Award, MapPin, HelpCircle, Star, Edit3, Save, XCircle, MessageCircle, Menu, Pencil,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useMobilePanelDrawer } from "@/components/panel/useMobilePanelDrawer";
 import { normalizePhone } from "@/lib/phone";
 
-type TabKey = "dashboard" | "institutes" | "awards" | "managers" | "registrations" | "finance" | "chat" | "categories" | "regions" | "faqs" | "homepage" | "telegram";
+type TabKey = "dashboard" | "institutes" | "awards" | "managers" | "registrations" | "finance" | "chat" | "categories" | "regions" | "faqs" | "homepage" | "telegram" | "shop_perms";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد مدیریتی", icon: LayoutDashboard },
@@ -22,6 +22,7 @@ const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "awards", label: "برگزیدگان سال ⭐", icon: Award },
   { key: "managers", label: "مدیران آموزشگاه‌ها", icon: Users2 },
   { key: "registrations", label: "مدیریت ثبت‌نام‌ها", icon: ClipboardList },
+  { key: "shop_perms", label: "مجوز فروش آنلاین", icon: ShieldCheck },
   { key: "finance", label: "مالی و درآمد", icon: Wallet },
   { key: "chat", label: "چت با آموزشگاه‌ها", icon: MessageCircle },
   { key: "categories", label: "مدیریت رشته‌ها", icon: BookOpen },
@@ -190,6 +191,7 @@ export default function AdminPage() {
           {tab === "homepage" && <HomepageSettingsTab />}
           {tab === "chat" && <AdminChatTab />}
           {tab === "telegram" && <TelegramTab />}
+          {tab === "shop_perms" && <ShopPermsTab />}
         </div>
       </div>
     </main>
@@ -1461,6 +1463,137 @@ function AdminChatTab() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ============================= SHOP PERMS TAB ============================= */
+function ShopPermsTab() {
+  const [data, setData] = useState<any[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState("");
+  const [editing, setEditing] = useState<any>(null);
+  const [search, setSearch] = useState("");
+
+  const load = () => {
+    setLoading(true);
+    fetch("/api/admin/shop-permissions").then(r => r.json()).then(d => { setData(d.institutes || []); setLoading(false); });
+  };
+  useEffect(load, []);
+
+  const save = async (payload: any) => {
+    const r = await fetch("/api/admin/shop-permissions", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+    const d = await r.json();
+    if (r.ok) { setMsg("✅ ذخیره شد"); load(); return true; }
+    else { setMsg("❌ " + (d.error || "خطا")); return false; }
+  };
+
+  if (loading) return <div className="text-center py-10"><Loader2 className="w-8 h-8 animate-spin mx-auto text-primary-500" /></div>;
+
+  const filtered = (data || []).filter(i => !search || i.name?.includes(search) || i.mobile?.includes(search));
+  const enabled = filtered.filter(i => i.is_enabled);
+  const disabled = filtered.filter(i => !i.is_enabled);
+
+  return (
+    <div>
+      <h2 className="text-2xl font-black text-white mb-1">مجوز فروش آنلاین آموزشگاه‌ها</h2>
+      <p className="text-slate-400 text-sm mb-6">
+        برای هر آموزشگاه سقف تعداد دوره فروشی، درصد کمیسیون و فعال/غیرفعال بودن دسترسی رو تعیین کن
+      </p>
+
+      {msg && <div className={`mb-4 p-3 rounded-[10px] text-xs font-bold ${msg.startsWith("❌") ? "bg-error-500/15 text-error-400" : "bg-emerald-500/15 text-emerald-400"}`}>{msg}</div>}
+
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className="p-4 rounded-[14px] bg-gradient-to-br from-emerald-500/15 to-transparent border border-emerald-500/25">
+          <div className="text-[10px] text-slate-400 font-bold mb-1">فعال</div>
+          <div className="text-2xl font-black text-emerald-300">{enabled.length.toLocaleString("fa-IR")}</div>
+        </div>
+        <div className="p-4 rounded-[14px] bg-gradient-to-br from-amber-500/15 to-transparent border border-amber-500/25">
+          <div className="text-[10px] text-slate-400 font-bold mb-1">غیرفعال</div>
+          <div className="text-2xl font-black text-amber-300">{disabled.length.toLocaleString("fa-IR")}</div>
+        </div>
+        <div className="p-4 rounded-[14px] bg-gradient-to-br from-primary-500/15 to-transparent border border-primary-500/25">
+          <div className="text-[10px] text-slate-400 font-bold mb-1">کل دوره‌های منتشرشده</div>
+          <div className="text-2xl font-black text-primary-300">
+            {filtered.reduce((s, i) => s + Number(i.published_count || 0), 0).toLocaleString("fa-IR")}
+          </div>
+        </div>
+      </div>
+
+      <input value={search} onChange={e => setSearch(e.target.value)} placeholder="جستجو نام یا موبایل" className="w-full mb-4 px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" />
+
+      <div className="bg-[#111a2e] border border-white/5 rounded-[18px] overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-right text-[10px] font-black text-slate-500 border-b border-white/5">
+              <th className="px-4 py-3">آموزشگاه</th>
+              <th className="px-4 py-3">وضعیت</th>
+              <th className="px-4 py-3">سقف مجاز</th>
+              <th className="px-4 py-3">ثبت‌شده</th>
+              <th className="px-4 py-3">منتشرشده</th>
+              <th className="px-4 py-3">کمیسیون</th>
+              <th className="px-4 py-3">اقدام</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/5">
+            {filtered.map((i) => (
+              <tr key={i.id} className="hover:bg-white/5">
+                <td className="px-4 py-3 font-bold text-white">{i.name}
+                  {i.mobile && <div className="text-[10px] text-slate-500 font-normal" dir="ltr">{i.mobile}</div>}
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`px-2 py-1 rounded-full text-[10px] font-black ${i.is_enabled ? "bg-emerald-500/15 text-emerald-400" : "bg-slate-500/15 text-slate-400"}`}>
+                    {i.is_enabled ? "فعال" : "غیرفعال"}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-white font-bold">{Number(i.max_courses || 0).toLocaleString("fa-IR")}</td>
+                <td className="px-4 py-3 text-slate-300">{Number(i.current_count || 0).toLocaleString("fa-IR")}</td>
+                <td className="px-4 py-3 text-emerald-400 font-bold">{Number(i.published_count || 0).toLocaleString("fa-IR")}</td>
+                <td className="px-4 py-3 text-amber-300 font-bold">{i.commission_percent || "10.00"}٪</td>
+                <td className="px-4 py-3">
+                  <button onClick={() => setEditing({ instituteId: i.id, name: i.name, maxCourses: i.max_courses || 0, isEnabled: !!i.is_enabled, commissionPercent: i.commission_percent || "10.00", notes: i.notes || "" })}
+                    className="px-3 py-1.5 rounded-[8px] bg-primary-500/20 text-primary-300 text-[10px] font-black hover:bg-primary-500/30 flex items-center gap-1">
+                    <Pencil className="w-3 h-3" /> تنظیم
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {editing && (
+        <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4" onClick={() => setEditing(null)}>
+          <div className="w-full max-w-md bg-[#082D53] border border-white/10 rounded-[18px] p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="mb-4">
+              <div className="text-sm font-black text-white">تنظیم دسترسی فروش</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">{editing.name}</div>
+            </div>
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-xs text-white font-bold cursor-pointer">
+                <input type="checkbox" checked={editing.isEnabled} onChange={e => setEditing({...editing, isEnabled: e.target.checked})} />
+                فعال بودن دسترسی فروش آنلاین
+              </label>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 mb-1 block">حداکثر تعداد دوره مجاز</label>
+                <input type="number" value={editing.maxCourses} onChange={e => setEditing({...editing, maxCourses: Number(e.target.value)})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 mb-1 block">درصد کمیسیون سامانه</label>
+                <input type="number" step="0.01" value={editing.commissionPercent} onChange={e => setEditing({...editing, commissionPercent: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 mb-1 block">یادداشت (اختیاری)</label>
+                <textarea value={editing.notes} onChange={e => setEditing({...editing, notes: e.target.value})} rows={2} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold resize-none" />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button onClick={async () => { if (await save(editing)) setEditing(null); }} className="flex-1 py-2.5 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white text-xs font-black">ذخیره تنظیمات</button>
+                <button onClick={() => setEditing(null)} className="flex-1 py-2.5 rounded-[10px] bg-white/10 text-slate-300 text-xs font-black">انصراف</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
