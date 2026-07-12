@@ -49,28 +49,86 @@ function makeSlug(title: string) {
 
 // GET: manager's shop courses + permission info
 export async function GET() {
-  const inst = await findInstitute();
-  if (!inst) return NextResponse.json({ error: "آموزشگاهی به حساب شما متصل نیست" }, { status: 403 });
+  try {
+    const inst = await findInstitute();
+    if (!inst) return NextResponse.json({ error: "آموزشگاهی به حساب شما متصل نیست" }, { status: 403 });
 
-  const perm = await db.select().from(sellablePermissions).where(eq(sellablePermissions.instituteId, inst.id)).then(r => r[0]);
-  const courses = await db.select().from(sellableCourses).where(eq(sellableCourses.instituteId, inst.id)).orderBy(desc(sellableCourses.createdAt));
+    const perm = await db.select().from(sellablePermissions).where(eq(sellablePermissions.instituteId, inst.id)).then(r => r[0]);
 
-  // enrich with chapter/lesson counts (fast counts)
-  const enriched = await Promise.all(courses.map(async (c) => {
-    const chs = await db.select().from(sellableChapters).where(eq(sellableChapters.courseId, c.id));
-    const lessons = await db.select().from(sellableLessons).where(eq(sellableLessons.courseId, c.id));
-    return {
-      ...c,
-      chaptersCount: chs.length,
-      lessonsCount: lessons.length,
-    };
-  }));
+    // Use raw SQL to be fault-tolerant against schema mismatches (new cover_image columns etc.)
+    const coursesRaw = await db.execute(sql`
+      SELECT id, institute_id, slug, title, subtitle, description, cover_image,
+             trailer_video, category_id, instructor, instructor_title, instructor_avatar, instructor_bio,
+             level, language, total_duration, total_lessons, total_chapters, students_count,
+             rating, rating_count, price, original_price, discount_percent,
+             features, requirements, target_audience,
+             has_support, has_certificate, has_download, lifetime_access, access_duration_days,
+             is_published, is_featured, status, published_at,
+             created_at, updated_at
+      FROM sellable_courses
+      WHERE institute_id = ${inst.id}
+      ORDER BY created_at DESC
+    `);
+    const courses = ((coursesRaw as any).rows || coursesRaw) as any[];
 
-  return NextResponse.json({
-    institute: { id: inst.id, name: inst.name, slug: inst.slug },
-    permission: perm || { isEnabled: false, maxCourses: 0, commissionPercent: "10.00" },
-    courses: enriched,
-  });
+    const enriched = await Promise.all(courses.map(async (c: any) => {
+      const chs = await db.execute(sql`SELECT COUNT(*)::int AS c FROM sellable_chapters WHERE course_id = ${c.id}`);
+      const les = await db.execute(sql`SELECT COUNT(*)::int AS c FROM sellable_lessons WHERE course_id = ${c.id}`);
+      const chc = Number(((chs as any).rows || chs)[0]?.c || 0);
+      const lec = Number(((les as any).rows || les)[0]?.c || 0);
+      return {
+        id: c.id,
+        instituteId: c.institute_id,
+        slug: c.slug,
+        title: c.title,
+        subtitle: c.subtitle,
+        description: c.description,
+        coverImage: c.cover_image,
+        trailerVideo: c.trailer_video,
+        categoryId: c.category_id,
+        instructor: c.instructor,
+        instructorTitle: c.instructor_title,
+        instructorAvatar: c.instructor_avatar,
+        instructorBio: c.instructor_bio,
+        level: c.level,
+        language: c.language,
+        totalDuration: c.total_duration,
+        totalLessons: c.total_lessons,
+        totalChapters: c.total_chapters,
+        studentsCount: c.students_count,
+        rating: c.rating,
+        ratingCount: c.rating_count,
+        price: c.price,
+        originalPrice: c.original_price,
+        discountPercent: c.discount_percent,
+        features: c.features,
+        requirements: c.requirements,
+        targetAudience: c.target_audience,
+        hasSupport: c.has_support,
+        hasCertificate: c.has_certificate,
+        hasDownload: c.has_download,
+        lifetimeAccess: c.lifetime_access,
+        accessDurationDays: c.access_duration_days,
+        isPublished: c.is_published,
+        isFeatured: c.is_featured,
+        status: c.status,
+        publishedAt: c.published_at,
+        createdAt: c.created_at,
+        updatedAt: c.updated_at,
+        chaptersCount: chc,
+        lessonsCount: lec,
+      };
+    }));
+
+    return NextResponse.json({
+      institute: { id: inst.id, name: inst.name, slug: inst.slug },
+      permission: perm || { isEnabled: false, maxCourses: 0, commissionPercent: "10.00" },
+      courses: enriched,
+    });
+  } catch (e: any) {
+    console.error("[shop-courses GET] error:", e?.message, e?.stack);
+    return NextResponse.json({ error: e?.message || "خطا در بارگذاری" }, { status: 500 });
+  }
 }
 
 // POST: create/update sellable course
@@ -270,14 +328,62 @@ export async function POST(req: Request) {
 
 // GET course details with chapters+lessons for edit
 export async function PATCH(req: Request) {
-  const inst = await findInstitute();
-  if (!inst) return NextResponse.json({ error: "unauth" }, { status: 403 });
-  const body = await req.json();
-  const { courseId } = body;
-  const c = await db.select().from(sellableCourses).where(and(eq(sellableCourses.id, Number(courseId)), eq(sellableCourses.instituteId, inst.id))).then(r => r[0]);
-  if (!c) return NextResponse.json({ error: "دوره یافت نشد" }, { status: 404 });
-  const chapters = await db.select().from(sellableChapters).where(eq(sellableChapters.courseId, c.id)).orderBy(sellableChapters.orderIndex);
-  const lessons = await db.select().from(sellableLessons).where(eq(sellableLessons.courseId, c.id)).orderBy(sellableLessons.orderIndex);
-  const chaptersWithLessons = chapters.map(ch => ({ ...ch, lessons: lessons.filter(l => l.chapterId === ch.id) }));
-  return NextResponse.json({ course: c, chapters: chaptersWithLessons });
+  try {
+    const inst = await findInstitute();
+    if (!inst) return NextResponse.json({ error: "unauth" }, { status: 403 });
+    const body = await req.json();
+    const { courseId } = body;
+
+    // fault-tolerant SQL to safely read even if new columns are missing
+    const cRow = await db.execute(sql`
+      SELECT * FROM sellable_courses WHERE id = ${Number(courseId)} AND institute_id = ${inst.id} LIMIT 1
+    `);
+    const c = ((cRow as any).rows || cRow)[0];
+    if (!c) return NextResponse.json({ error: "دوره یافت نشد" }, { status: 404 });
+
+    const chRows = await db.execute(sql`
+      SELECT id, course_id, title, description, cover_image, order_index, is_free, created_at
+      FROM sellable_chapters WHERE course_id = ${c.id} ORDER BY order_index
+    `);
+    const chapters = ((chRows as any).rows || chRows) as any[];
+
+    const lRows = await db.execute(sql`
+      SELECT id, chapter_id, course_id, title, type, description, cover_image,
+             video_url, video_provider, video_duration, content, attachment_url,
+             is_free, is_locked, order_index, created_at
+      FROM sellable_lessons WHERE course_id = ${c.id} ORDER BY order_index
+    `);
+    const lessons = ((lRows as any).rows || lRows) as any[];
+
+    const mapCh = (row: any) => ({
+      id: row.id, courseId: row.course_id, title: row.title, description: row.description,
+      coverImage: row.cover_image, orderIndex: row.order_index, isFree: row.is_free, createdAt: row.created_at,
+    });
+    const mapL = (row: any) => ({
+      id: row.id, chapterId: row.chapter_id, courseId: row.course_id, title: row.title, type: row.type,
+      description: row.description, coverImage: row.cover_image, videoUrl: row.video_url,
+      videoProvider: row.video_provider, videoDuration: row.video_duration, content: row.content,
+      attachmentUrl: row.attachment_url, isFree: row.is_free, isLocked: row.is_locked,
+      orderIndex: row.order_index, createdAt: row.created_at,
+    });
+
+    const chaptersWithLessons = chapters.map((ch: any) => ({
+      ...mapCh(ch),
+      lessons: lessons.filter((l: any) => l.chapter_id === ch.id).map(mapL),
+    }));
+
+    return NextResponse.json({
+      course: {
+        id: c.id, instituteId: c.institute_id, slug: c.slug, title: c.title,
+        subtitle: c.subtitle, description: c.description, coverImage: c.cover_image,
+        instructor: c.instructor, instructorTitle: c.instructor_title,
+        price: c.price, originalPrice: c.original_price, discountPercent: c.discount_percent,
+        isPublished: c.is_published, status: c.status,
+      },
+      chapters: chaptersWithLessons,
+    });
+  } catch (e: any) {
+    console.error("[shop-courses PATCH] error:", e?.message);
+    return NextResponse.json({ error: e?.message || "خطا" }, { status: 500 });
+  }
 }
