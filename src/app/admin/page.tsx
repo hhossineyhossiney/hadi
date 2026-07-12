@@ -116,34 +116,35 @@ export default function AdminPage() {
   return (
     <main className="min-h-screen bg-bg-secondary">
       <Navbar />
-      <div className="pt-[132px] lg:pt-20 lg:flex lg:flex-row lg:min-h-screen">
-        {/* Mobile compact top bar - fixed directly under navbar */}
-        <div className="lg:hidden fixed top-20 left-0 right-0 z-30 bg-[#0B1120] border-b border-white/10 px-4 py-3 flex items-center gap-3">
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="w-10 h-10 rounded-[12px] bg-primary-600/20 hover:bg-primary-600/30 border border-primary-500/30 flex items-center justify-center text-primary-300 cursor-pointer"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-black text-white truncate">{NAV_ITEMS.find(n => n.key === tab)?.label || "پنل مدیر"}</div>
-            <div className="text-[10px] text-primary-300 font-bold">مدیر کل سامانه</div>
-          </div>
-          <button onClick={() => signOut({ callbackUrl: "/" })} className="w-9 h-9 rounded-[10px] bg-error-500/15 hover:bg-error-500/25 text-error-400 flex items-center justify-center cursor-pointer">
-            <LogOut className="w-4 h-4" />
-          </button>
+
+      {/* Mobile compact top bar — چسبیده به Navbar */}
+      <div className="lg:hidden fixed top-20 left-0 right-0 z-40 bg-[#0B1120]/95 backdrop-blur-lg border-b border-white/10 px-4 py-2.5 flex items-center gap-3">
+        <button
+          onClick={() => setDrawerOpen(true)}
+          className="w-10 h-10 rounded-[12px] bg-primary-600/20 hover:bg-primary-600/30 border border-primary-500/30 flex items-center justify-center text-primary-300 cursor-pointer shrink-0"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-black text-white truncate">{NAV_ITEMS.find(n => n.key === tab)?.label || "پنل مدیر"}</div>
+          <div className="text-[10px] text-primary-300 font-bold">مدیر کل سامانه</div>
         </div>
+        <button onClick={() => signOut({ callbackUrl: "/" })} className="w-9 h-9 rounded-[10px] bg-error-500/15 hover:bg-error-500/25 text-error-400 flex items-center justify-center cursor-pointer shrink-0">
+          <LogOut className="w-4 h-4" />
+        </button>
+      </div>
 
-        {/* Mobile drawer backdrop */}
-        {drawerOpen && (
-          <div onClick={() => setDrawerOpen(false)} className="lg:hidden panel-drawer-backdrop" />
-        )}
+      {/* Mobile drawer backdrop */}
+      {drawerOpen && (
+        <div onClick={() => setDrawerOpen(false)} className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" />
+      )}
 
-        {/* Sidebar — desktop always visible, mobile as dropdown from top */}
-        <aside className={`panel-mobile-drawer bg-[#0B1120] text-white shrink-0 lg:min-h-[calc(100vh-80px)] lg:w-72 lg:static lg:translate-x-0
-          w-[85%] max-w-[320px] overflow-y-auto lg:block
-          ${drawerOpen ? "is-open" : ""}`}
-          style={{ boxShadow: drawerOpen ? "0 20px 40px rgba(0,0,0,0.5)" : undefined }}>
+      <div className="pt-[136px] lg:pt-20 lg:flex lg:flex-row lg:min-h-screen">
+        {/* Sidebar — desktop always visible, mobile as slide-in drawer */}
+        <aside className={`bg-[#0B1120] text-white shrink-0 lg:min-h-[calc(100vh-80px)] lg:w-72 lg:static lg:translate-x-0
+          fixed top-20 right-0 bottom-0 z-50 w-[85%] max-w-[320px] overflow-y-auto transition-transform duration-300 ease-out
+          ${drawerOpen ? "translate-x-0 block" : "translate-x-full hidden lg:block lg:translate-x-0"}`}
+          style={{ boxShadow: drawerOpen ? "-20px 0 60px rgba(0,0,0,0.5)" : undefined }}>
           <div className="p-5 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-[10px] bg-primary-600 flex items-center justify-center">
