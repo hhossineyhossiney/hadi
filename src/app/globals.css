@@ -777,3 +777,115 @@ html[data-theme="light"] aside input:-webkit-autofill {
   -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
   caret-color: #0F172A !important;
 }
+
+/* Mobile top bar در پنل‌ها — استفاده از bg-[#0B1120]/95 as tailwind opacity variant */
+html[data-theme="light"] .bg-\[\#0B1120\]\/95 {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  color: var(--panel-text);
+  border-bottom-color: var(--panel-border) !important;
+}
+html[data-theme="light"] .bg-\[\#0B1120\]\/95 .text-white,
+html[data-theme="light"] .bg-\[\#0B1120\]\/95 .text-slate-300,
+html[data-theme="light"] .bg-\[\#0B1120\]\/95 .text-slate-400,
+html[data-theme="light"] .bg-\[\#0B1120\]\/95 .text-slate-500 {
+  color: var(--panel-text) !important;
+}
+html[data-theme="light"] .bg-\[\#0B1120\]\/95 .text-primary-300 {
+  color: #0B4F8B !important;
+}
+
+/* Content area — flex-1 bg-[#0B1120] text-white */
+html[data-theme="light"] .flex-1.bg-\[\#0B1120\] {
+  background-color: transparent !important;
+  color: var(--panel-text) !important;
+}
+html[data-theme="light"] .flex-1.bg-\[\#0B1120\].text-white,
+html[data-theme="light"] .flex-1.bg-\[\#0B1120\] .text-white {
+  color: var(--panel-text) !important;
+}
+
+/* min-h-screen bg-[#0B1120] wrapper — پس‌زمینه اصلی صفحه */
+html[data-theme="light"] .min-h-screen.bg-\[\#0B1120\],
+html[data-theme="light"] .min-h-screen.bg-\[\#04152A\] {
+  background: transparent !important;
+}
+
+/* عنوان‌های bold در light باید کاملاً تیره باشن */
+html[data-theme="light"] .text-white.font-black,
+html[data-theme="light"] .text-white.font-extrabold,
+html[data-theme="light"] .text-white.font-bold {
+  color: var(--panel-text) !important;
+}
+
+/* Sidebar tabs active در light: primary-600 white text حفظ بشه */
+html[data-theme="light"] aside .bg-primary-600.text-white {
+  background-color: #0B4F8B !important;
+  color: #FFFFFF !important;
+}
+html[data-theme="light"] aside .bg-primary-600.text-white .text-white {
+  color: #FFFFFF !important;
+}
+
+/* Cards با از gradient tailwind (from-*-500/15 to-*-500/5) — نگه می‌داریم اما border روشن */
+html[data-theme="light"] .bg-\[\#0B1120\] .border-primary-500\/20,
+html[data-theme="light"] .bg-\[\#111a2e\] .border-primary-500\/20,
+html[data-theme="light"] .bg-\[\#082D53\] .border-primary-500\/20 {
+  border-color: rgba(11, 79, 139, 0.20) !important;
+}
+html[data-theme="light"] .bg-\[\#0B1120\] .border-emerald-500\/20,
+html[data-theme="light"] .bg-\[\#111a2e\] .border-emerald-500\/20 {
+  border-color: rgba(16, 185, 129, 0.24) !important;
+}
+html[data-theme="light"] .bg-\[\#0B1120\] .border-amber-500\/20,
+html[data-theme="light"] .bg-\[\#111a2e\] .border-amber-500\/20 {
+  border-color: rgba(245, 158, 11, 0.28) !important;
+}
+html[data-theme="light"] .bg-\[\#0B1120\] .border-indigo-500\/20,
+html[data-theme="light"] .bg-\[\#111a2e\] .border-indigo-500\/20 {
+  border-color: rgba(99, 102, 241, 0.22) !important;
+}
+
+/* Chat bubbles و elements که pure white در dark بودن، در light نیازی نیست عوض شن */
+
+/* text-primary-300 / -200 / -400 روی سطوح روشن → پررنگ‌تر برای contrast */
+html[data-theme="light"] .bg-\[\#0B1120\] .text-primary-300,
+html[data-theme="light"] .bg-\[\#111a2e\] .text-primary-300,
+html[data-theme="light"] .bg-\[\#082D53\] .text-primary-300,
+html[data-theme="light"] aside .text-primary-300 {
+  color: #0B4F8B !important;
+}
+html[data-theme="light"] .bg-\[\#0B1120\] .text-primary-400,
+html[data-theme="light"] .bg-\[\#111a2e\] .text-primary-400,
+html[data-theme="light"] .bg-\[\#082D53\] .text-primary-400,
+html[data-theme="light"] aside .text-primary-400 {
+  color: #0F9689 !important;
+}
+html[data-theme="light"] .bg-\[\#0B1120\] .text-emerald-400,
+html[data-theme="light"] .bg-\[\#111a2e\] .text-emerald-400 {
+  color: #059669 !important;
+}
+html[data-theme="light"] .bg-\[\#0B1120\] .text-amber-400,
+html[data-theme="light"] .bg-\[\#111a2e\] .text-amber-400 {
+  color: #D97706 !important;
+}
+html[data-theme="light"] .bg-\[\#0B1120\] .text-indigo-300,
+html[data-theme="light"] .bg-\[\#111a2e\] .text-indigo-300 {
+  color: #4338CA !important;
+}
+
+/* جدول‌های admin / hoverها */
+html[data-theme="light"] .bg-\[\#0B1120\] table,
+html[data-theme="light"] .bg-\[\#111a2e\] table,
+html[data-theme="light"] .bg-\[\#082D53\] table {
+  color: var(--panel-text) !important;
+}
+html[data-theme="light"] .bg-\[\#0B1120\] thead tr,
+html[data-theme="light"] .bg-\[\#111a2e\] thead tr,
+html[data-theme="light"] .bg-\[\#082D53\] thead tr {
+  background-color: rgba(11, 79, 139, 0.04) !important;
+}
+html[data-theme="light"] .bg-\[\#0B1120\] tbody tr:hover,
+html[data-theme="light"] .bg-\[\#111a2e\] tbody tr:hover,
+html[data-theme="light"] .bg-\[\#082D53\] tbody tr:hover {
+  background-color: rgba(11, 79, 139, 0.03) !important;
+}
