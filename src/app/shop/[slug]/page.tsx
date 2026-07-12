@@ -18,6 +18,7 @@ type Lesson = {
   title: string;
   type: string;
   description: string | null;
+  coverImage: string | null;
   videoUrl: string | null;
   videoDuration: number;
   isFree: boolean;
@@ -29,6 +30,7 @@ type Chapter = {
   id: number;
   title: string;
   description: string | null;
+  coverImage: string | null;
   isFree: boolean;
   lessons: Lesson[];
 };
@@ -370,9 +372,12 @@ export default function ShopCourseDetail({ params }: { params: Promise<{ slug: s
                             <div className="w-8 h-8 rounded-full bg-primary-500/15 text-primary-500 flex items-center justify-center font-black text-xs shrink-0">
                               {(chi + 1).toLocaleString("fa-IR")}
                             </div>
+                            {ch.coverImage && (
+                              <img src={ch.coverImage} className="w-12 h-12 rounded-[10px] object-cover shrink-0 border border-[var(--border-default)]" />
+                            )}
                             <div className="text-right flex-1 min-w-0">
                               <div className="font-black text-sm text-text-primary truncate">{ch.title}</div>
-                              <div className="text-[10px] text-text-tertiary mt-0.5">{fmt(ch.lessons.length)} درس</div>
+                              <div className="text-[10px] text-text-tertiary mt-0.5">{fmt(ch.lessons.length)} درس {ch.isFree && "• رایگان"}</div>
                             </div>
                           </div>
                           {openChapters[ch.id] ? <ChevronUp className="w-4 h-4 text-text-tertiary" /> : <ChevronDown className="w-4 h-4 text-text-tertiary" />}
@@ -396,7 +401,9 @@ export default function ShopCourseDetail({ params }: { params: Promise<{ slug: s
                                       onClick={() => canView && l.videoUrl && setPreviewLesson(l)}
                                       className={`w-full flex items-center gap-3 px-5 py-3 text-right hover:bg-[var(--panel-hover,rgba(11,79,139,0.06))] transition ${canView ? "cursor-pointer" : "opacity-70 cursor-not-allowed"}`}
                                     >
-                                      {canView ? (
+                                      {l.coverImage ? (
+                                        <img src={l.coverImage} className="w-9 h-9 rounded-[8px] object-cover shrink-0 border border-[var(--border-default)]" />
+                                      ) : canView ? (
                                         <PlayCircle className="w-4 h-4 text-primary-500 shrink-0" />
                                       ) : (
                                         <Lock className="w-4 h-4 text-text-tertiary shrink-0" />
