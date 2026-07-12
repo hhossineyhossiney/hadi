@@ -345,6 +345,10 @@ const MIGRATIONS: { name: string; sql: string }[] = [
       CREATE INDEX IF NOT EXISTS idx_sellable_lessons_chapter ON sellable_lessons(chapter_id);
       CREATE INDEX IF NOT EXISTS idx_sellable_lessons_course ON sellable_lessons(course_id);
 
+      -- Cover image columns (idempotent)
+      ALTER TABLE sellable_chapters ADD COLUMN IF NOT EXISTS cover_image TEXT;
+      ALTER TABLE sellable_lessons  ADD COLUMN IF NOT EXISTS cover_image TEXT;
+
       CREATE TABLE IF NOT EXISTS sellable_purchases (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
