@@ -349,6 +349,13 @@ const MIGRATIONS: { name: string; sql: string }[] = [
       ALTER TABLE sellable_chapters ADD COLUMN IF NOT EXISTS cover_image TEXT;
       ALTER TABLE sellable_lessons  ADD COLUMN IF NOT EXISTS cover_image TEXT;
 
+      -- Extend telegram_chats for interactive state
+      ALTER TABLE telegram_chats ADD COLUMN IF NOT EXISTS user_id INTEGER;
+      ALTER TABLE telegram_chats ADD COLUMN IF NOT EXISTS phone VARCHAR(20);
+      ALTER TABLE telegram_chats ADD COLUMN IF NOT EXISTS state VARCHAR(50);
+      ALTER TABLE telegram_chats ADD COLUMN IF NOT EXISTS state_data TEXT;
+      ALTER TABLE telegram_chats ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP DEFAULT NOW();
+
       CREATE TABLE IF NOT EXISTS sellable_purchases (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
