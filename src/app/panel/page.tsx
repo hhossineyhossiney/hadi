@@ -455,15 +455,52 @@ function ShopTab() {
   );
 }
 
+/* Compact image uploader with preview */
+function ImagePickField({ value, onChange, label = "تصویر" }: { value: string; onChange: (v: string) => void; label?: string }) {
+  const [uploading, setUploading] = useState(false);
+  const pick = (file: File) => {
+    if (file.size > 800_000) { alert("حجم فایل باید کمتر از ۸۰۰KB باشد"); return; }
+    setUploading(true);
+    const r = new FileReader();
+    r.onload = () => { onChange(String(r.result || "")); setUploading(false); };
+    r.readAsDataURL(file);
+  };
+  return (
+    <div>
+      <label className="text-[10px] font-black text-slate-400 mb-1 block">{label} (اختیاری، حداکثر ۸۰۰KB)</label>
+      <div className="flex items-center gap-2">
+        {value ? (
+          <div className="relative w-16 h-16 rounded-[10px] overflow-hidden border border-white/10 shrink-0">
+            <img src={value} className="w-full h-full object-cover" />
+            <button onClick={() => onChange("")} className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 flex items-center justify-center text-error-400 transition"><X className="w-5 h-5" /></button>
+          </div>
+        ) : (
+          <div className="w-16 h-16 rounded-[10px] border-2 border-dashed border-white/10 flex items-center justify-center text-slate-500 shrink-0">
+            <ImageIcon className="w-5 h-5" />
+          </div>
+        )}
+        <label className="flex-1 px-3 py-2.5 rounded-[10px] bg-primary-600/20 hover:bg-primary-600/30 text-primary-300 text-[11px] font-black cursor-pointer flex items-center justify-center gap-1.5 border border-primary-500/30">
+          {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
+          {value ? "تغییر تصویر" : "انتخاب تصویر"}
+          <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && pick(e.target.files[0])} />
+        </label>
+        <input value={value} onChange={(e) => onChange(e.target.value)} placeholder="یا آدرس URL" dir="ltr" className="hidden md:block flex-1 px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-[10px] font-bold" />
+      </div>
+    </div>
+  );
+}
+
 /* Manager modal for a single sellable course — chapters + lessons */
 function ShopCourseManagerModal({ courseId, onClose }: { courseId: number; onClose: () => void }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
   const [addingChapter, setAddingChapter] = useState(false);
-  const [newCh, setNewCh] = useState({ title: "", isFree: false });
+  const [newCh, setNewCh] = useState<any>({ title: "", isFree: false, coverImage: "", description: "" });
+  const [editingChapter, setEditingChapter] = useState<any>(null); // {id, title, isFree, coverImage, description}
   const [addingLessonTo, setAddingLessonTo] = useState<number | null>(null);
-  const [newLesson, setNewLesson] = useState({ title: "", type: "video", videoUrl: "", videoProvider: "direct", videoDuration: 0, isFree: false, description: "" });
+  const [newLesson, setNewLesson] = useState<any>({ title: "", type: "video", videoUrl: "", videoProvider: "direct", videoDuration: 0, isFree: false, description: "", coverImage: "" });
+  const [editingLesson, setEditingLesson] = useState<any>(null); // full lesson object
 
   const load = () => {
     setLoading(true);
@@ -509,13 +546,15 @@ function ShopCourseManagerModal({ courseId, onClose }: { courseId: number; onClo
 
               {addingChapter && (
                 <div className="mb-4 p-4 rounded-[12px] bg-white/5 border border-white/10">
-                  <div className="grid gap-2">
+                  <div className="grid gap-3">
                     <input value={newCh.title} onChange={(e) => setNewCh({...newCh, title: e.target.value})} placeholder="عنوان فصل" className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" />
+                    <textarea value={newCh.description || ""} onChange={(e) => setNewCh({...newCh, description: e.target.value})} placeholder="توضیح کوتاه فصل (اختیاری)" rows={2} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold resize-none" />
+                    <ImagePickField value={newCh.coverImage || ""} onChange={(v) => setNewCh({...newCh, coverImage: v})} label="تصویر فصل" />
                     <label className="flex items-center gap-2 text-xs text-slate-300 font-bold">
                       <input type="checkbox" checked={newCh.isFree} onChange={(e) => setNewCh({...newCh, isFree: e.target.checked})} /> فصل رایگان (پیش‌نمایش)
                     </label>
                     <div className="flex gap-2">
-                      <button onClick={async () => { if (await act({ action: "addChapter", courseId, ...newCh })) { setAddingChapter(false); setNewCh({title:"",isFree:false}); }}} className="px-4 py-2 rounded-[8px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black">ذخیره فصل</button>
+                      <button onClick={async () => { if (!newCh.title) return; if (await act({ action: "addChapter", courseId, ...newCh })) { setAddingChapter(false); setNewCh({title:"",isFree:false,coverImage:"",description:""}); }}} className="px-4 py-2 rounded-[8px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black">ذخیره فصل</button>
                       <button onClick={() => setAddingChapter(false)} className="px-4 py-2 rounded-[8px] bg-white/10 text-slate-300 text-xs font-black">انصراف</button>
                     </div>
                   </div>
@@ -525,26 +564,52 @@ function ShopCourseManagerModal({ courseId, onClose }: { courseId: number; onClo
               <div className="space-y-3">
                 {(data?.chapters || []).map((ch: any, i: number) => (
                   <div key={ch.id} className="rounded-[12px] bg-white/5 border border-white/10 overflow-hidden">
-                    <div className="p-4 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-8 h-8 rounded-[8px] bg-primary-500/20 text-primary-300 flex items-center justify-center text-xs font-black">{i+1}</div>
-                        <div className="min-w-0">
-                          <div className="text-sm font-black text-white truncate">{ch.title}</div>
-                          <div className="text-[10px] text-slate-400">{ch.lessons?.length || 0} درس {ch.isFree && "• رایگان"}</div>
+                    {editingChapter?.id === ch.id ? (
+                      // === EDIT CHAPTER MODE ===
+                      <div className="p-4 space-y-3 bg-sky-500/5 border-l-2 border-sky-500/60">
+                        <div className="flex items-center gap-2 text-[11px] font-black text-sky-300"><Pencil className="w-3.5 h-3.5" /> ویرایش فصل</div>
+                        <input value={editingChapter.title || ""} onChange={(e) => setEditingChapter({...editingChapter, title: e.target.value})} placeholder="عنوان فصل" className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" />
+                        <textarea value={editingChapter.description || ""} onChange={(e) => setEditingChapter({...editingChapter, description: e.target.value})} placeholder="توضیح فصل" rows={2} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold resize-none" />
+                        <ImagePickField value={editingChapter.coverImage || ""} onChange={(v) => setEditingChapter({...editingChapter, coverImage: v})} label="تصویر فصل" />
+                        <label className="flex items-center gap-2 text-xs text-slate-300 font-bold">
+                          <input type="checkbox" checked={!!editingChapter.isFree} onChange={(e) => setEditingChapter({...editingChapter, isFree: e.target.checked})} /> فصل رایگان (پیش‌نمایش)
+                        </label>
+                        <div className="flex gap-2">
+                          <button onClick={async () => { if (await act({ action: "updateChapter", chapterId: ch.id, title: editingChapter.title, description: editingChapter.description, coverImage: editingChapter.coverImage, isFree: editingChapter.isFree })) setEditingChapter(null); }} className="px-4 py-2 rounded-[8px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1"><Check className="w-3.5 h-3.5" /> ذخیره تغییرات</button>
+                          <button onClick={() => setEditingChapter(null)} className="px-4 py-2 rounded-[8px] bg-white/10 text-slate-300 text-xs font-black">انصراف</button>
                         </div>
                       </div>
-                      <div className="flex gap-1">
-                        <button onClick={() => setAddingLessonTo(addingLessonTo === ch.id ? null : ch.id)} className="p-1.5 rounded-[6px] bg-primary-600/25 text-primary-300 hover:bg-primary-600/40" title="افزودن درس">
-                          <Plus className="w-3.5 h-3.5" />
-                        </button>
-                        <button onClick={() => { if (confirm("حذف این فصل و همه درس‌هایش؟")) act({ action: "deleteChapter", chapterId: ch.id }); }} className="p-1.5 rounded-[6px] bg-error-500/20 text-error-400 hover:bg-error-500/30">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                    ) : (
+                      // === VIEW CHAPTER MODE ===
+                      <div className="p-4 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-8 h-8 rounded-[8px] bg-primary-500/20 text-primary-300 flex items-center justify-center text-xs font-black">{(i+1).toLocaleString("fa-IR")}</div>
+                          {ch.coverImage && <img src={ch.coverImage} className="w-12 h-12 rounded-[8px] object-cover shrink-0 border border-white/10" />}
+                          <div className="min-w-0">
+                            <div className="text-sm font-black text-white truncate">{ch.title}</div>
+                            <div className="text-[10px] text-slate-400 flex items-center gap-1.5">
+                              <span>{(ch.lessons?.length || 0).toLocaleString("fa-IR")} درس</span>
+                              {ch.isFree && <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-black">رایگان</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <button onClick={() => setAddingLessonTo(addingLessonTo === ch.id ? null : ch.id)} className="p-1.5 rounded-[6px] bg-primary-600/25 text-primary-300 hover:bg-primary-600/40" title="افزودن درس">
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => setEditingChapter({ id: ch.id, title: ch.title, description: ch.description || "", coverImage: ch.coverImage || "", isFree: !!ch.isFree })} className="p-1.5 rounded-[6px] bg-sky-500/20 text-sky-400 hover:bg-sky-500/30" title="ویرایش فصل">
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => { if (confirm("حذف این فصل و همه درس‌هایش؟")) act({ action: "deleteChapter", chapterId: ch.id }); }} className="p-1.5 rounded-[6px] bg-error-500/20 text-error-400 hover:bg-error-500/30">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {addingLessonTo === ch.id && (
-                      <div className="p-4 border-t border-white/5 bg-white/[0.02] space-y-2">
+                      <div className="p-4 border-t border-white/5 bg-white/[0.02] space-y-3">
+                        <div className="flex items-center gap-2 text-[11px] font-black text-emerald-300"><Plus className="w-3.5 h-3.5" /> افزودن درس جدید</div>
                         <input value={newLesson.title} onChange={(e) => setNewLesson({...newLesson, title: e.target.value})} placeholder="عنوان درس" className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" />
                         <div className="grid md:grid-cols-2 gap-2">
                           <select value={newLesson.videoProvider} onChange={(e) => setNewLesson({...newLesson, videoProvider: e.target.value})} className="px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold">
@@ -558,11 +623,12 @@ function ShopCourseManagerModal({ courseId, onClose }: { courseId: number; onClo
                         </div>
                         <input value={newLesson.videoUrl} onChange={(e) => setNewLesson({...newLesson, videoUrl: e.target.value})} placeholder="لینک ویدئو (URL)" className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold" dir="ltr" />
                         <textarea value={newLesson.description} onChange={(e) => setNewLesson({...newLesson, description: e.target.value})} placeholder="توضیح کوتاه درس (اختیاری)" rows={2} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold resize-none" />
+                        <ImagePickField value={newLesson.coverImage || ""} onChange={(v) => setNewLesson({...newLesson, coverImage: v})} label="تصویر درس" />
                         <label className="flex items-center gap-2 text-xs text-slate-300 font-bold">
                           <input type="checkbox" checked={newLesson.isFree} onChange={(e) => setNewLesson({...newLesson, isFree: e.target.checked})} /> این درس رایگان و پیش‌نمایش باشد (بدون قفل)
                         </label>
                         <div className="flex gap-2">
-                          <button onClick={async () => { if (!newLesson.title) return; if (await act({ action: "addLesson", chapterId: ch.id, ...newLesson })) { setAddingLessonTo(null); setNewLesson({title:"",type:"video",videoUrl:"",videoProvider:"direct",videoDuration:0,isFree:false,description:""}); }}} className="px-4 py-2 rounded-[8px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black">افزودن درس</button>
+                          <button onClick={async () => { if (!newLesson.title) return; if (await act({ action: "addLesson", chapterId: ch.id, ...newLesson })) { setAddingLessonTo(null); setNewLesson({title:"",type:"video",videoUrl:"",videoProvider:"direct",videoDuration:0,isFree:false,description:"",coverImage:""}); }}} className="px-4 py-2 rounded-[8px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black">افزودن درس</button>
                           <button onClick={() => setAddingLessonTo(null)} className="px-4 py-2 rounded-[8px] bg-white/10 text-slate-300 text-xs font-black">انصراف</button>
                         </div>
                       </div>
@@ -571,17 +637,58 @@ function ShopCourseManagerModal({ courseId, onClose }: { courseId: number; onClo
                     {ch.lessons && ch.lessons.length > 0 && (
                       <div className="border-t border-white/5 divide-y divide-white/5">
                         {ch.lessons.map((l: any, li: number) => (
-                          <div key={l.id} className="p-3 flex items-center gap-3">
-                            <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-slate-300 font-black">{li+1}</div>
-                            {l.isFree ? <PlayCircle className="w-4 h-4 text-emerald-400" /> : <Lock className="w-4 h-4 text-slate-500" />}
-                            <div className="flex-1 min-w-0">
-                              <div className="text-xs font-bold text-white truncate">{l.title}</div>
-                              <div className="text-[9px] text-slate-500">{l.videoDuration ? `${Math.floor(l.videoDuration/60)}:${String(l.videoDuration%60).padStart(2,"0")}` : ""} {l.videoProvider !== "direct" && `• ${l.videoProvider}`}</div>
-                            </div>
-                            <button onClick={() => act({ action: "updateLesson", lessonId: l.id, isFree: !l.isFree })} className={`text-[10px] font-black px-2 py-1 rounded-[6px] ${l.isFree ? "bg-emerald-500/20 text-emerald-400" : "bg-slate-500/20 text-slate-400"}`}>
-                              {l.isFree ? "رایگان" : "قفل"}
-                            </button>
-                            <button onClick={() => { if (confirm("حذف این درس؟")) act({ action: "deleteLesson", lessonId: l.id }); }} className="p-1 rounded-[4px] bg-error-500/20 text-error-400"><Trash2 className="w-3 h-3" /></button>
+                          <div key={l.id}>
+                            {editingLesson?.id === l.id ? (
+                              // === EDIT LESSON MODE ===
+                              <div className="p-4 space-y-3 bg-sky-500/5 border-l-2 border-sky-500/60">
+                                <div className="flex items-center gap-2 text-[11px] font-black text-sky-300"><Pencil className="w-3.5 h-3.5" /> ویرایش درس</div>
+                                <input value={editingLesson.title || ""} onChange={(e) => setEditingLesson({...editingLesson, title: e.target.value})} placeholder="عنوان درس" className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" />
+                                <div className="grid md:grid-cols-2 gap-2">
+                                  <select value={editingLesson.videoProvider || "direct"} onChange={(e) => setEditingLesson({...editingLesson, videoProvider: e.target.value})} className="px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold">
+                                    <option value="direct">آپلود مستقیم</option>
+                                    <option value="youtube">یوتیوب</option>
+                                    <option value="aparat">آپارات</option>
+                                    <option value="drive">Google Drive</option>
+                                    <option value="vimeo">Vimeo</option>
+                                  </select>
+                                  <input type="number" value={editingLesson.videoDuration || 0} onChange={(e) => setEditingLesson({...editingLesson, videoDuration: Number(e.target.value)})} placeholder="مدت (ثانیه)" className="px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold" dir="ltr" />
+                                </div>
+                                <input value={editingLesson.videoUrl || ""} onChange={(e) => setEditingLesson({...editingLesson, videoUrl: e.target.value})} placeholder="لینک ویدئو" className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold" dir="ltr" />
+                                <textarea value={editingLesson.description || ""} onChange={(e) => setEditingLesson({...editingLesson, description: e.target.value})} placeholder="توضیح درس" rows={2} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold resize-none" />
+                                <ImagePickField value={editingLesson.coverImage || ""} onChange={(v) => setEditingLesson({...editingLesson, coverImage: v})} label="تصویر درس" />
+                                <label className="flex items-center gap-2 text-xs text-slate-300 font-bold">
+                                  <input type="checkbox" checked={!!editingLesson.isFree} onChange={(e) => setEditingLesson({...editingLesson, isFree: e.target.checked})} /> رایگان و بدون قفل
+                                </label>
+                                <div className="flex gap-2">
+                                  <button onClick={async () => {
+                                    const payload: any = { action: "updateLesson", lessonId: l.id, title: editingLesson.title, description: editingLesson.description, videoUrl: editingLesson.videoUrl, videoProvider: editingLesson.videoProvider, videoDuration: editingLesson.videoDuration, coverImage: editingLesson.coverImage, isFree: editingLesson.isFree };
+                                    if (await act(payload)) setEditingLesson(null);
+                                  }} className="px-4 py-2 rounded-[8px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1"><Check className="w-3.5 h-3.5" /> ذخیره</button>
+                                  <button onClick={() => setEditingLesson(null)} className="px-4 py-2 rounded-[8px] bg-white/10 text-slate-300 text-xs font-black">انصراف</button>
+                                </div>
+                              </div>
+                            ) : (
+                              // === VIEW LESSON MODE ===
+                              <div className="p-3 flex items-center gap-3">
+                                <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-slate-300 font-black">{(li+1).toLocaleString("fa-IR")}</div>
+                                {l.coverImage ? (
+                                  <img src={l.coverImage} className="w-9 h-9 rounded-[6px] object-cover shrink-0 border border-white/10" />
+                                ) : (
+                                  l.isFree ? <PlayCircle className="w-4 h-4 text-emerald-400" /> : <Lock className="w-4 h-4 text-slate-500" />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs font-bold text-white truncate">{l.title}</div>
+                                  <div className="text-[9px] text-slate-500">{l.videoDuration ? `${Math.floor(l.videoDuration/60)}:${String(l.videoDuration%60).padStart(2,"0")}` : ""} {l.videoProvider !== "direct" && `• ${l.videoProvider}`}</div>
+                                </div>
+                                <button onClick={() => act({ action: "updateLesson", lessonId: l.id, isFree: !l.isFree })} className={`text-[10px] font-black px-2 py-1 rounded-[6px] ${l.isFree ? "bg-emerald-500/20 text-emerald-400" : "bg-slate-500/20 text-slate-400"}`}>
+                                  {l.isFree ? "رایگان" : "قفل"}
+                                </button>
+                                <button onClick={() => setEditingLesson({ ...l })} className="p-1 rounded-[4px] bg-sky-500/20 text-sky-400 hover:bg-sky-500/30" title="ویرایش">
+                                  <Pencil className="w-3 h-3" />
+                                </button>
+                                <button onClick={() => { if (confirm("حذف این درس؟")) act({ action: "deleteLesson", lessonId: l.id }); }} className="p-1 rounded-[4px] bg-error-500/20 text-error-400"><Trash2 className="w-3 h-3" /></button>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
