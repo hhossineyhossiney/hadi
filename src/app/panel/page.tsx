@@ -18,6 +18,8 @@ import InstituteProfileForm from "@/components/panel/InstituteProfileForm";
 import StudentDocumentsModal from "@/components/panel/StudentDocumentsModal";
 import PersianDatePicker from "@/components/PersianDatePicker";
 import MoneyInput from "@/components/MoneyInput";
+import WeekdayPicker from "@/components/WeekdayPicker";
+import { calculateCourseSchedule, formatScheduleDays } from "@/lib/schedule";
 
 type TabKey = "dashboard" | "courses" | "students" | "sessions" | "progress" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
 
@@ -260,6 +262,7 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
     capacity: "", duration: "", schedule: "", startDate: "", instructor: "",
     instructorTitle: "", level: "", totalSessions: "", syllabus: [] as string[],
     categoryId: "", requirements: "",
+    scheduleDays: [] as string[], scheduleTime: "", sessionDuration: "", totalHours: "",
   };
   const [newCourse, setNewCourse] = useState<any>(emptyForm);
   const [syllabusInput, setSyllabusInput] = useState("");
@@ -339,8 +342,21 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
             <option value="comprehensive">جامع از صفر تا صد</option>
           </select>
           <MoneyInput value={newCourse.originalPrice} onChange={(v) => setNewCourse({ ...newCourse, originalPrice: v })} placeholder="قیمت قبل از تخفیف (اختیاری)" />
-          <input placeholder="تعداد کل جلسات (مثل: ۲۰)" type="number" value={newCourse.totalSessions} onChange={(e) => setNewCourse({ ...newCourse, totalSessions: e.target.value })}
+          <input placeholder="تعداد کل جلسات (خودکار محاسبه می‌شود)" type="number" value={newCourse.totalSessions} onChange={(e) => setNewCourse({ ...newCourse, totalSessions: e.target.value })}
             className="px-4 py-3 rounded-[12px] bg-[#0B1120] border border-white/10 text-sm font-semibold text-white placeholder:text-slate-500" />
+
+          {/* ═══════════ SMART SCHEDULE BUILDER ═══════════ */}
+          <div className="md:col-span-2">
+            <ScheduleBuilder
+              startDate={newCourse.startDate}
+              scheduleDays={newCourse.scheduleDays}
+              scheduleTime={newCourse.scheduleTime}
+              sessionDuration={newCourse.sessionDuration}
+              totalHours={newCourse.totalHours}
+              onChange={(patch) => setNewCourse({ ...newCourse, ...patch })}
+            />
+          </div>
+
           <textarea placeholder="توضیحات کوتاه (برای کارت)" rows={2} value={newCourse.description} onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })}
             className="px-4 py-3 rounded-[12px] bg-[#0B1120] border border-white/10 text-sm text-white placeholder:text-slate-500 md:col-span-2 resize-none" />
           <textarea placeholder="توضیحات کامل (برای صفحه دوره)" rows={3} value={newCourse.fullDescription} onChange={(e) => setNewCourse({ ...newCourse, fullDescription: e.target.value })}
@@ -428,6 +444,17 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
                     <PersianDatePicker value={editCourse.startDate ?? ""} onChange={(v) => setEditCourse({ ...editCourse, startDate: v })} placeholder="تاریخ شروع" />
                   </div>
                 </div>
+
+                {/* Schedule Builder (edit) */}
+                <ScheduleBuilder
+                  startDate={editCourse.startDate ?? ""}
+                  scheduleDays={Array.isArray(editCourse.scheduleDays) ? editCourse.scheduleDays : []}
+                  scheduleTime={editCourse.scheduleTime ?? ""}
+                  sessionDuration={String(editCourse.sessionDuration ?? "")}
+                  totalHours={String(editCourse.totalHours ?? "")}
+                  onChange={(patch) => setEditCourse({ ...editCourse, ...patch })}
+                />
+
                 <div>
                   <label className="text-[10px] font-bold text-slate-500">سطح دوره</label>
                   <select value={editCourse.level || ""} onChange={(e) => setEditCourse({ ...editCourse, level: e.target.value })}
@@ -486,6 +513,10 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
                       price: editCourse.price, originalPrice: editCourse.originalPrice,
                       capacity: editCourse.capacity, duration: editCourse.duration, totalSessions: editCourse.totalSessions,
                       schedule: editCourse.schedule, startDate: editCourse.startDate,
+                      scheduleDays: editCourse.scheduleDays || [],
+                      scheduleTime: editCourse.scheduleTime,
+                      sessionDuration: editCourse.sessionDuration,
+                      totalHours: editCourse.totalHours,
                       instructor: editCourse.instructor, instructorTitle: editCourse.instructorTitle,
                       level: editCourse.level, requirements: editCourse.requirements,
                       syllabus: (editCourse.syllabus || []).filter((x: string) => x && x.trim()),
@@ -521,9 +552,21 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
                 <div className="grid grid-cols-2 gap-2 text-[11px] mb-3">
                   <div className="bg-[#0B1120] rounded-[10px] p-2.5"><span className="text-slate-500">شهریه: </span><b className="text-emerald-400">{c.price ? Number(c.price).toLocaleString("fa-IR") + " تومان" : "رایگان"}</b></div>
                   <div className="bg-[#0B1120] rounded-[10px] p-2.5"><span className="text-slate-500">ظرفیت: </span><b className="text-white">{Number(c.enrolledCount).toLocaleString("fa-IR")}/{Number(c.capacity).toLocaleString("fa-IR")}</b></div>
-                  <div className="bg-[#0B1120] rounded-[10px] p-2.5"><span className="text-slate-500">شروع: </span><b className="text-white">{c.startDate ? String(c.startDate).replace(/[0-9]/g, d => "۰۱۲۳۴۵۶۷۸۹"[+d]) : "—"}</b></div>
-                  <div className="bg-[#0B1120] rounded-[10px] p-2.5"><span className="text-slate-500">مدرس: </span><b className="text-white">{c.instructor || "—"}</b></div>
+                  <div className="bg-[#0B1120] rounded-[10px] p-2.5"><span className="text-slate-500">شروع: </span><b className="text-cyan-300">{c.startDate ? String(c.startDate).replace(/[0-9]/g, d => "۰۱۲۳۴۵۶۷۸۹"[+d]) : "—"}</b></div>
+                  <div className="bg-[#0B1120] rounded-[10px] p-2.5"><span className="text-slate-500">پایان: </span><b className="text-emerald-300">{c.endDate ? String(c.endDate).replace(/[0-9]/g, d => "۰۱۲۳۴۵۶۷۸۹"[+d]) : "—"}</b></div>
+                  <div className="bg-[#0B1120] rounded-[10px] p-2.5 col-span-2"><span className="text-slate-500">مدرس: </span><b className="text-white">{c.instructor || "—"}</b></div>
                 </div>
+                {c.scheduleDays && Array.isArray(c.scheduleDays) && c.scheduleDays.length > 0 && (
+                  <div className="mb-3 p-2.5 rounded-[10px] bg-primary-500/10 border border-primary-500/30 text-[11px]">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Calendar className="w-3 h-3 text-primary-400" />
+                      <span className="text-primary-300 font-black">{formatScheduleDays(c.scheduleDays)}</span>
+                      {c.scheduleTime && <span className="text-slate-400">• ساعت {String(c.scheduleTime).replace(/[0-9]/g, d => "۰۱۲۳۴۵۶۷۸۹"[+d])}</span>}
+                      {c.sessionDuration > 0 && <span className="text-slate-400">• هر جلسه {String(c.sessionDuration).replace(/[0-9]/g, d => "۰۱۲۳۴۵۶۷۸۹"[+d])} دقیقه</span>}
+                      {c.totalHours > 0 && <span className="text-slate-400">• کل {String(c.totalHours).replace(/[0-9]/g, d => "۰۱۲۳۴۵۶۷۸۹"[+d])} ساعت</span>}
+                    </div>
+                  </div>
+                )}
 
                 {/* Registration Management Panel */}
                 <div className="bg-[#0B1120] rounded-[12px] p-3 border border-white/5 space-y-2">
@@ -1742,6 +1785,116 @@ function StudentFeesModal({ registrationId, studentName, courseTitle, onClose }:
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCHEDULE BUILDER — smart course scheduling with auto end-date
+   ═══════════════════════════════════════════════════════════════ */
+function ScheduleBuilder({ startDate, scheduleDays, scheduleTime, sessionDuration, totalHours, onChange }: {
+  startDate: string;
+  scheduleDays: string[];
+  scheduleTime: string;
+  sessionDuration: string;
+  totalHours: string;
+  onChange: (patch: any) => void;
+}) {
+  const sesDur = Number(sessionDuration) || 0;
+  const totHrs = Number(totalHours) || 0;
+
+  // Live preview calculation
+  let preview: any = null;
+  if (startDate && scheduleDays.length > 0 && sesDur > 0 && totHrs > 0) {
+    preview = calculateCourseSchedule(startDate, scheduleDays, sesDur, totHrs);
+  }
+
+  const toPersian = (str: string | number) => String(str).replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[+d]);
+
+  return (
+    <div className="bg-gradient-to-br from-primary-500/10 via-primary-500/5 to-transparent border-2 border-primary-500/30 rounded-[16px] p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Calendar className="w-4 h-4 text-primary-400" />
+        <h4 className="text-sm font-black text-primary-300">زمان‌بندی هوشمند دوره</h4>
+        <span className="text-[10px] font-black bg-primary-500/20 text-primary-300 px-2 py-0.5 rounded-full">
+          🎯 تاریخ پایان خودکار محاسبه می‌شود
+        </span>
+      </div>
+
+      <div className="space-y-3">
+        {/* Days picker */}
+        <div>
+          <label className="text-[11px] font-bold text-slate-400 mb-1.5 block">روزهای برگزاری کلاس</label>
+          <WeekdayPicker value={scheduleDays} onChange={(days) => onChange({ scheduleDays: days })} />
+        </div>
+
+        {/* Time + Duration + Total hours */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div>
+            <label className="text-[11px] font-bold text-slate-400 mb-1 block">ساعت شروع هر جلسه</label>
+            <input type="time" value={scheduleTime} onChange={(e) => onChange({ scheduleTime: e.target.value })}
+              dir="ltr" placeholder="16:00"
+              className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white font-bold text-center" />
+          </div>
+          <div>
+            <label className="text-[11px] font-bold text-slate-400 mb-1 block">مدت هر جلسه (دقیقه)</label>
+            <input type="number" value={sessionDuration} onChange={(e) => onChange({ sessionDuration: e.target.value })}
+              min="15" max="480" placeholder="۹۰"
+              className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white font-bold text-center" />
+          </div>
+          <div>
+            <label className="text-[11px] font-bold text-slate-400 mb-1 block">کل ساعت دوره</label>
+            <input type="number" value={totalHours} onChange={(e) => onChange({ totalHours: e.target.value })}
+              min="1" max="2000" placeholder="۴۰"
+              className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-sm text-white font-bold text-center" />
+          </div>
+        </div>
+
+        {/* Live preview */}
+        {preview && !preview.error && (
+          <div className="bg-emerald-500/10 border-2 border-emerald-500/40 rounded-[12px] p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Check className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-black text-emerald-300">پیش‌نمایش زمان‌بندی</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center">
+              <div className="bg-black/20 rounded-[8px] p-2">
+                <div className="text-[9px] text-slate-400 mb-0.5">تعداد جلسات</div>
+                <div className="text-base font-black text-white">{toPersian(preview.totalSessions)}</div>
+              </div>
+              <div className="bg-black/20 rounded-[8px] p-2">
+                <div className="text-[9px] text-slate-400 mb-0.5">روزهای کلاس</div>
+                <div className="text-[10px] font-black text-primary-300">{formatScheduleDays(scheduleDays)}</div>
+              </div>
+              <div className="bg-black/20 rounded-[8px] p-2">
+                <div className="text-[9px] text-slate-400 mb-0.5">تاریخ شروع</div>
+                <div className="text-[11px] font-black text-cyan-300">{toPersian(startDate)}</div>
+              </div>
+              <div className="bg-emerald-500/15 rounded-[8px] p-2 border border-emerald-500/40">
+                <div className="text-[9px] text-emerald-300 mb-0.5">تاریخ پایان</div>
+                <div className="text-[11px] font-black text-emerald-300">{preview.endDate ? toPersian(preview.endDate) : "—"}</div>
+              </div>
+            </div>
+            {scheduleTime && (
+              <div className="text-[10px] text-emerald-200 mt-2 text-center">
+                🕐 هر جلسه ساعت <b>{toPersian(scheduleTime)}</b> شروع می‌شود و <b>{toPersian(sesDur)}</b> دقیقه طول می‌کشد
+              </div>
+            )}
+          </div>
+        )}
+
+        {preview?.error && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-[10px] p-2 text-[10px] text-amber-300">
+            ⚠️ {preview.error}
+          </div>
+        )}
+
+        {!preview && (
+          <div className="text-[10px] text-slate-500 text-center py-2">
+            💡 برای محاسبه تاریخ پایان دوره، همه فیلدها را کامل کنید: تاریخ شروع، روزها، مدت جلسه، و کل ساعت دوره
+          </div>
+        )}
       </div>
     </div>
   );
