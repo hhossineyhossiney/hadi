@@ -163,7 +163,7 @@ export async function POST(req: Request) {
 
     // === Chapters ===
     if (action === "addChapter") {
-      const { courseId, title, description, isFree } = body;
+      const { courseId, title, description, isFree, coverImage } = body;
       const c = await db.select().from(sellableCourses).where(and(eq(sellableCourses.id, Number(courseId)), eq(sellableCourses.instituteId, inst.id))).then(r => r[0]);
       if (!c) return NextResponse.json({ error: "دوره یافت نشد" }, { status: 404 });
       const orderIdx = await db.select({ c: sql<number>`count(*)::int` }).from(sellableChapters).where(eq(sellableChapters.courseId, c.id)).then(r => r[0]?.c || 0);
@@ -171,6 +171,7 @@ export async function POST(req: Request) {
         courseId: c.id,
         title: String(title).slice(0, 255),
         description: description || null,
+        coverImage: coverImage || null,
         orderIndex: orderIdx + 1,
         isFree: !!isFree,
       }).returning();
@@ -179,7 +180,7 @@ export async function POST(req: Request) {
     }
 
     if (action === "updateChapter") {
-      const { chapterId, title, description, isFree } = body;
+      const { chapterId, title, description, isFree, coverImage } = body;
       const ch = await db.select().from(sellableChapters).where(eq(sellableChapters.id, Number(chapterId))).then(r => r[0]);
       if (!ch) return NextResponse.json({ error: "فصل یافت نشد" }, { status: 404 });
       const c = await db.select().from(sellableCourses).where(eq(sellableCourses.id, ch.courseId)).then(r => r[0]);
@@ -188,6 +189,7 @@ export async function POST(req: Request) {
       if (title !== undefined) update.title = title;
       if (description !== undefined) update.description = description;
       if (isFree !== undefined) update.isFree = !!isFree;
+      if (coverImage !== undefined) update.coverImage = coverImage || null;
       const [updated] = await db.update(sellableChapters).set(update).where(eq(sellableChapters.id, ch.id)).returning();
       return NextResponse.json({ ok: true, chapter: updated });
     }
@@ -206,7 +208,7 @@ export async function POST(req: Request) {
 
     // === Lessons ===
     if (action === "addLesson") {
-      const { chapterId, title, type, videoUrl, videoProvider, videoDuration, content, isFree, description } = body;
+      const { chapterId, title, type, videoUrl, videoProvider, videoDuration, content, isFree, description, coverImage } = body;
       const ch = await db.select().from(sellableChapters).where(eq(sellableChapters.id, Number(chapterId))).then(r => r[0]);
       if (!ch) return NextResponse.json({ error: "فصل یافت نشد" }, { status: 404 });
       const c = await db.select().from(sellableCourses).where(eq(sellableCourses.id, ch.courseId)).then(r => r[0]);
@@ -218,6 +220,7 @@ export async function POST(req: Request) {
         title: String(title).slice(0, 255),
         type: type || "video",
         description: description || null,
+        coverImage: coverImage || null,
         videoUrl: videoUrl || null,
         videoProvider: videoProvider || "direct",
         videoDuration: Number(videoDuration ?? 0),
@@ -240,7 +243,7 @@ export async function POST(req: Request) {
       const c = await db.select().from(sellableCourses).where(eq(sellableCourses.id, lesson.courseId)).then(r => r[0]);
       if (!c || c.instituteId !== inst.id) return NextResponse.json({ error: "غیرمجاز" }, { status: 403 });
       const update: any = {};
-      const allowed = ["title", "type", "description", "videoUrl", "videoProvider", "videoDuration", "content", "isFree", "isLocked", "attachmentUrl"];
+      const allowed = ["title", "type", "description", "videoUrl", "videoProvider", "videoDuration", "content", "isFree", "isLocked", "attachmentUrl", "coverImage"];
       for (const k of allowed) if (rest[k] !== undefined) update[k] = rest[k];
       if (update.isFree !== undefined) update.isLocked = !update.isFree;
       const [updated] = await db.update(sellableLessons).set(update).where(eq(sellableLessons.id, lesson.id)).returning();
