@@ -11,7 +11,8 @@ import {
   Play, ArrowLeft, ChevronLeft, Clock, GraduationCap, PlusCircle, Menu,
   Sparkles, Check, X, MapPin, BadgeCheck, Search, FolderOpen, Building2,
   Trash2, CheckCheck, LogOut, FileText, CreditCard, AlertTriangle,
-  Calendar, Landmark, Receipt, Timer, ShieldCheck,
+  Calendar, Landmark, Receipt, Timer, ShieldCheck, PlayCircle, Lock, Video,
+  ChevronDown, ChevronUp, ShoppingBag,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
@@ -67,11 +68,12 @@ interface DashboardData {
   upcomingSessions: any[];
 }
 
-type TabKey = "dashboard" | "courses" | "progress" | "schedule" | "chat" | "notifications" | "certificates" | "wallet" | "fees" | "favorites" | "portfolio" | "profile";
+type TabKey = "dashboard" | "courses" | "shop" | "progress" | "schedule" | "chat" | "notifications" | "certificates" | "wallet" | "fees" | "favorites" | "portfolio" | "profile";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
-  { key: "courses", label: "دوره‌های من", icon: BookOpen },
+  { key: "courses", label: "دوره‌های حضوری من", icon: BookOpen },
+  { key: "shop", label: "دوره‌های آنلاین خریداری‌شده", icon: PlayCircle },
   { key: "progress", label: "وضعیت پیشرفت", icon: TrendingUp },
   { key: "schedule", label: "تقویم آموزشی", icon: CalendarDays },
   { key: "chat", label: "چت با آموزشگاه", icon: MessageCircle },
@@ -95,7 +97,9 @@ function StudentDashboardContent() {
   const [activePhone, setActivePhone] = useState(defaultPhone);
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<TabKey>("dashboard");
+  const tabParam = searchParams.get("tab") || "";
+  const validTabs: TabKey[] = ["dashboard","courses","shop","progress","schedule","chat","notifications","certificates","wallet","fees","favorites","portfolio","profile"];
+  const [tab, setTab] = useState<TabKey>((validTabs.includes(tabParam as TabKey) ? (tabParam as TabKey) : "dashboard"));
   const { open: drawerOpen, setOpen: setDrawerOpen } = useMobilePanelDrawer();
 
   useEffect(() => {
@@ -250,6 +254,7 @@ function StudentDashboardContent() {
           {tab === "portfolio" && <PortfolioTab user={data?.user} />}
           {tab === "profile" && <ProfileTab />}
           {tab === "fees" && <FeesTab />}
+          {tab === "shop" && <ShopPurchasesTab />}
         </main>
       </div>
     </div>
@@ -260,6 +265,16 @@ function StudentDashboardContent() {
 function DashboardOverview({ data, stats, regs, setTab }: any) {
   const currentCourse = regs.find((r: StudentReg) => r.status === "approved" && (r.progress || 0) < 100) || regs.find((r: StudentReg) => r.status === "approved");
   const upcomingClasses = (data?.upcomingSessions || []).slice(0, 4);
+  const [shopCount, setShopCount] = useState<number | null>(null);
+  const [continueShop, setContinueShop] = useState<any>(null);
+  useEffect(() => {
+    fetch("/api/student/my-shop-courses").then(r => r.json()).then(d => {
+      const ps = d.purchases || [];
+      setShopCount(ps.length);
+      const inProgress = ps.find((p: any) => p.progress > 0 && p.progress < 100) || ps[0];
+      setContinueShop(inProgress || null);
+    }).catch(() => setShopCount(0));
+  }, []);
 
   const statCards = [
     { label: "دوره‌های فعال", value: stats.activeCourses, unit: "دوره", icon: Play, color: "bg-white/5" },
@@ -270,6 +285,32 @@ function DashboardOverview({ data, stats, regs, setTab }: any) {
 
   return (
     <div className="space-y-6">
+      {/* Online courses banner */}
+      {(shopCount ?? 0) > 0 && (
+        <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-l from-primary-600/25 via-secondary-500/15 to-amber-500/10 border border-primary-500/25 p-5">
+          <div className="absolute -top-16 -left-16 w-40 h-40 rounded-full bg-primary-500/20 blur-2xl" />
+          <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-[16px] bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center shrink-0 shadow-lg shadow-primary-500/40">
+                <PlayCircle className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <div className="text-[10px] font-black text-amber-300 mb-0.5">🎬 دوره‌های آنلاین شما</div>
+                <div className="text-base font-black text-white">{shopCount!.toLocaleString("fa-IR")} دوره آنلاین خریداری‌شده</div>
+                {continueShop && (
+                  <div className="text-[11px] text-slate-300 mt-1">
+                    ادامه: <span className="text-white font-bold">{continueShop.course.title}</span> — {continueShop.progress}٪ پیشرفت
+                  </div>
+                )}
+              </div>
+            </div>
+            <button onClick={() => setTab("shop")} className="px-4 py-2.5 rounded-[12px] bg-white text-primary-600 text-xs font-black shadow hover:bg-slate-100 flex items-center gap-1.5 shrink-0">
+              <Play className="w-3.5 h-3.5" /> ورود به دوره‌های آنلاین
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((c) => (
@@ -390,9 +431,19 @@ function MyCoursesTab({ regs }: { regs: StudentReg[] }) {
 
   return (
     <div>
-      <div className="mb-6">
-        <h2 className="text-xl font-black">دوره‌های من ({regs.length})</h2>
-        <p className="text-slate-500 text-sm mt-1">دوره‌هایی که شما در آن‌ها ثبت‌نام کرده‌اید.</p>
+      <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2.5 py-1 rounded-full bg-primary-500/15 text-primary-300 text-[10px] font-black flex items-center gap-1">
+              <Building2 className="w-3 h-3" /> کلاس حضوری
+            </span>
+            <h2 className="text-xl font-black">دوره‌های حضوری من ({regs.length.toLocaleString("fa-IR")})</h2>
+          </div>
+          <p className="text-slate-500 text-sm mt-1">دوره‌هایی که به‌صورت حضوری در آموزشگاه‌ها ثبت‌نام کرده‌اید</p>
+        </div>
+        <Link href="/shop" className="px-3 py-2 rounded-[10px] bg-white/5 hover:bg-white/10 text-slate-300 text-[11px] font-bold flex items-center gap-1.5">
+          <PlayCircle className="w-4 h-4 text-primary-400" /> دوره‌های آنلاین →
+        </Link>
       </div>
       {regs.length === 0 ? (
         <div className="text-center py-20 bg-white/5 border border-white/10 rounded-[20px]">
@@ -1892,6 +1943,262 @@ function FeesTab() {
           ))}
         </>
       )}
+    </div>
+  );
+}
+
+/* ============ SHOP PURCHASES TAB (دوره‌های آنلاین خریداری‌شده) ============ */
+function VideoPlayerLite({ url, provider = "direct" }: { url: string; provider?: string }) {
+  if (!url) return null;
+  if (provider === "youtube" || /youtube\.com|youtu\.be/.test(url)) {
+    const id = url.match(/(?:v=|youtu\.be\/)([^&\n?#]+)/)?.[1];
+    if (id) return <iframe className="w-full aspect-video rounded-[16px]" src={`https://www.youtube.com/embed/${id}`} allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />;
+  }
+  if (provider === "aparat" || /aparat\.com/.test(url)) {
+    const id = url.match(/aparat\.com\/v\/([a-zA-Z0-9]+)/)?.[1];
+    if (id) return <iframe className="w-full aspect-video rounded-[16px]" src={`https://www.aparat.com/video/video/embed/videohash/${id}/vt/frame`} allowFullScreen />;
+  }
+  if (provider === "drive" || /drive\.google\.com/.test(url)) {
+    const id = url.match(/\/d\/([^\/]+)/)?.[1];
+    if (id) return <iframe className="w-full aspect-video rounded-[16px]" src={`https://drive.google.com/file/d/${id}/preview`} allow="autoplay" allowFullScreen />;
+  }
+  if (provider === "vimeo" || /vimeo\.com/.test(url)) {
+    const id = url.match(/vimeo\.com\/(\d+)/)?.[1];
+    if (id) return <iframe className="w-full aspect-video rounded-[16px]" src={`https://player.vimeo.com/video/${id}`} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />;
+  }
+  return <video className="w-full aspect-video rounded-[16px] bg-black" src={url} controls />;
+}
+
+function ShopPurchasesTab() {
+  const [data, setData] = useState<any[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<any>(null); // active course object
+  const [openChapters, setOpenChapters] = useState<Record<number, boolean>>({});
+  const [activeLesson, setActiveLesson] = useState<any>(null);
+
+  const load = () => {
+    setLoading(true);
+    fetch("/api/student/my-shop-courses").then(r => r.json()).then(d => {
+      setData(d.purchases || []);
+      setLoading(false);
+    }).catch(() => { setData([]); setLoading(false); });
+  };
+  useEffect(load, []);
+
+  const openCourse = (p: any) => {
+    setSelected(p);
+    const first = p.chapters?.[0]?.id;
+    if (first) setOpenChapters({ [first]: true });
+    // Auto-select first lesson (last watched if exists, otherwise first)
+    let target = null;
+    if (p.lastLessonId) {
+      for (const ch of p.chapters) {
+        const l = ch.lessons.find((x: any) => x.id === p.lastLessonId);
+        if (l) { target = l; break; }
+      }
+    }
+    if (!target) target = p.chapters?.[0]?.lessons?.[0] || null;
+    setActiveLesson(target);
+  };
+
+  const markComplete = async (lesson: any, isCompleted: boolean) => {
+    if (!selected) return;
+    await fetch("/api/student/my-shop-courses", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ purchaseId: selected.purchaseId, lessonId: lesson.id, isCompleted, watchedSeconds: lesson.videoDuration || 0 }),
+    });
+    load();
+    // update local activeLesson
+    setActiveLesson((prev: any) => prev ? { ...prev, isCompleted } : prev);
+  };
+
+  if (loading) return <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>;
+
+  if (!selected) {
+    return (
+      <div>
+        <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 text-[10px] font-black flex items-center gap-1">
+                <PlayCircle className="w-3 h-3" /> دسترسی آنلاین
+              </span>
+              <h2 className="text-xl font-black">دوره‌های آنلاین خریداری‌شده ({(data?.length || 0).toLocaleString("fa-IR")})</h2>
+            </div>
+            <p className="text-slate-500 text-sm mt-1">دوره‌های ویدئویی که خریده‌اید — با یک کلیک وارد پخش‌کننده شوید</p>
+          </div>
+          <Link href="/shop" className="px-3 py-2 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white text-[11px] font-black flex items-center gap-1.5">
+            <ShoppingBag className="w-4 h-4" /> فروشگاه دوره‌ها
+          </Link>
+        </div>
+
+        {(data?.length || 0) === 0 ? (
+          <div className="text-center py-20 bg-white/5 border border-white/10 rounded-[20px]">
+            <PlayCircle className="w-12 h-12 mx-auto text-slate-600 mb-3" />
+            <p className="text-slate-500 mb-2">هنوز دوره‌ی آنلاینی خریداری نکرده‌اید</p>
+            <Link href="/shop" className="inline-block mt-2 px-5 py-2.5 rounded-[10px] gradient-button text-white text-sm font-black">مشاهده فروشگاه دوره‌ها</Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {data!.map((p: any) => {
+              const price = Number(p.amount);
+              return (
+                <div key={p.purchaseId} className="rounded-[18px] overflow-hidden bg-gradient-to-br from-white/8 to-white/3 border border-white/10 hover:border-primary-500/40 transition-all">
+                  <div className="relative aspect-[16/9] bg-gradient-to-br from-primary-600 via-secondary-600 to-primary-500">
+                    {p.course.coverImage && <img src={p.course.coverImage} className="absolute inset-0 w-full h-full object-cover opacity-90" />}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                    <div className="absolute top-2 right-2 flex flex-col gap-1">
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-black flex items-center gap-1">
+                        <Check className="w-2.5 h-2.5" /> خریداری‌شده
+                      </span>
+                    </div>
+                    <button onClick={() => openCourse(p)} className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 bg-black/40 transition">
+                      <div className="w-14 h-14 rounded-full bg-white/95 flex items-center justify-center shadow-2xl">
+                        <PlayCircle className="w-8 h-8 text-primary-600" />
+                      </div>
+                    </button>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-black text-white text-sm mb-2 line-clamp-2 min-h-[40px]">{p.course.title}</h3>
+                    <div className="flex items-center gap-2 text-[10px] text-slate-400 mb-3">
+                      <span className="flex items-center gap-0.5"><Building2 className="w-3 h-3" /> {p.institute.name}</span>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-slate-400 font-bold">پیشرفت شما</span>
+                        <span className="text-[10px] text-primary-300 font-black">{p.progress}٪</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                        <div className="h-full bg-gradient-to-l from-primary-500 to-secondary-500 transition-all" style={{ width: `${p.progress}%` }} />
+                      </div>
+                      <div className="mt-1 text-[9px] text-slate-500">{p.completedLessons}/{p.totalLessons} درس تکمیل‌شده</div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button onClick={() => openCourse(p)} className="flex-1 px-3 py-2 rounded-[10px] bg-gradient-to-l from-primary-500 to-secondary-500 text-white text-[11px] font-black flex items-center justify-center gap-1">
+                        <Play className="w-3.5 h-3.5" /> {p.progress > 0 ? "ادامه یادگیری" : "شروع دوره"}
+                      </button>
+                      <Link href={`/shop/${p.course.slug}`} className="px-3 py-2 rounded-[10px] bg-white/5 hover:bg-white/10 text-slate-300 text-[11px] font-black">
+                        صفحه دوره
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // === INSIDE COURSE PLAYER ===
+  return (
+    <div>
+      <div className="mb-4 flex items-center gap-2">
+        <button onClick={() => { setSelected(null); setActiveLesson(null); }} className="px-3 py-1.5 rounded-[10px] bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold flex items-center gap-1">
+          <ChevronLeft className="w-3.5 h-3.5 rotate-180" /> بازگشت به لیست
+        </button>
+        <div className="text-xs text-slate-400 font-bold truncate">{selected.course.title}</div>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-4">
+        {/* Player */}
+        <div className="lg:col-span-2">
+          {activeLesson ? (
+            <div>
+              <div className="rounded-[16px] overflow-hidden bg-black">
+                {activeLesson.videoUrl ? (
+                  <VideoPlayerLite url={activeLesson.videoUrl} provider={activeLesson.videoProvider} />
+                ) : (
+                  <div className="aspect-video flex flex-col items-center justify-center text-slate-400 gap-2">
+                    <Video className="w-12 h-12" />
+                    <div className="text-sm">این درس هنوز ویدئویی ندارد</div>
+                    {activeLesson.content && <div className="text-xs px-6 mt-2 text-center opacity-80">{activeLesson.content.slice(0, 200)}</div>}
+                  </div>
+                )}
+              </div>
+              <div className="mt-4 p-4 rounded-[14px] bg-white/5 border border-white/10">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div>
+                    <h2 className="text-lg font-black text-white">{activeLesson.title}</h2>
+                    {activeLesson.description && <p className="text-xs text-slate-400 mt-1 leading-relaxed">{activeLesson.description}</p>}
+                  </div>
+                  <button
+                    onClick={() => markComplete(activeLesson, !activeLesson.isCompleted)}
+                    className={`shrink-0 px-3 py-2 rounded-[10px] text-[11px] font-black flex items-center gap-1 ${activeLesson.isCompleted ? "bg-emerald-500/20 text-emerald-400" : "bg-primary-600 text-white hover:bg-primary-700"}`}
+                  >
+                    {activeLesson.isCompleted ? <><CheckCheck className="w-3.5 h-3.5" /> تکمیل شد</> : <><Check className="w-3.5 h-3.5" /> علامت تکمیل</>}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="p-10 text-center text-slate-500 bg-white/5 border border-white/10 rounded-[16px]">
+              درسی انتخاب نشده — از لیست کنار یک درس انتخاب کن
+            </div>
+          )}
+        </div>
+
+        {/* Playlist sidebar */}
+        <div className="lg:col-span-1">
+          <div className="rounded-[16px] bg-white/5 border border-white/10 overflow-hidden">
+            <div className="p-4 bg-gradient-to-l from-primary-500/20 to-transparent border-b border-white/10">
+              <div className="text-xs text-slate-400 font-bold mb-1">فصل‌ها و درس‌ها</div>
+              <div className="text-[10px] text-primary-300">{selected.chapters.length} فصل • {selected.totalLessons} درس</div>
+            </div>
+            <div className="max-h-[70vh] overflow-y-auto">
+              {selected.chapters.map((ch: any, ci: number) => {
+                const open = openChapters[ch.id] ?? false;
+                return (
+                  <div key={ch.id}>
+                    <button
+                      onClick={() => setOpenChapters(p => ({...p, [ch.id]: !p[ch.id]}))}
+                      className="w-full flex items-center justify-between gap-2 p-3 hover:bg-white/5 border-b border-white/5 text-right"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="w-6 h-6 rounded-full bg-primary-500/15 text-primary-300 text-[10px] font-black flex items-center justify-center shrink-0">{(ci+1).toLocaleString("fa-IR")}</span>
+                        <span className="text-xs font-bold text-white truncate">{ch.title}</span>
+                      </div>
+                      {open ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
+                    </button>
+                    {open && (
+                      <div className="divide-y divide-white/5 bg-white/[0.02]">
+                        {ch.lessons.map((l: any) => {
+                          const isActive = activeLesson?.id === l.id;
+                          return (
+                            <button
+                              key={l.id}
+                              onClick={() => setActiveLesson(l)}
+                              className={`w-full flex items-center gap-2 p-3 text-right transition ${isActive ? "bg-primary-500/20" : "hover:bg-white/5"}`}
+                            >
+                              {l.isCompleted ? (
+                                <CheckCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                              ) : (
+                                <PlayCircle className={`w-4 h-4 shrink-0 ${isActive ? "text-primary-300" : "text-slate-500"}`} />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className={`text-[11px] font-bold truncate ${isActive ? "text-white" : "text-slate-300"}`}>{l.title}</div>
+                                {l.videoDuration > 0 && (
+                                  <div className="text-[9px] text-slate-500" dir="ltr">
+                                    {Math.floor(l.videoDuration/60)}:{String(l.videoDuration%60).padStart(2,"0")}
+                                  </div>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
