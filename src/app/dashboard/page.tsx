@@ -146,36 +146,36 @@ function StudentDashboardContent() {
   const regs = data?.registrations || [];
 
   return (
-    <div className="pt-20 bg-[#0B1120] min-h-screen text-white">
-      <div className="lg:flex lg:flex-row lg:min-h-[calc(100vh-80px)]">
-        {/* Mobile top compact bar */}
-        <div className="lg:hidden sticky top-20 z-30 bg-[#0B1120]/95 backdrop-blur-lg border-b border-white/10 px-4 py-3 flex items-center gap-3">
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="w-10 h-10 rounded-[12px] bg-primary-600/20 hover:bg-primary-600/30 border border-primary-500/30 flex items-center justify-center text-primary-300 cursor-pointer"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-black text-white truncate">{NAV_ITEMS.find(n => n.key === tab)?.label || "پنل هنرجو"}</div>
-            <div className="text-[10px] text-primary-300 font-bold truncate">{displayName}</div>
-          </div>
-          <button onClick={() => setTab("notifications")} className="relative w-9 h-9 rounded-[10px] bg-white/5 hover:bg-white/10 flex items-center justify-center cursor-pointer">
-            <Bell className="w-4 h-4" />
-            {stats.notificationsUnread > 0 && (
-              <span className="absolute -top-1 -left-1 w-4 h-4 rounded-full bg-error-500 text-[9px] font-black flex items-center justify-center">
-                {stats.notificationsUnread}
-              </span>
-            )}
-          </button>
+    <div className="bg-[#0B1120] min-h-screen text-white">
+      {/* Mobile top compact bar — چسبیده به Navbar */}
+      <div className="lg:hidden fixed top-20 left-0 right-0 z-40 bg-[#0B1120]/95 backdrop-blur-lg border-b border-white/10 px-4 py-2.5 flex items-center gap-3">
+        <button
+          onClick={() => setDrawerOpen(true)}
+          className="w-10 h-10 rounded-[12px] bg-primary-600/20 hover:bg-primary-600/30 border border-primary-500/30 flex items-center justify-center text-primary-300 cursor-pointer shrink-0"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-black text-white truncate">{NAV_ITEMS.find(n => n.key === tab)?.label || "پنل هنرجو"}</div>
+          <div className="text-[10px] text-primary-300 font-bold truncate">{displayName}</div>
         </div>
+        <button onClick={() => setTab("notifications")} className="relative w-9 h-9 rounded-[10px] bg-white/5 hover:bg-white/10 flex items-center justify-center cursor-pointer shrink-0">
+          <Bell className="w-4 h-4" />
+          {stats.notificationsUnread > 0 && (
+            <span className="absolute -top-1 -left-1 w-4 h-4 rounded-full bg-error-500 text-[9px] font-black flex items-center justify-center">
+              {stats.notificationsUnread}
+            </span>
+          )}
+        </button>
+      </div>
 
-        {drawerOpen && (
-          <div onClick={() => setDrawerOpen(false)} className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" />
-        )}
+      {drawerOpen && (
+        <div onClick={() => setDrawerOpen(false)} className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" />
+      )}
 
+      <div className="pt-[136px] lg:pt-20 lg:flex lg:flex-row lg:min-h-[calc(100vh-80px)]">
         <aside className={`shrink-0 bg-[#0B1120] lg:border-l lg:border-white/5 lg:w-72 lg:static lg:translate-x-0
-          fixed top-0 right-0 bottom-0 z-50 w-[85%] max-w-[320px] overflow-y-auto transition-transform duration-300 ease-out
+          fixed top-20 right-0 bottom-0 z-50 w-[85%] max-w-[320px] overflow-y-auto transition-transform duration-300 ease-out
           ${drawerOpen ? "translate-x-0 block" : "translate-x-full hidden lg:block lg:translate-x-0"}`}
           style={{ boxShadow: drawerOpen ? "-20px 0 60px rgba(0,0,0,0.5)" : undefined }}>
           <div className="p-5 flex items-center justify-between border-b border-white/10">
