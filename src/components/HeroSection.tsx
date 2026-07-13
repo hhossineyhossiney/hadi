@@ -72,7 +72,7 @@ export default function HeroSection() {
     <section className="relative min-h-[85vh] lg:min-h-[90vh] flex flex-col items-center justify-center overflow-hidden pb-16">
       {/* Map-grid background */}
       <div className="absolute inset-0">
-        <img src="/images/hero-map.jpg" alt="" className="w-full h-full object-cover" />
+        <img src="/images/hero-map.jpg" alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#0B1B3A]/85 via-[#0B1B3A]/70 to-[#0B1B3A]/95" />
       </div>
 
