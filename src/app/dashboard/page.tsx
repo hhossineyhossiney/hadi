@@ -346,7 +346,7 @@ function DashboardOverview({ data, stats, regs, setTab }: any) {
             <div className="flex flex-col md:flex-row gap-5 items-start">
               <div className="w-full md:w-40 h-40 rounded-[16px] bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shrink-0 relative overflow-hidden">
                 {currentCourse.courseImage ? (
-                  <img src={currentCourse.courseImage} alt="" className="w-full h-full object-cover" />
+                  <img src={currentCourse.courseImage} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                 ) : (
                   <Play className="w-12 h-12 text-white/80" />
                 )}
@@ -949,7 +949,7 @@ function CertificatesTab({ regs }: { regs: StudentReg[] }) {
           {certs.map((r) => (
             <div key={r.id} className="bg-white/5 border border-white/10 rounded-[16px] overflow-hidden">
               <div className="h-40 bg-gradient-to-br from-amber-500 to-orange-500 relative">
-                {r.certificateUrl && <img src={r.certificateUrl} alt="" className="w-full h-full object-cover" />}
+                {r.certificateUrl && <img src={r.certificateUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />}
                 <div className="absolute top-3 left-3">
                   <span className="px-2 py-1 rounded-full bg-black/50 text-white text-[10px] font-black flex items-center gap-1">
                     <BadgeCheck className="w-3 h-3" /> اصیل
@@ -1346,7 +1346,7 @@ function ProfileTab() {
         <div className="relative">
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center text-white font-black text-2xl overflow-hidden">
             {data.avatar ? (
-              <img src={data.avatar} alt="" className="w-full h-full object-cover" />
+              <img src={data.avatar} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
             ) : (
               (data.firstName || data.name || "?")[0]
             )}
@@ -1572,7 +1572,7 @@ function PortfolioTab({ user }: { user: any }) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {items.map((p) => (
               <div key={p.id} className="bg-white/5 border border-white/10 rounded-[16px] overflow-hidden">
-                {p.imageUrl && <img src={p.imageUrl} alt="" className="w-full h-32 object-cover" />}
+                {p.imageUrl && <img src={p.imageUrl} alt="" className="w-full h-32 object-cover" loading="lazy" decoding="async" />}
                 <div className="p-4">
                   <h4 className="font-black text-sm">{p.title}</h4>
                   {p.description && <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">{p.description}</p>}
@@ -2054,7 +2054,7 @@ function ShopPurchasesTab() {
               return (
                 <div key={p.purchaseId} className="rounded-[18px] overflow-hidden bg-gradient-to-br from-white/8 to-white/3 border border-white/10 hover:border-primary-500/40 transition-all">
                   <div className="relative aspect-[16/9] bg-gradient-to-br from-primary-600 via-secondary-600 to-primary-500">
-                    {p.course.coverImage && <img src={p.course.coverImage} className="absolute inset-0 w-full h-full object-cover opacity-90" />}
+                    {p.course.coverImage && <img src={p.course.coverImage} className="absolute inset-0 w-full h-full object-cover opacity-90" loading="lazy" decoding="async" />}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                     <div className="absolute top-2 right-2 flex flex-col gap-1">
                       <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-black flex items-center gap-1">
