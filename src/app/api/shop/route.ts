@@ -30,8 +30,15 @@ export async function GET(req: Request) {
       ORDER BY sc.is_featured DESC, sc.published_at DESC NULLS LAST
       LIMIT ${limit}
     `);
-    const list = (rows as any).rows || rows;
-    return NextResponse.json({ courses: list });
+    const list = ((rows as any).rows || rows) as any[];
+    // Replace Base64 cover_image with lightweight API URL
+    const pruned = list.map((c: any) => {
+      if (typeof c.cover_image === "string" && c.cover_image.startsWith("data:") && c.cover_image.length > 200) {
+        c.cover_image = `/api/media/shop_course/${c.id}?field=cover`;
+      }
+      return c;
+    });
+    return NextResponse.json({ courses: pruned });
   } catch (e: any) {
     return NextResponse.json({ courses: [], error: e?.message }, { status: 200 });
   }
