@@ -4,6 +4,7 @@ import InstituteBannerSlider from "@/components/InstituteBannerSlider";
 import { db } from "@/db";
 import { institutes, regions, courses, categories, reviews, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { pruneInstitute } from "@/lib/media-url";
 import Link from "next/link";
 import {
   MapPin,
@@ -58,7 +59,7 @@ export default async function InstituteDetailPage({
     .from(institutes)
     .leftJoin(regions, eq(institutes.regionId, regions.id))
     .where(eq(institutes.slug, slug))
-    .then((res) => res[0]);
+    .then((res) => res[0] ? pruneInstitute(res[0]) : res[0]);
 
   if (!institute) {
     return (
@@ -114,7 +115,7 @@ export default async function InstituteDetailPage({
         {Array.isArray(institute.bannerImages) && (institute.bannerImages as string[]).length > 0 ? (
           <InstituteBannerSlider images={institute.bannerImages as string[]} />
         ) : (
-          <img src="/images/institute-cover.jpg" alt="" className="w-full h-full object-cover" />
+          <img src="/images/institute-cover.jpg" alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0B1B3A]/95 via-[#0B1B3A]/50 to-[#0B1B3A]/20" />
 
