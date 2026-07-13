@@ -336,7 +336,7 @@ export default function StudentDocumentsModal({
             {previewDoc.fileType === "pdf" ? (
               <iframe src={previewDoc.fileUrl} className="w-full h-[80vh]" title={previewDoc.title} />
             ) : (
-              <img src={previewDoc.fileUrl} alt={previewDoc.title} className="w-full h-auto object-contain" />
+              <img src={previewDoc.fileUrl} alt={previewDoc.title} className="w-full h-auto object-contain" loading="lazy" decoding="async" />
             )}
             <button onClick={() => setPreviewDoc(null)} className="absolute top-2 left-2 p-2 rounded-full bg-black/60 text-white cursor-pointer">
               <X className="w-4 h-4" />
