@@ -13,6 +13,7 @@ import ShopShowcase from "@/components/ShopShowcase";
 import { db } from "@/db";
 import { categories, institutes, regions, courses, siteSettings } from "@/db/schema";
 import { eq, count, sql, inArray, and } from "drizzle-orm";
+import { pruneInstitute, pruneCourse } from "@/lib/media-url";
 
 export const dynamic = "force-dynamic";
 
@@ -81,7 +82,7 @@ export default async function HomePage() {
         .from(courses)
         .where(eq(courses.instituteId, inst.id))
         .then((res) => res[0]?.count || 0);
-      return { ...inst, courseCount };
+      return pruneInstitute({ ...inst, courseCount });
     })
   );
 
@@ -109,7 +110,7 @@ export default async function HomePage() {
     .leftJoin(institutes, eq(courses.instituteId, institutes.id))
     .leftJoin(categories, eq(courses.categoryId, categories.id));
 
-  const latestCourses =
+  const rawLatestCourses =
     featuredCourseIds.length > 0
       ? await courseBaseQuery.where(
           and(eq(courses.status, "approved"), inArray(courses.id, featuredCourseIds))
@@ -118,6 +119,7 @@ export default async function HomePage() {
           .where(eq(courses.status, "approved"))
           .orderBy(sql`${courses.createdAt} DESC`)
           .limit(12);
+  const latestCourses = rawLatestCourses.map(pruneCourse);
 
   const instituteListForFilter = await db
     .select({
