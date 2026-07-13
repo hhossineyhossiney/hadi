@@ -4,6 +4,7 @@ import InstitutesFilter from "@/components/InstitutesFilter";
 import { db } from "@/db";
 import { institutes, regions, courses } from "@/db/schema";
 import { eq, count, sql } from "drizzle-orm";
+import { pruneInstitute } from "@/lib/media-url";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,7 @@ export default async function InstitutesPage() {
         .from(courses)
         .where(eq(courses.instituteId, inst.id))
         .then((res) => res[0]?.count || 0);
-      return { ...inst, courseCount };
+      return pruneInstitute({ ...inst, courseCount });
     })
   );
 
