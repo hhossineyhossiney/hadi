@@ -2,6 +2,9 @@ import { db } from "@/db";
 import { stories, institutes } from "@/db/schema";
 import { eq, and, lte, gt, asc } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { toApiUrl } from "@/lib/media-url";
+
+const isB64 = (v: any) => typeof v === "string" && v.startsWith("data:") && v.length > 200;
 
 export const dynamic = "force-dynamic";
 
@@ -47,13 +50,13 @@ export async function GET() {
         instituteId: s.instituteId,
         instituteName: s.instituteName,
         instituteSlug: s.instituteSlug,
-        profilePhoto: s.profilePhoto,
+        profilePhoto: isB64(s.profilePhoto) ? toApiUrl("institute", s.instituteId, "profilePhoto") : s.profilePhoto,
         stories: [],
       });
     }
     grouped.get(s.instituteId).stories.push({
       id: s.id,
-      mediaUrl: s.mediaUrl,
+      mediaUrl: isB64(s.mediaUrl) ? toApiUrl("story", s.id, "media") : s.mediaUrl,
       mediaType: s.mediaType,
       caption: s.caption,
       expiresAt: s.expiresAt,
