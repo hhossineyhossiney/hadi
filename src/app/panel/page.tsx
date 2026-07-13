@@ -21,7 +21,7 @@ import MoneyInput from "@/components/MoneyInput";
 import WeekdayPicker from "@/components/WeekdayPicker";
 import { calculateCourseSchedule, formatScheduleDays } from "@/lib/schedule";
 
-type TabKey = "dashboard" | "courses" | "students" | "sessions" | "progress" | "shop" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
+type TabKey = "dashboard" | "courses" | "shop" | "students" | "sessions" | "progress" | "live" | "assignments" | "quizzes" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
@@ -30,6 +30,9 @@ const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "students", label: "لیست هنرجویان", icon: Users },
   { key: "progress", label: "وضعیت پیشرفت هنرجویان", icon: TrendingUp },
   { key: "sessions", label: "تقویم جلسات دوره‌ها", icon: CalendarDays },
+  { key: "live", label: "کلاس‌های آنلاین (Live)", icon: Video },
+  { key: "assignments", label: "مدیریت تکالیف", icon: ImageIcon },
+  { key: "quizzes", label: "مدیریت آزمون‌ها", icon: Check },
   { key: "notifications", label: "ارسال اعلان", icon: Bell },
   { key: "gallery", label: "گالری نمونه‌کارها", icon: ImageIcon },
   { key: "banner", label: "بنر اسلایدی آموزشگاه", icon: ImagePlus },
@@ -222,9 +225,475 @@ export default function ManagerPanelPage() {
           {tab === "progress" && <ProgressManagerTab data={data} refresh={fetchData} />}
           {tab === "telegram" && <TelegramTab institute={institute} />}
           {tab === "shop" && <ShopTab />}
+          {tab === "live" && <ManagerLiveTab data={data} />}
+          {tab === "assignments" && <ManagerAssignmentsTab data={data} />}
+          {tab === "quizzes" && <ManagerQuizzesTab data={data} />}
         </div>
       </div>
     </main>
+  );
+}
+
+/* ============================= LIVE CLASSES MANAGER TAB ============================= */
+function ManagerLiveTab({ data }: { data: any }) {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [form, setForm] = useState<any>({
+    courseId: "", title: "", description: "", meetingUrl: "",
+    provider: "skyroom", meetingId: "", password: "",
+    scheduledAt: "", durationMinutes: 60,
+  });
+  const courses = (data?.courses || []) as any[];
+
+  const load = () => {
+    setLoading(true);
+    fetch("/api/manager/learning?kind=live").then(r => r.json()).then(d => { setItems(d.items || []); setLoading(false); });
+  };
+  useEffect(load, []);
+
+  const act = async (payload: any) => {
+    const r = await fetch("/api/manager/learning", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+    const d = await r.json();
+    if (r.ok) { setMsg("✅ ذخیره شد"); load(); return true; }
+    setMsg("❌ " + (d.error || "خطا")); return false;
+  };
+
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <h2 className="text-2xl font-black mb-1 flex items-center gap-2"><Video className="w-5 h-5 text-primary-400" /> کلاس‌های آنلاین (Live)</h2>
+          <p className="text-slate-400 text-sm">زمان‌بندی و ارسال لینک کلاس Skyroom/Zoom/Meet برای هنرجویان</p>
+        </div>
+        <button onClick={() => setCreating(!creating)} className="px-4 py-2 rounded-[12px] bg-gradient-to-l from-primary-500 to-secondary-500 text-white font-black text-sm flex items-center gap-1">
+          <Plus className="w-4 h-4" /> {creating ? "بستن فرم" : "افزودن کلاس Live"}
+        </button>
+      </div>
+
+      {msg && <div className={`mb-4 p-3 rounded-[10px] text-xs font-bold ${msg.startsWith("❌") ? "bg-error-500/15 text-error-400" : "bg-emerald-500/15 text-emerald-400"}`}>{msg}</div>}
+
+      {creating && (
+        <div className="mb-4 p-5 rounded-[16px] bg-[#111a2e] border border-white/10 space-y-3">
+          <div className="grid md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-black text-slate-400 block mb-1">دوره *</label>
+              <select value={form.courseId} onChange={e => setForm({...form, courseId: e.target.value})} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold">
+                <option value="">— انتخاب دوره —</option>
+                {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 block mb-1">پلتفرم</label>
+              <select value={form.provider} onChange={e => setForm({...form, provider: e.target.value})} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold">
+                <option value="skyroom">Skyroom</option>
+                <option value="zoom">Zoom</option>
+                <option value="meet">Google Meet</option>
+                <option value="aparat">آپارات</option>
+                <option value="other">سایر</option>
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-[10px] font-black text-slate-400 block mb-1">عنوان کلاس *</label>
+              <input value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="مثلاً: جلسه ۳ - ابزار Pen Tool" className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-[10px] font-black text-slate-400 block mb-1">لینک کلاس (URL) *</label>
+              <input value={form.meetingUrl} onChange={e => setForm({...form, meetingUrl: e.target.value})} placeholder="https://..." dir="ltr" className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-xs font-bold" />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 block mb-1">Meeting ID (اختیاری)</label>
+              <input value={form.meetingId} onChange={e => setForm({...form, meetingId: e.target.value})} dir="ltr" className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 block mb-1">رمز ورود (اختیاری)</label>
+              <input value={form.password} onChange={e => setForm({...form, password: e.target.value})} dir="ltr" className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 block mb-1">زمان شروع *</label>
+              <input type="datetime-local" value={form.scheduledAt} onChange={e => setForm({...form, scheduledAt: e.target.value})} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 block mb-1">مدت (دقیقه)</label>
+              <input type="number" value={form.durationMinutes} onChange={e => setForm({...form, durationMinutes: Number(e.target.value)})} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-[10px] font-black text-slate-400 block mb-1">توضیحات (اختیاری)</label>
+              <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={2} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-xs font-bold resize-none" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={async () => {
+              if (!form.courseId || !form.title || !form.meetingUrl || !form.scheduledAt) { setMsg("❌ فیلدهای ستاره‌دار الزامی است"); return; }
+              if (await act({ action: "createLive", ...form })) { setCreating(false); setForm({courseId:"",title:"",description:"",meetingUrl:"",provider:"skyroom",meetingId:"",password:"",scheduledAt:"",durationMinutes:60}); }
+            }} className="px-5 py-2.5 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white font-black text-sm">ذخیره کلاس</button>
+            <button onClick={() => setCreating(false)} className="px-5 py-2.5 rounded-[10px] bg-white/5 text-slate-300 font-black text-sm">انصراف</button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>
+      ) : items.length === 0 ? (
+        <div className="text-center py-16 bg-[#111a2e] border border-white/5 rounded-[16px]">
+          <Video className="w-12 h-12 mx-auto text-slate-500 mb-3" />
+          <p className="text-slate-500 text-sm">هنوز کلاس Live ایجاد نکرده‌اید. با دکمه بالا اقدام کنید.</p>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {items.map((l: any) => {
+            const now = Date.now();
+            const start = new Date(l.scheduled_at).getTime();
+            const isLive = l.status === "live" || (Math.abs(start - now) < 15 * 60 * 1000 && l.status !== "ended");
+            return (
+              <div key={l.id} className="p-4 rounded-[16px] bg-[#111a2e] border border-white/10">
+                <div className="flex items-start justify-between mb-2 gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      {isLive && <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-[9px] font-black animate-pulse">🔴 در حال پخش</span>}
+                      <span className="px-2 py-0.5 rounded-full bg-primary-500/20 text-primary-300 text-[9px] font-black">{l.provider}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${l.status === "scheduled" ? "bg-amber-500/20 text-amber-400" : l.status === "ended" ? "bg-slate-500/20 text-slate-400" : "bg-emerald-500/20 text-emerald-400"}`}>
+                        {l.status === "scheduled" ? "زمان‌بندی شده" : l.status === "ended" ? "پایان یافته" : l.status === "cancelled" ? "لغو شده" : "زنده"}
+                      </span>
+                    </div>
+                    <h3 className="font-black text-white text-sm">{l.title}</h3>
+                    <div className="text-[10px] text-slate-400 mt-1">{l.course_title}</div>
+                  </div>
+                </div>
+                <div className="text-[10px] text-slate-400 space-y-1 mb-3">
+                  <div>📅 {new Date(l.scheduled_at).toLocaleString("fa-IR")}</div>
+                  <div>⏱ {l.duration_minutes} دقیقه</div>
+                  {l.password && <div>🔑 رمز: <code>{l.password}</code></div>}
+                </div>
+                <div className="flex gap-1.5 flex-wrap">
+                  <a href={l.meeting_url} target="_blank" rel="noopener" className="flex-1 px-2.5 py-1.5 rounded-[8px] bg-primary-600 hover:bg-primary-700 text-white text-[10px] font-black flex items-center justify-center gap-1">
+                    <Video className="w-3 h-3" /> باز کردن لینک
+                  </a>
+                  {l.status !== "ended" && (
+                    <button onClick={() => act({ action: "updateLiveStatus", id: l.id, status: "ended" })} className="px-2.5 py-1.5 rounded-[8px] bg-amber-500/20 text-amber-400 text-[10px] font-black">پایان</button>
+                  )}
+                  <button onClick={() => { if (confirm("حذف این کلاس؟")) act({ action: "deleteLive", id: l.id }); }} className="p-1.5 rounded-[8px] bg-error-500/20 text-error-400"><Trash2 className="w-3 h-3" /></button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================= ASSIGNMENTS MANAGER TAB ============================= */
+function ManagerAssignmentsTab({ data }: { data: any }) {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [reviewing, setReviewing] = useState<any>(null);
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [form, setForm] = useState<any>({ courseId: "", title: "", description: "", dueDate: "", maxScore: 100 });
+  const courses = (data?.courses || []) as any[];
+
+  const load = () => {
+    setLoading(true);
+    fetch("/api/manager/learning?kind=assignments").then(r => r.json()).then(d => { setItems(d.items || []); setLoading(false); });
+  };
+  useEffect(load, []);
+
+  const act = async (payload: any) => {
+    const r = await fetch("/api/manager/learning", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+    const d = await r.json();
+    if (r.ok) { setMsg("✅ ذخیره شد"); load(); return true; }
+    setMsg("❌ " + (d.error || "خطا")); return false;
+  };
+
+  const openReview = async (a: any) => {
+    setReviewing(a);
+    const d = await fetch(`/api/manager/learning?kind=submissions&assignmentId=${a.id}`).then(r => r.json());
+    setSubmissions(d.items || []);
+  };
+  const reviewSub = async (subId: number, score: number, feedback: string, status: string) => {
+    await act({ action: "reviewSubmission", submissionId: subId, score, feedback, status });
+    openReview(reviewing);
+  };
+
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <h2 className="text-2xl font-black mb-1 flex items-center gap-2">📝 مدیریت تکالیف</h2>
+          <p className="text-slate-400 text-sm">تعریف تکلیف برای دوره‌ها + بررسی و نمره‌دهی به پاسخ هنرجویان</p>
+        </div>
+        <button onClick={() => setCreating(!creating)} className="px-4 py-2 rounded-[12px] bg-gradient-to-l from-primary-500 to-secondary-500 text-white font-black text-sm flex items-center gap-1">
+          <Plus className="w-4 h-4" /> {creating ? "بستن" : "تکلیف جدید"}
+        </button>
+      </div>
+
+      {msg && <div className={`mb-4 p-3 rounded-[10px] text-xs font-bold ${msg.startsWith("❌") ? "bg-error-500/15 text-error-400" : "bg-emerald-500/15 text-emerald-400"}`}>{msg}</div>}
+
+      {creating && (
+        <div className="mb-4 p-5 rounded-[16px] bg-[#111a2e] border border-white/10 space-y-3">
+          <div className="grid md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-black text-slate-400 block mb-1">دوره *</label>
+              <select value={form.courseId} onChange={e => setForm({...form, courseId: e.target.value})} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold">
+                <option value="">— انتخاب دوره —</option>
+                {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 block mb-1">نمره کل</label>
+              <input type="number" value={form.maxScore} onChange={e => setForm({...form, maxScore: Number(e.target.value)})} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-[10px] font-black text-slate-400 block mb-1">عنوان تکلیف *</label>
+              <input value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-[10px] font-black text-slate-400 block mb-1">شرح تکلیف</label>
+              <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={4} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-xs font-bold resize-none" />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 block mb-1">موعد تحویل</label>
+              <input type="datetime-local" value={form.dueDate} onChange={e => setForm({...form, dueDate: e.target.value})} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={async () => {
+              if (!form.courseId || !form.title) { setMsg("❌ دوره و عنوان الزامی است"); return; }
+              if (await act({ action: "createAssignment", ...form })) { setCreating(false); setForm({courseId:"",title:"",description:"",dueDate:"",maxScore:100}); }
+            }} className="px-5 py-2.5 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white font-black text-sm">ذخیره تکلیف</button>
+            <button onClick={() => setCreating(false)} className="px-5 py-2.5 rounded-[10px] bg-white/5 text-slate-300 font-black text-sm">انصراف</button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>
+      ) : items.length === 0 ? (
+        <div className="text-center py-16 bg-[#111a2e] border border-white/5 rounded-[16px]">
+          <p className="text-slate-500 text-sm">تکلیفی تعریف نکرده‌اید</p>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-3">
+          {items.map((a: any) => (
+            <div key={a.id} className="p-5 rounded-[16px] bg-[#111a2e] border border-white/10">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-black text-white text-sm">{a.title}</h3>
+                  <div className="text-[10px] text-slate-400 mt-1">{a.course_title}</div>
+                </div>
+                <button onClick={() => { if (confirm("حذف این تکلیف و همه پاسخ‌ها؟")) act({ action: "deleteAssignment", id: a.id }); }} className="p-1.5 rounded-[6px] bg-error-500/20 text-error-400"><Trash2 className="w-3 h-3" /></button>
+              </div>
+              {a.description && <p className="text-xs text-slate-300 mb-3 leading-relaxed line-clamp-2">{a.description}</p>}
+              <div className="grid grid-cols-3 gap-2 mb-3 text-[10px] text-slate-400">
+                <div>📊 نمره: {a.max_score}</div>
+                <div>📬 پاسخ‌ها: {a.submissions_count}</div>
+                <div>🟡 در انتظار: {a.pending_count}</div>
+              </div>
+              {a.due_date && <div className="text-[10px] text-amber-300 mb-3">⏰ موعد: {new Date(a.due_date).toLocaleString("fa-IR")}</div>}
+              <button onClick={() => openReview(a)} className="w-full px-3 py-2 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white text-[11px] font-black">
+                بررسی پاسخ‌ها ({a.submissions_count})
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {reviewing && (
+        <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4" onClick={() => setReviewing(null)}>
+          <div className="w-full max-w-3xl max-h-[85vh] overflow-y-auto bg-[#082D53] rounded-[18px] border border-white/10 p-5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="text-lg font-black text-white">{reviewing.title}</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">{reviewing.course_title}</div>
+              </div>
+              <button onClick={() => setReviewing(null)} className="p-2 rounded-[8px] bg-white/10 text-white"><X className="w-4 h-4" /></button>
+            </div>
+            {submissions.length === 0 ? (
+              <div className="p-10 text-center text-slate-500">هنوز پاسخی دریافت نشده</div>
+            ) : (
+              <div className="space-y-3">
+                {submissions.map((s: any) => (
+                  <div key={s.id} className="p-4 rounded-[12px] bg-white/5 border border-white/10">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-sm font-black text-white">{s.user_name} <span className="text-[10px] text-slate-500 font-normal" dir="ltr">{s.user_phone}</span></div>
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${s.status === "reviewed" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"}`}>
+                        {s.status === "reviewed" ? "بررسی شد" : "در انتظار"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 whitespace-pre-wrap mb-2 p-2 rounded-[8px] bg-black/30">{s.submission_text || "بدون متن"}</p>
+                    {s.file_url && <a href={s.file_url} target="_blank" rel="noopener" className="inline-block text-[10px] text-primary-300 hover:underline mb-2">📎 فایل ضمیمه</a>}
+                    <div className="flex items-center gap-2 mt-2">
+                      <input type="number" defaultValue={s.score || 0} placeholder="نمره" id={`score-${s.id}`} className="w-20 px-2 py-1 rounded-[6px] bg-white/85 text-slate-900 text-xs font-bold" dir="ltr" />
+                      <input type="text" defaultValue={s.feedback || ""} placeholder="بازخورد" id={`fb-${s.id}`} className="flex-1 px-2 py-1 rounded-[6px] bg-white/85 text-slate-900 text-xs font-bold" />
+                      <button onClick={() => {
+                        const sc = Number((document.getElementById(`score-${s.id}`) as HTMLInputElement).value);
+                        const fb = (document.getElementById(`fb-${s.id}`) as HTMLInputElement).value;
+                        reviewSub(s.id, sc, fb, "reviewed");
+                      }} className="px-3 py-1 rounded-[6px] bg-emerald-600 text-white text-[10px] font-black">ثبت نمره</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================= QUIZZES MANAGER TAB ============================= */
+function ManagerQuizzesTab({ data }: { data: any }) {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [form, setForm] = useState<any>({
+    courseId: "", title: "", description: "", durationMinutes: 30, passingScore: 60,
+    questions: [{ q: "", options: ["", "", "", ""], correctIndex: 0, points: 1 }],
+  });
+  const courses = (data?.courses || []) as any[];
+
+  const load = () => {
+    setLoading(true);
+    fetch("/api/manager/learning?kind=quizzes").then(r => r.json()).then(d => { setItems(d.items || []); setLoading(false); });
+  };
+  useEffect(load, []);
+
+  const act = async (payload: any) => {
+    const r = await fetch("/api/manager/learning", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+    const d = await r.json();
+    if (r.ok) { setMsg("✅ ذخیره شد"); load(); return true; }
+    setMsg("❌ " + (d.error || "خطا")); return false;
+  };
+
+  const addQuestion = () => setForm({...form, questions: [...form.questions, { q: "", options: ["","","",""], correctIndex: 0, points: 1 }]});
+  const removeQuestion = (idx: number) => setForm({...form, questions: form.questions.filter((_: any, i: number) => i !== idx)});
+  const updateQ = (idx: number, key: string, val: any) => {
+    const qs = [...form.questions];
+    qs[idx] = { ...qs[idx], [key]: val };
+    setForm({...form, questions: qs});
+  };
+  const updateOpt = (idx: number, oi: number, val: string) => {
+    const qs = [...form.questions];
+    qs[idx].options[oi] = val;
+    setForm({...form, questions: qs});
+  };
+
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <h2 className="text-2xl font-black mb-1 flex items-center gap-2">📊 مدیریت آزمون‌ها</h2>
+          <p className="text-slate-400 text-sm">تعریف آزمون چند گزینه‌ای برای دوره‌ها با اعلام نمره خودکار</p>
+        </div>
+        <button onClick={() => setCreating(!creating)} className="px-4 py-2 rounded-[12px] bg-gradient-to-l from-primary-500 to-secondary-500 text-white font-black text-sm flex items-center gap-1">
+          <Plus className="w-4 h-4" /> {creating ? "بستن" : "آزمون جدید"}
+        </button>
+      </div>
+
+      {msg && <div className={`mb-4 p-3 rounded-[10px] text-xs font-bold ${msg.startsWith("❌") ? "bg-error-500/15 text-error-400" : "bg-emerald-500/15 text-emerald-400"}`}>{msg}</div>}
+
+      {creating && (
+        <div className="mb-4 p-5 rounded-[16px] bg-[#111a2e] border border-white/10 space-y-4">
+          <div className="grid md:grid-cols-3 gap-3">
+            <div>
+              <label className="text-[10px] font-black text-slate-400 block mb-1">دوره *</label>
+              <select value={form.courseId} onChange={e => setForm({...form, courseId: e.target.value})} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold">
+                <option value="">— انتخاب دوره —</option>
+                {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 block mb-1">مدت (دقیقه)</label>
+              <input type="number" value={form.durationMinutes} onChange={e => setForm({...form, durationMinutes: Number(e.target.value)})} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 block mb-1">حد قبولی (٪)</label>
+              <input type="number" value={form.passingScore} onChange={e => setForm({...form, passingScore: Number(e.target.value)})} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+            </div>
+            <div className="md:col-span-3">
+              <label className="text-[10px] font-black text-slate-400 block mb-1">عنوان آزمون *</label>
+              <input value={form.title} onChange={e => setForm({...form, title: e.target.value})} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" />
+            </div>
+            <div className="md:col-span-3">
+              <label className="text-[10px] font-black text-slate-400 block mb-1">توضیح (اختیاری)</label>
+              <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={2} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-xs font-bold resize-none" />
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-white/5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm font-black text-white">سوالات ({form.questions.length})</div>
+              <button onClick={addQuestion} className="px-3 py-1.5 rounded-[8px] bg-primary-600 text-white text-[10px] font-black flex items-center gap-1"><Plus className="w-3 h-3" /> افزودن سوال</button>
+            </div>
+            <div className="space-y-3">
+              {form.questions.map((q: any, qi: number) => (
+                <div key={qi} className="p-3 rounded-[10px] bg-white/5 border border-white/10">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-[11px] font-black text-primary-300">سوال {qi + 1}</div>
+                    {form.questions.length > 1 && (
+                      <button onClick={() => removeQuestion(qi)} className="p-1 rounded-[4px] bg-error-500/20 text-error-400"><Trash2 className="w-3 h-3" /></button>
+                    )}
+                  </div>
+                  <input value={q.q} onChange={e => updateQ(qi, "q", e.target.value)} placeholder="متن سوال..." className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold mb-2" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+                    {q.options.map((opt: string, oi: number) => (
+                      <div key={oi} className="flex items-center gap-2">
+                        <input type="radio" name={`correct-${qi}`} checked={q.correctIndex === oi} onChange={() => updateQ(qi, "correctIndex", oi)} className="shrink-0" />
+                        <input value={opt} onChange={e => updateOpt(qi, oi, e.target.value)} placeholder={`گزینه ${oi + 1}`} className="flex-1 px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold" />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-[10px] text-slate-400">💡 گزینه صحیح را با رادیو انتخاب کنید</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <button onClick={async () => {
+              if (!form.courseId || !form.title) { setMsg("❌ دوره و عنوان الزامی است"); return; }
+              if (form.questions.some((q: any) => !q.q.trim() || q.options.some((o: string) => !o.trim()))) { setMsg("❌ همه سوالات و گزینه‌ها باید پر شوند"); return; }
+              if (await act({ action: "createQuiz", ...form })) { setCreating(false); setForm({courseId:"",title:"",description:"",durationMinutes:30,passingScore:60,questions:[{q:"",options:["","","",""],correctIndex:0,points:1}]}); }
+            }} className="px-5 py-2.5 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white font-black text-sm">ذخیره آزمون</button>
+            <button onClick={() => setCreating(false)} className="px-5 py-2.5 rounded-[10px] bg-white/5 text-slate-300 font-black text-sm">انصراف</button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>
+      ) : items.length === 0 ? (
+        <div className="text-center py-16 bg-[#111a2e] border border-white/5 rounded-[16px]">
+          <p className="text-slate-500 text-sm">آزمونی تعریف نکرده‌اید</p>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-3">
+          {items.map((q: any) => (
+            <div key={q.id} className="p-5 rounded-[16px] bg-[#111a2e] border border-white/10">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-black text-white text-sm">{q.title}</h3>
+                  <div className="text-[10px] text-slate-400 mt-1">{q.course_title}</div>
+                </div>
+                <button onClick={() => { if (confirm("حذف این آزمون و نتایج؟")) act({ action: "deleteQuiz", id: q.id }); }} className="p-1.5 rounded-[6px] bg-error-500/20 text-error-400"><Trash2 className="w-3 h-3" /></button>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 mb-3">
+                <div>⏱ {q.duration_minutes} دقیقه</div>
+                <div>✅ حد قبولی: {q.passing_score}٪</div>
+                <div>📝 {(q.questions || []).length} سوال</div>
+                <div>👥 {q.attempts_count} شرکت‌کننده</div>
+                <div className="col-span-2">🏆 قبول‌شده‌ها: {q.passed_count}/{q.attempts_count}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
