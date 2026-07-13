@@ -879,7 +879,7 @@ function ShopTab() {
           {courses.map((c: any) => (
             <div key={c.id} className="rounded-[16px] bg-[#111a2e] border border-white/10 overflow-hidden hover:border-primary-500/40 transition-all">
               <div className="relative aspect-[16/9] bg-gradient-to-br from-primary-600 to-secondary-600">
-                {c.coverImage && <img src={c.coverImage} className="absolute inset-0 w-full h-full object-cover opacity-80" />}
+                {c.coverImage && <img src={c.coverImage} className="absolute inset-0 w-full h-full object-cover opacity-80" loading="lazy" decoding="async" />}
                 <div className="absolute top-2 right-2 flex flex-col gap-1">
                   <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${c.isPublished ? "bg-emerald-500 text-white" : "bg-amber-500 text-black"}`}>
                     {c.isPublished ? "منتشر شده" : "پیش‌نویس"}
@@ -940,7 +940,7 @@ function ImagePickField({ value, onChange, label = "تصویر" }: { value: stri
       <div className="flex items-center gap-2">
         {value ? (
           <div className="relative w-16 h-16 rounded-[10px] overflow-hidden border border-white/10 shrink-0">
-            <img src={value} className="w-full h-full object-cover" />
+            <img src={value} className="w-full h-full object-cover" loading="lazy" decoding="async" />
             <button onClick={() => onChange("")} className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 flex items-center justify-center text-error-400 transition"><X className="w-5 h-5" /></button>
           </div>
         ) : (
@@ -1053,7 +1053,7 @@ function ShopCourseManagerModal({ courseId, onClose }: { courseId: number; onClo
                       <div className="p-4 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div className="w-8 h-8 rounded-[8px] bg-primary-500/20 text-primary-300 flex items-center justify-center text-xs font-black">{(i+1).toLocaleString("fa-IR")}</div>
-                          {ch.coverImage && <img src={ch.coverImage} className="w-12 h-12 rounded-[8px] object-cover shrink-0 border border-white/10" />}
+                          {ch.coverImage && <img src={ch.coverImage} className="w-12 h-12 rounded-[8px] object-cover shrink-0 border border-white/10" loading="lazy" decoding="async" />}
                           <div className="min-w-0">
                             <div className="text-sm font-black text-white truncate">{ch.title}</div>
                             <div className="text-[10px] text-slate-400 flex items-center gap-1.5">
@@ -1141,7 +1141,7 @@ function ShopCourseManagerModal({ courseId, onClose }: { courseId: number; onClo
                               <div className="p-3 flex items-center gap-3">
                                 <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-slate-300 font-black">{(li+1).toLocaleString("fa-IR")}</div>
                                 {l.coverImage ? (
-                                  <img src={l.coverImage} className="w-9 h-9 rounded-[6px] object-cover shrink-0 border border-white/10" />
+                                  <img src={l.coverImage} className="w-9 h-9 rounded-[6px] object-cover shrink-0 border border-white/10" loading="lazy" decoding="async" />
                                 ) : (
                                   l.isFree ? <PlayCircle className="w-4 h-4 text-emerald-400" /> : <Lock className="w-4 h-4 text-slate-500" />
                                 )}
@@ -1588,7 +1588,7 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
                       <div className="grid grid-cols-3 gap-2">
                         {c.bannerImages.map((img: string, i: number) => (
                           <div key={i} className="relative group rounded-[8px] overflow-hidden border border-white/10 aspect-video">
-                            <img src={img} alt="" className="w-full h-full object-cover" />
+                            <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                             <button onClick={() => deleteCourseBanner(c.id, i)} className="absolute top-1 left-1 p-1 rounded-[6px] bg-error-500 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                               <Trash2 className="w-3 h-3" />
                             </button>
@@ -2054,7 +2054,7 @@ function GalleryTab({ data, refresh }: { data: any; refresh: () => void }) {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {institute.images.map((img: string, i: number) => (
             <div key={i} className="relative group rounded-[14px] overflow-hidden border border-white/10 aspect-square">
-              <img src={img} alt={`نمونه‌کار ${i + 1}`} className="w-full h-full object-cover" />
+              <img src={img} alt={`نمونه‌کار ${i + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
               <button onClick={() => deleteImage(i)} className="absolute top-2 left-2 p-1.5 rounded-[8px] bg-error-500 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -2105,7 +2105,7 @@ function BannerTab({ data, refresh }: { data: any; refresh: () => void }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {institute.bannerImages.map((img: string, i: number) => (
             <div key={i} className="relative group rounded-[14px] overflow-hidden border border-white/10 aspect-video">
-              <img src={img} alt={`بنر ${i + 1}`} className="w-full h-full object-cover" />
+              <img src={img} alt={`بنر ${i + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
               <button onClick={() => deleteBanner(i)} className="absolute top-2 left-2 p-1.5 rounded-[8px] bg-error-500 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
