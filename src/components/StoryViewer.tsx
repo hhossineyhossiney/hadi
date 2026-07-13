@@ -166,7 +166,7 @@ export default function StoryViewer({
         <div className="absolute top-7 left-3 right-3 z-30 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             {group.profilePhoto ? (
-              <img src={group.profilePhoto} alt="" className="w-9 h-9 rounded-full object-cover border-2 border-white/70" />
+              <img src={group.profilePhoto} alt="" className="w-9 h-9 rounded-full object-cover border-2 border-white/70" loading="lazy" decoding="async" />
             ) : (
               <div className="w-9 h-9 rounded-full gradient-button flex items-center justify-center border-2 border-white/70">
                 <span className="text-white text-xs font-black">{group.instituteName.charAt(0)}</span>
@@ -212,7 +212,7 @@ export default function StoryViewer({
               onEnded={goNextStory}
             />
           ) : (
-            <img src={story.mediaUrl} alt="" className="w-full h-full object-contain" />
+            <img src={story.mediaUrl} alt="" className="w-full h-full object-contain" loading="lazy" decoding="async" />
           )}
         </div>
 
