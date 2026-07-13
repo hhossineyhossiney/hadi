@@ -14,10 +14,12 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import { useMobilePanelDrawer } from "@/components/panel/useMobilePanelDrawer";
 import { normalizePhone } from "@/lib/phone";
 
-type TabKey = "dashboard" | "institutes" | "awards" | "managers" | "registrations" | "finance" | "chat" | "categories" | "regions" | "faqs" | "homepage" | "telegram" | "shop_perms";
+type TabKey = "dashboard" | "analytics" | "tickets" | "institutes" | "awards" | "managers" | "registrations" | "finance" | "chat" | "categories" | "regions" | "faqs" | "homepage" | "telegram" | "shop_perms";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد مدیریتی", icon: LayoutDashboard },
+  { key: "analytics", label: "نمودارها و گزارش‌ها", icon: TrendingUp },
+  { key: "tickets", label: "تیکت‌های پشتیبانی", icon: HelpCircle },
   { key: "institutes", label: "مدیریت آموزشگاه‌ها", icon: Building2 },
   { key: "awards", label: "برگزیدگان سال ⭐", icon: Award },
   { key: "managers", label: "مدیران آموزشگاه‌ها", icon: Users2 },
@@ -192,6 +194,8 @@ export default function AdminPage() {
           {tab === "chat" && <AdminChatTab />}
           {tab === "telegram" && <TelegramTab />}
           {tab === "shop_perms" && <ShopPermsTab />}
+          {tab === "analytics" && <AnalyticsTab />}
+          {tab === "tickets" && <AdminTicketsTab />}
         </div>
       </div>
     </main>
@@ -1592,6 +1596,303 @@ function ShopPermsTab() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============ ANALYTICS TAB (نمودارها + آخرین فعالیت‌ها) ============ */
+function AnalyticsTab() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    fetch("/api/admin/analytics").then(r => r.json()).then(d => { setData(d); setLoading(false); });
+  }, []);
+  if (loading) return <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>;
+  if (!data || data.error) return <div className="p-10 text-center text-red-400">خطا در بارگذاری</div>;
+
+  const t = data.totals || {};
+  const rev = data.revenueChart || [];
+  const cats = data.categoryChart || [];
+  const acts = data.activities || [];
+
+  // Simple SVG line chart
+  const chartW = 400, chartH = 160, pad = 20;
+  const maxRev = Math.max(1, ...rev.map((r: any) => Number(r.revenue || 0)));
+  const revPoints = rev.map((r: any, i: number) => {
+    const x = pad + (i * (chartW - 2 * pad)) / Math.max(1, rev.length - 1);
+    const y = chartH - pad - (Number(r.revenue || 0) / maxRev) * (chartH - 2 * pad);
+    return `${x},${y}`;
+  }).join(" ");
+
+  // Donut chart
+  const totalCats = cats.reduce((s: number, c: any) => s + Number(c.count), 0);
+  const donutColors = ["#14B8A6", "#3178BF", "#D4AF37", "#EC4899", "#A855F7", "#F59E0B", "#22C55E", "#0EA5E9"];
+  let cumAngle = 0;
+  const donutSegments = cats.map((c: any, i: number) => {
+    const pct = Number(c.count) / Math.max(1, totalCats);
+    const angle = pct * 360;
+    const startAngle = cumAngle;
+    cumAngle += angle;
+    const large = angle > 180 ? 1 : 0;
+    const r = 60, cx = 80, cy = 80;
+    const x1 = cx + r * Math.cos((startAngle - 90) * Math.PI / 180);
+    const y1 = cy + r * Math.sin((startAngle - 90) * Math.PI / 180);
+    const x2 = cx + r * Math.cos((cumAngle - 90) * Math.PI / 180);
+    const y2 = cy + r * Math.sin((cumAngle - 90) * Math.PI / 180);
+    return { path: `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`, color: donutColors[i % donutColors.length], name: c.name, count: c.count, pct: Math.round(pct * 100) };
+  });
+
+  return (
+    <div>
+      <h2 className="text-2xl font-black text-white mb-1">📊 نمودارها و گزارش‌ها</h2>
+      <p className="text-slate-400 text-sm mb-6">تحلیل جامع عملکرد پلتفرم</p>
+
+      {/* Top stat cards with growth */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <StatCardGrowth label="کل کاربران" value={Number(t.totalUsers).toLocaleString("fa-IR")} growth={t.growthUsers} icon={Users2} color="from-indigo-500/20 to-indigo-500/5" />
+        <StatCardGrowth label="درآمد ماه اخیر (تومان)" value={Number(t.shopRevenueMonth).toLocaleString("fa-IR")} growth={t.growthRev} icon={Wallet} color="from-emerald-500/20 to-emerald-500/5" />
+        <StatCardGrowth label="دوره‌های فعال" value={Number(t.activeCourses).toLocaleString("fa-IR")} growth={null} icon={BookOpen} color="from-primary-500/20 to-primary-500/5" />
+        <StatCardGrowth label="تیکت‌های باز" value={Number(t.openTickets).toLocaleString("fa-IR")} growth={null} icon={HelpCircle} color="from-amber-500/20 to-amber-500/5" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        {/* Revenue line chart */}
+        <div className="lg:col-span-2 p-5 rounded-[18px] bg-[#111a2e] border border-white/10">
+          <div className="text-sm font-black text-white mb-1">📈 نمودار درآمد ۱۲ ماه اخیر</div>
+          <div className="text-xs text-slate-400 mb-4">فروش دوره‌های آنلاین</div>
+          {rev.length === 0 ? (
+            <div className="h-40 flex items-center justify-center text-slate-500 text-sm">هنوز داده‌ای موجود نیست</div>
+          ) : (
+            <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full h-40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#14B8A6" stopOpacity="0.5" />
+                  <stop offset="100%" stopColor="#14B8A6" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <polyline points={`${pad},${chartH-pad} ${revPoints} ${chartW-pad},${chartH-pad}`} fill="url(#revGrad)" />
+              <polyline points={revPoints} fill="none" stroke="#14B8A6" strokeWidth="2.5" />
+              {rev.map((r: any, i: number) => {
+                const x = pad + (i * (chartW - 2 * pad)) / Math.max(1, rev.length - 1);
+                const y = chartH - pad - (Number(r.revenue || 0) / maxRev) * (chartH - 2 * pad);
+                return <circle key={i} cx={x} cy={y} r="4" fill="#14B8A6" stroke="#0B1120" strokeWidth="2" />;
+              })}
+            </svg>
+          )}
+          <div className="flex justify-between mt-2 text-[9px] text-slate-500">
+            {rev.map((r: any) => <span key={r.bucket}>{r.bucket.split("-")[1]}</span>)}
+          </div>
+        </div>
+
+        {/* Category donut */}
+        <div className="p-5 rounded-[18px] bg-[#111a2e] border border-white/10">
+          <div className="text-sm font-black text-white mb-4">📊 توزیع دوره‌ها</div>
+          {cats.length === 0 ? (
+            <div className="h-40 flex items-center justify-center text-slate-500 text-sm">داده‌ای موجود نیست</div>
+          ) : (
+            <>
+              <svg viewBox="0 0 160 160" className="w-full max-w-[160px] mx-auto">
+                {donutSegments.map((s: any, i: number) => <path key={i} d={s.path} fill={s.color} stroke="#111a2e" strokeWidth="2" />)}
+                <circle cx="80" cy="80" r="30" fill="#111a2e" />
+                <text x="80" y="78" textAnchor="middle" fill="white" fontSize="14" fontWeight="900">{totalCats}</text>
+                <text x="80" y="94" textAnchor="middle" fill="#94A3B8" fontSize="8">دوره</text>
+              </svg>
+              <div className="mt-4 space-y-1.5">
+                {donutSegments.map((s: any, i: number) => (
+                  <div key={i} className="flex items-center gap-2 text-[10px]">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: s.color }} />
+                    <span className="flex-1 text-slate-300 font-bold truncate">{s.name}</span>
+                    <span className="text-slate-500">{s.pct}٪</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Activities */}
+      <div className="p-5 rounded-[18px] bg-[#111a2e] border border-white/10">
+        <div className="text-sm font-black text-white mb-4">🕐 آخرین فعالیت‌ها</div>
+        {acts.length === 0 ? (
+          <div className="text-slate-500 text-sm text-center py-8">فعالیتی ثبت نشده</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-[10px] font-black text-slate-500 text-right border-b border-white/5">
+                  <th className="py-2 pl-2">کاربر</th>
+                  <th className="py-2">فعالیت</th>
+                  <th className="py-2">جزئیات</th>
+                  <th className="py-2">مبلغ</th>
+                  <th className="py-2">تاریخ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {acts.map((a: any, i: number) => (
+                  <tr key={i} className="hover:bg-white/5">
+                    <td className="py-3 pl-2 font-bold text-white">{a.user_name || "—"}</td>
+                    <td className="py-3 text-slate-300">{a.action}</td>
+                    <td className="py-3 text-slate-400 max-w-[200px] truncate">{a.description || "—"}</td>
+                    <td className="py-3 text-emerald-400 font-bold">{a.amount ? Number(a.amount).toLocaleString("fa-IR") + " ت" : "—"}</td>
+                    <td className="py-3 text-slate-500 text-[10px]">{new Date(a.created_at).toLocaleDateString("fa-IR")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StatCardGrowth({ label, value, growth, icon: Icon, color }: any) {
+  return (
+    <div className={`p-4 rounded-[16px] bg-gradient-to-br ${color} border border-white/10`}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="w-10 h-10 rounded-[12px] bg-white/5 flex items-center justify-center">
+          <Icon className="w-5 h-5 text-primary-300" />
+        </div>
+        {growth !== null && (
+          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${growth >= 0 ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"}`}>
+            {growth >= 0 ? "▲" : "▼"} {Math.abs(growth)}٪
+          </span>
+        )}
+      </div>
+      <div className="text-[11px] text-slate-400 font-bold mb-1">{label}</div>
+      <div className="text-xl font-black text-white">{value}</div>
+      {growth !== null && (
+        <div className="text-[9px] text-slate-500 mt-1">نسبت به ماه قبل</div>
+      )}
+    </div>
+  );
+}
+
+/* ============ ADMIN TICKETS TAB ============ */
+function AdminTicketsTab() {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState<any>(null);
+  const [replies, setReplies] = useState<any[]>([]);
+  const [reply, setReply] = useState("");
+  const [filter, setFilter] = useState("all");
+
+  const load = () => { setLoading(true); fetch("/api/tickets?scope=all").then(r => r.json()).then(d => { setItems(d.items || []); setLoading(false); }); };
+  useEffect(load, []);
+
+  const openDetail = async (t: any) => {
+    const r = await fetch(`/api/tickets?ticketId=${t.id}`).then(r => r.json());
+    setOpen(r.ticket); setReplies(r.replies || []);
+  };
+  const doReply = async () => {
+    if (!reply.trim() || !open) return;
+    await fetch("/api/tickets", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ action: "reply", ticketId: open.id, message: reply })});
+    setReply(""); openDetail(open); load();
+  };
+  const setStatus = async (s: string) => {
+    await fetch("/api/tickets", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ action: "updateStatus", ticketId: open.id, status: s })});
+    openDetail(open); load();
+  };
+
+  if (loading) return <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>;
+
+  const filtered = items.filter(t => filter === "all" || t.status === filter);
+  const counts = {
+    all: items.length,
+    open: items.filter(t => t.status === "open").length,
+    in_progress: items.filter(t => t.status === "in_progress").length,
+    resolved: items.filter(t => t.status === "resolved").length,
+  };
+
+  if (open) {
+    return (
+      <div>
+        <button onClick={() => { setOpen(null); setReplies([]); }} className="mb-4 px-3 py-1.5 rounded-[10px] bg-white/5 text-slate-300 text-xs font-bold flex items-center gap-1">← بازگشت</button>
+        <div className="p-5 rounded-[16px] bg-white/5 border border-white/10 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h3 className="font-black text-white text-lg">{open.subject}</h3>
+              <div className="text-[11px] text-slate-500 mt-1">👤 {open.user_name} • <span dir="ltr">{open.user_phone}</span></div>
+            </div>
+            <div className="flex flex-col gap-1 items-end">
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${open.priority === "urgent" ? "bg-red-500/20 text-red-400" : open.priority === "high" ? "bg-amber-500/20 text-amber-400" : "bg-slate-500/20 text-slate-400"}`}>{open.priority}</span>
+              <span className="text-[10px] text-slate-500">{new Date(open.created_at).toLocaleString("fa-IR")}</span>
+            </div>
+          </div>
+          <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap mt-3">{open.message}</p>
+          <div className="mt-4 flex gap-2">
+            {["open","in_progress","resolved","closed"].map(s => (
+              <button key={s} onClick={() => setStatus(s)} className={`px-3 py-1.5 rounded-[8px] text-[10px] font-black ${open.status === s ? "bg-primary-500 text-white" : "bg-white/5 text-slate-300 hover:bg-white/10"}`}>
+                {s === "open" ? "باز" : s === "in_progress" ? "در حال بررسی" : s === "resolved" ? "حل شده" : "بسته"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-3 mb-4">
+          {replies.map((r: any) => (
+            <div key={r.id} className={`p-4 rounded-[14px] ${r.is_staff ? "bg-primary-500/10 border border-primary-500/25" : "bg-white/5 border border-white/10"}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${r.is_staff ? "bg-primary-500 text-white" : "bg-white/10 text-slate-300"}`}>{r.is_staff ? "پشتیبانی" : r.user_name}</span>
+                <span className="text-[10px] text-slate-500">{new Date(r.created_at).toLocaleString("fa-IR")}</span>
+              </div>
+              <p className="text-sm text-slate-200 whitespace-pre-wrap">{r.message}</p>
+            </div>
+          ))}
+        </div>
+        <div className="p-4 rounded-[14px] bg-white/5 border border-white/10">
+          <textarea value={reply} onChange={e => setReply(e.target.value)} rows={3} placeholder="پاسخ پشتیبانی..." className="w-full px-3 py-2 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold resize-none mb-2" />
+          <button onClick={doReply} className="px-4 py-2 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white text-xs font-black">ارسال پاسخ پشتیبانی</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h2 className="text-2xl font-black text-white mb-1">🎫 تیکت‌های پشتیبانی</h2>
+      <p className="text-slate-400 text-sm mb-6">پاسخ به تیکت‌های کاربران و تغییر وضعیت</p>
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {[
+          { k: "all", l: "همه", c: counts.all },
+          { k: "open", l: "باز", c: counts.open },
+          { k: "in_progress", l: "در حال بررسی", c: counts.in_progress },
+          { k: "resolved", l: "حل شده", c: counts.resolved },
+        ].map(f => (
+          <button key={f.k} onClick={() => setFilter(f.k)} className={`px-3 py-1.5 rounded-[10px] text-[10px] font-black ${filter === f.k ? "bg-primary-600 text-white" : "bg-white/5 text-slate-300"}`}>
+            {f.l} ({f.c.toLocaleString("fa-IR")})
+          </button>
+        ))}
+      </div>
+      {filtered.length === 0 ? (
+        <div className="text-center py-16 bg-white/5 border border-white/10 rounded-[16px]">
+          <HelpCircle className="w-12 h-12 mx-auto text-slate-500 mb-3" />
+          <p className="text-slate-500">تیکتی یافت نشد</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((t: any) => (
+            <button key={t.id} onClick={() => openDetail(t)} className="w-full text-right p-4 rounded-[14px] bg-white/5 hover:bg-white/10 border border-white/10 transition">
+              <div className="flex items-center justify-between gap-3 mb-1">
+                <div className="flex-1 min-w-0">
+                  <div className="font-black text-white text-sm">{t.subject}</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">👤 {t.user_name} • <span dir="ltr">{t.user_phone}</span></div>
+                </div>
+                <div className="flex gap-1 items-center shrink-0">
+                  {t.priority === "urgent" && <span className="px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[9px] font-black">🔥 فوری</span>}
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${t.status === "open" ? "bg-amber-500/20 text-amber-400" : t.status === "resolved" ? "bg-emerald-500/20 text-emerald-400" : t.status === "in_progress" ? "bg-primary-500/20 text-primary-300" : "bg-slate-500/20 text-slate-400"}`}>
+                    {t.status === "open" ? "باز" : t.status === "in_progress" ? "در حال بررسی" : t.status === "resolved" ? "حل شده" : "بسته"}
+                  </span>
+                </div>
+              </div>
+              <div className="text-[10px] text-slate-500 flex items-center gap-3">
+                <span>{new Date(t.updated_at).toLocaleString("fa-IR")}</span>
+                {t.replies_count > 0 && <span className="text-primary-300">💬 {t.replies_count}</span>}
+              </div>
+            </button>
+          ))}
         </div>
       )}
     </div>
