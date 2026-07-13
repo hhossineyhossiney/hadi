@@ -355,6 +355,142 @@ const MIGRATIONS: { name: string; sql: string }[] = [
       ALTER TABLE telegram_chats ADD COLUMN IF NOT EXISTS state VARCHAR(50);
       ALTER TABLE telegram_chats ADD COLUMN IF NOT EXISTS state_data TEXT;
       ALTER TABLE telegram_chats ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP DEFAULT NOW();
+    `,
+  },
+  // 13) V3: Assignments, Quizzes, Live Classes, Tickets, Points, Activities
+  {
+    name: "v3_tables",
+    sql: `
+      CREATE TABLE IF NOT EXISTS assignments (
+        id SERIAL PRIMARY KEY,
+        course_id INTEGER NOT NULL,
+        institute_id INTEGER NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        due_date TIMESTAMP,
+        max_score INTEGER DEFAULT 100,
+        attachment_url TEXT,
+        created_by INTEGER,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_assignments_course ON assignments(course_id);
+
+      CREATE TABLE IF NOT EXISTS assignment_submissions (
+        id SERIAL PRIMARY KEY,
+        assignment_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        registration_id INTEGER,
+        submission_text TEXT,
+        file_url TEXT,
+        status VARCHAR(20) DEFAULT 'pending',
+        score INTEGER,
+        feedback TEXT,
+        submitted_at TIMESTAMP DEFAULT NOW(),
+        reviewed_at TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_asub_user ON assignment_submissions(user_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_asub_user_assignment ON assignment_submissions(user_id, assignment_id);
+
+      CREATE TABLE IF NOT EXISTS quizzes (
+        id SERIAL PRIMARY KEY,
+        course_id INTEGER NOT NULL,
+        institute_id INTEGER NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        duration_minutes INTEGER DEFAULT 30,
+        passing_score INTEGER DEFAULT 60,
+        max_attempts INTEGER DEFAULT 1,
+        scheduled_at TIMESTAMP,
+        available_until TIMESTAMP,
+        questions JSONB DEFAULT '[]'::jsonb,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_quizzes_course ON quizzes(course_id);
+
+      CREATE TABLE IF NOT EXISTS quiz_attempts (
+        id SERIAL PRIMARY KEY,
+        quiz_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        score INTEGER DEFAULT 0,
+        max_score INTEGER DEFAULT 0,
+        percent INTEGER DEFAULT 0,
+        passed BOOLEAN DEFAULT false,
+        answers JSONB DEFAULT '[]'::jsonb,
+        started_at TIMESTAMP DEFAULT NOW(),
+        submitted_at TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_qattempts_user ON quiz_attempts(user_id);
+
+      CREATE TABLE IF NOT EXISTS live_classes (
+        id SERIAL PRIMARY KEY,
+        course_id INTEGER NOT NULL,
+        institute_id INTEGER NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        meeting_url TEXT NOT NULL,
+        provider VARCHAR(30) DEFAULT 'skyroom',
+        meeting_id VARCHAR(100),
+        password VARCHAR(100),
+        scheduled_at TIMESTAMP NOT NULL,
+        duration_minutes INTEGER DEFAULT 60,
+        status VARCHAR(20) DEFAULT 'scheduled',
+        recording_url TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_live_course ON live_classes(course_id);
+      CREATE INDEX IF NOT EXISTS idx_live_time ON live_classes(scheduled_at);
+
+      CREATE TABLE IF NOT EXISTS support_tickets (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        subject VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        category VARCHAR(50) DEFAULT 'general',
+        priority VARCHAR(20) DEFAULT 'normal',
+        status VARCHAR(20) DEFAULT 'open',
+        assigned_to INTEGER,
+        attachment_url TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        resolved_at TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_tickets_user ON support_tickets(user_id);
+      CREATE INDEX IF NOT EXISTS idx_tickets_status ON support_tickets(status);
+
+      CREATE TABLE IF NOT EXISTS ticket_replies (
+        id SERIAL PRIMARY KEY,
+        ticket_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        message TEXT NOT NULL,
+        is_staff BOOLEAN DEFAULT false,
+        attachment_url TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_tr_ticket ON ticket_replies(ticket_id);
+
+      CREATE TABLE IF NOT EXISTS user_points (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        points INTEGER NOT NULL,
+        reason VARCHAR(100),
+        ref_type VARCHAR(50),
+        ref_id INTEGER,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_points_user ON user_points(user_id);
+
+      CREATE TABLE IF NOT EXISTS activities (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER,
+        user_name VARCHAR(255),
+        action VARCHAR(100) NOT NULL,
+        description TEXT,
+        ref_type VARCHAR(50),
+        ref_id INTEGER,
+        amount DECIMAL(12, 0),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_activities_time ON activities(created_at DESC);
 
       CREATE TABLE IF NOT EXISTS sellable_purchases (
         id SERIAL PRIMARY KEY,
