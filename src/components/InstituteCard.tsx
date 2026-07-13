@@ -69,7 +69,7 @@ export default function InstituteCard({ institute, index = 0 }: { institute: Ins
         <div className="relative h-52 overflow-hidden">
           {img ? (
             <>
-              <img src={img} alt={institute.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+              <img src={img} alt={institute.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" decoding="async" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10" />
             </>
           ) : (
