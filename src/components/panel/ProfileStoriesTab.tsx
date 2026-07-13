@@ -109,7 +109,7 @@ function ProfilePhotoSection({ institute, refresh }: { institute: any; refresh: 
       <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
         <div className="relative shrink-0">
           {institute.profilePhoto ? (
-            <img src={institute.profilePhoto} alt="" className="w-28 h-28 rounded-full object-cover border-4 border-white/10" />
+            <img src={institute.profilePhoto} alt="" className="w-28 h-28 rounded-full object-cover border-4 border-white/10" loading="lazy" decoding="async" />
           ) : (
             <div className="w-28 h-28 rounded-full bg-primary-600/20 border-4 border-white/10 flex items-center justify-center">
               <span className="text-3xl font-black text-primary-300">{institute.name?.charAt(0)}</span>
@@ -267,7 +267,7 @@ function StoriesSection() {
                 {s.mediaType === "video" ? (
                   <video src={s.mediaUrl} className="w-full h-full object-cover" muted />
                 ) : (
-                  <img src={s.mediaUrl} alt="" className="w-full h-full object-cover" />
+                  <img src={s.mediaUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-2">
                   <button onClick={() => setPreview(s)} className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white cursor-pointer" title="پیش‌نمایش">
@@ -308,7 +308,7 @@ function StoriesSection() {
                     {s.mediaType === "video" ? (
                       <video src={s.mediaUrl} className="w-full h-full object-cover" muted />
                     ) : (
-                      <img src={s.mediaUrl} alt="" className="w-full h-full object-cover" />
+                      <img src={s.mediaUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     )}
                     <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-1.5">
                       <span className="text-[9px] font-black text-white bg-black/60 px-2 py-0.5 rounded-full">
@@ -337,7 +337,7 @@ function StoriesSection() {
             {preview.mediaType === "video" ? (
               <video src={preview.mediaUrl} className="w-full h-full object-cover" controls autoPlay />
             ) : (
-              <img src={preview.mediaUrl} alt="" className="w-full h-full object-cover" />
+              <img src={preview.mediaUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
             )}
             <button onClick={() => setPreview(null)} className="absolute top-2 left-2 p-2 rounded-full bg-black/50 text-white cursor-pointer">
               <X className="w-4 h-4" />
@@ -418,7 +418,7 @@ function AddStoryForm({ onDone, onCancel }: { onDone: (msg: { type: "ok" | "err"
           {mediaType === "video" ? (
             <video src={preview} className="w-full h-full object-cover" controls />
           ) : (
-            <img src={preview} alt="" className="w-full h-full object-cover" />
+            <img src={preview} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
           )}
           <button
             onClick={() => setPreview(null)}
