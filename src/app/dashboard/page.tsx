@@ -12,7 +12,8 @@ import {
   Sparkles, Check, X, MapPin, BadgeCheck, Search, FolderOpen, Building2,
   Trash2, CheckCheck, LogOut, FileText, CreditCard, AlertTriangle,
   Calendar, Landmark, Receipt, Timer, ShieldCheck, PlayCircle, Video,
-  ChevronDown, ChevronUp, ShoppingBag,
+  ChevronDown, ChevronUp, ShoppingBag, LifeBuoy, Send, Star, Trophy,
+  ExternalLink, Plus,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
@@ -68,14 +69,18 @@ interface DashboardData {
   upcomingSessions: any[];
 }
 
-type TabKey = "dashboard" | "courses" | "shop" | "progress" | "schedule" | "chat" | "notifications" | "certificates" | "wallet" | "fees" | "favorites" | "portfolio" | "profile";
+type TabKey = "dashboard" | "courses" | "shop" | "live" | "assignments" | "quizzes" | "progress" | "schedule" | "tickets" | "chat" | "notifications" | "certificates" | "wallet" | "fees" | "favorites" | "portfolio" | "profile";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
   { key: "courses", label: "دوره‌های حضوری من", icon: BookOpen },
   { key: "shop", label: "دوره‌های آنلاین خریداری‌شده", icon: PlayCircle },
+  { key: "live", label: "کلاس‌های آنلاین (Live)", icon: Video },
+  { key: "assignments", label: "تکالیف", icon: FileText },
+  { key: "quizzes", label: "آزمون‌ها", icon: CheckCheck },
   { key: "progress", label: "وضعیت پیشرفت", icon: TrendingUp },
   { key: "schedule", label: "تقویم آموزشی", icon: CalendarDays },
+  { key: "tickets", label: "پشتیبانی و تیکت", icon: LifeBuoy },
   { key: "chat", label: "چت با آموزشگاه", icon: MessageCircle },
   { key: "notifications", label: "اعلان‌ها", icon: Bell },
   { key: "certificates", label: "گواهینامه‌ها", icon: Award },
@@ -98,7 +103,7 @@ function StudentDashboardContent() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
   const tabParam = searchParams.get("tab") || "";
-  const validTabs: TabKey[] = ["dashboard","courses","shop","progress","schedule","chat","notifications","certificates","wallet","fees","favorites","portfolio","profile"];
+  const validTabs: TabKey[] = ["dashboard","courses","shop","live","assignments","quizzes","progress","schedule","tickets","chat","notifications","certificates","wallet","fees","favorites","portfolio","profile"];
   const [tab, setTab] = useState<TabKey>((validTabs.includes(tabParam as TabKey) ? (tabParam as TabKey) : "dashboard"));
   const { open: drawerOpen, setOpen: setDrawerOpen } = useMobilePanelDrawer();
 
@@ -255,6 +260,10 @@ function StudentDashboardContent() {
           {tab === "profile" && <ProfileTab />}
           {tab === "fees" && <FeesTab />}
           {tab === "shop" && <ShopPurchasesTab />}
+          {tab === "live" && <LiveClassesTab />}
+          {tab === "assignments" && <AssignmentsTab />}
+          {tab === "quizzes" && <QuizzesTab />}
+          {tab === "tickets" && <TicketsTab />}
         </main>
       </div>
     </div>
@@ -2199,6 +2208,470 @@ function ShopPurchasesTab() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ============ LIVE CLASSES TAB ============ */
+function LiveClassesTab() {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    fetch("/api/student/learning?kind=live").then(r => r.json()).then(d => { setItems(d.items || []); setLoading(false); });
+  }, []);
+  if (loading) return <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>;
+
+  const now = Date.now();
+  const upcoming = items.filter((i: any) => new Date(i.scheduled_at).getTime() > now && i.status !== "cancelled");
+  const past = items.filter((i: any) => new Date(i.scheduled_at).getTime() <= now || i.status === "ended");
+
+  const renderCard = (l: any) => {
+    const start = new Date(l.scheduled_at);
+    const isLive = l.status === "live" || (Math.abs(start.getTime() - now) < 15 * 60 * 1000);
+    return (
+      <div key={l.id} className="rounded-[16px] bg-white/5 border border-white/10 p-4">
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              {isLive && <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-[9px] font-black animate-pulse">🔴 در حال پخش</span>}
+              <span className="px-2 py-0.5 rounded-full bg-primary-500/20 text-primary-300 text-[9px] font-black">{l.provider || "skyroom"}</span>
+            </div>
+            <h3 className="font-black text-white text-sm">{l.title}</h3>
+            <div className="text-[11px] text-slate-400 mt-1">{l.course_title}</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 mb-3">
+          <div className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {start.toLocaleDateString("fa-IR")}</div>
+          <div className="flex items-center gap-1"><Clock className="w-3 h-3" /> {start.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })}</div>
+          <div className="flex items-center gap-1"><Timer className="w-3 h-3" /> {l.duration_minutes} دقیقه</div>
+          <div className="flex items-center gap-1"><Building2 className="w-3 h-3" /> {l.institute_name}</div>
+        </div>
+        {l.description && <p className="text-xs text-slate-300 mb-3 leading-relaxed">{l.description}</p>}
+        <div className="flex gap-2">
+          {l.meeting_url && (
+            <a href={l.meeting_url} target="_blank" rel="noopener" className="flex-1 px-3 py-2 rounded-[10px] gradient-button text-white text-[11px] font-black flex items-center justify-center gap-1">
+              <Video className="w-3.5 h-3.5" /> ورود به کلاس <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+          {l.recording_url && (
+            <a href={l.recording_url} target="_blank" rel="noopener" className="px-3 py-2 rounded-[10px] bg-white/5 hover:bg-white/10 text-slate-300 text-[11px] font-black flex items-center gap-1">
+              <PlayCircle className="w-3.5 h-3.5" /> ضبط شده
+            </a>
+          )}
+        </div>
+        {l.password && <div className="mt-2 text-[10px] text-amber-300 font-bold">🔑 رمز: <code>{l.password}</code></div>}
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <h2 className="text-xl font-black mb-1 flex items-center gap-2"><Video className="w-5 h-5 text-primary-400" /> کلاس‌های آنلاین (Live)</h2>
+      <p className="text-slate-500 text-sm mb-6">لینک کلاس‌های Skyroom / Zoom / Google Meet / آپارات</p>
+
+      {upcoming.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-black text-emerald-300 mb-3 flex items-center gap-2">
+            <Timer className="w-4 h-4" /> کلاس‌های آینده ({upcoming.length.toLocaleString("fa-IR")})
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {upcoming.map(renderCard)}
+          </div>
+        </div>
+      )}
+
+      {past.length > 0 && (
+        <div>
+          <h3 className="text-sm font-black text-slate-400 mb-3">کلاس‌های گذشته ({past.length.toLocaleString("fa-IR")})</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {past.map(renderCard)}
+          </div>
+        </div>
+      )}
+
+      {items.length === 0 && (
+        <div className="text-center py-16 bg-white/5 border border-white/10 rounded-[16px]">
+          <Video className="w-12 h-12 mx-auto text-slate-500 mb-3" />
+          <p className="text-slate-500">هیچ کلاس آنلاینی برای شما زمان‌بندی نشده</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============ ASSIGNMENTS TAB ============ */
+function AssignmentsTab() {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<any>(null);
+  const [subText, setSubText] = useState("");
+  const [subFile, setSubFile] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const load = () => { setLoading(true); fetch("/api/student/learning?kind=assignments").then(r => r.json()).then(d => { setItems(d.items || []); setLoading(false); }); };
+  useEffect(load, []);
+
+  const submit = async () => {
+    if (!selected || !subText.trim()) { setMsg("❌ متن پاسخ الزامی است"); return; }
+    const r = await fetch("/api/student/learning", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ action: "submitAssignment", assignmentId: selected.id, submissionText: subText, fileUrl: subFile }),
+    });
+    if (r.ok) { setMsg("✅ تکلیف ارسال شد و ۱۰ امتیاز کسب کردید"); setSelected(null); setSubText(""); setSubFile(""); load(); }
+    else setMsg("❌ خطا");
+  };
+
+  if (loading) return <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>;
+
+  return (
+    <div>
+      <h2 className="text-xl font-black mb-1 flex items-center gap-2"><FileText className="w-5 h-5 text-primary-400" /> تکالیف من</h2>
+      <p className="text-slate-500 text-sm mb-6">تکالیف دوره‌هایی که در آن‌ها ثبت‌نام کرده‌اید</p>
+
+      {msg && <div className="mb-4 p-3 rounded-[10px] bg-primary-500/15 text-primary-300 text-xs font-bold">{msg}</div>}
+
+      {items.length === 0 ? (
+        <div className="text-center py-16 bg-white/5 border border-white/10 rounded-[16px]">
+          <FileText className="w-12 h-12 mx-auto text-slate-500 mb-3" />
+          <p className="text-slate-500">هیچ تکلیفی برای شما تعریف نشده</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {items.map((a: any) => {
+            const overdue = a.due_date && new Date(a.due_date).getTime() < Date.now() && !a.submission_id;
+            return (
+              <div key={a.id} className="rounded-[16px] bg-white/5 border border-white/10 p-5">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      {a.submission_id && a.sub_status === "reviewed" && (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-black">✔ نمره: {a.score || 0}/{a.max_score}</span>
+                      )}
+                      {a.submission_id && a.sub_status === "pending" && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[9px] font-black">در انتظار بررسی</span>
+                      )}
+                      {!a.submission_id && overdue && (
+                        <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[9px] font-black">مهلت گذشته</span>
+                      )}
+                      {!a.submission_id && !overdue && (
+                        <span className="px-2 py-0.5 rounded-full bg-primary-500/20 text-primary-300 text-[9px] font-black">جدید</span>
+                      )}
+                    </div>
+                    <h3 className="font-black text-white text-sm">{a.title}</h3>
+                    <div className="text-[11px] text-slate-400 mt-1">{a.course_title} • {a.institute_name}</div>
+                  </div>
+                  <div className="text-[10px] text-slate-500 shrink-0">
+                    نمره کل: {a.max_score}
+                  </div>
+                </div>
+                {a.description && <p className="text-xs text-slate-300 mb-2 leading-relaxed">{a.description}</p>}
+                {a.due_date && (
+                  <div className={`text-[11px] font-bold mb-3 ${overdue ? "text-red-400" : "text-amber-300"}`}>
+                    ⏰ موعد تحویل: {new Date(a.due_date).toLocaleString("fa-IR")}
+                  </div>
+                )}
+                {a.feedback && (
+                  <div className="mb-3 p-3 rounded-[10px] bg-emerald-500/10 border border-emerald-500/25 text-[11px] text-emerald-200">
+                    <div className="font-black mb-1">💬 بازخورد استاد:</div>
+                    <div>{a.feedback}</div>
+                  </div>
+                )}
+                {!a.submission_id ? (
+                  <button onClick={() => { setSelected(a); setSubText(""); setSubFile(""); }} className="px-4 py-2 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white text-xs font-black">
+                    ارسال تکلیف
+                  </button>
+                ) : (
+                  <div className="text-[11px] text-slate-400">تحویل داده شده در {new Date(a.submitted_at).toLocaleString("fa-IR")}</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {selected && (
+        <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4" onClick={() => setSelected(null)}>
+          <div className="w-full max-w-lg bg-[#082D53] rounded-[18px] border border-white/10 p-5" onClick={e => e.stopPropagation()}>
+            <div className="text-sm font-black text-white mb-4">📝 ارسال تکلیف: {selected.title}</div>
+            <textarea value={subText} onChange={e => setSubText(e.target.value)} rows={5} placeholder="پاسخ خود را اینجا بنویسید..." className="w-full px-3 py-2 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold resize-none mb-3" />
+            <input value={subFile} onChange={e => setSubFile(e.target.value)} placeholder="لینک فایل (اختیاری) — Google Drive یا URL" dir="ltr" className="w-full px-3 py-2 rounded-[10px] bg-white/85 text-slate-900 text-xs font-bold mb-4" />
+            <div className="flex gap-2">
+              <button onClick={submit} className="flex-1 py-2.5 rounded-[10px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black">ارسال + کسب ۱۰ امتیاز</button>
+              <button onClick={() => setSelected(null)} className="flex-1 py-2.5 rounded-[10px] bg-white/10 text-slate-300 text-xs font-black">انصراف</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============ QUIZZES TAB ============ */
+function QuizzesTab() {
+  const [items, setItems] = useState<any[]>([]);
+  const [points, setPoints] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [attempt, setAttempt] = useState<any>(null); // active quiz
+  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [result, setResult] = useState<any>(null);
+  const [quizDetail, setQuizDetail] = useState<any>(null);
+
+  const load = () => {
+    fetch("/api/student/learning?kind=quizzes").then(r => r.json()).then(d => setItems(d.items || []));
+    fetch("/api/student/learning?kind=points").then(r => r.json()).then(d => setPoints(d.total || 0));
+    setLoading(false);
+  };
+  useEffect(load, []);
+
+  const startQuiz = async (q: any) => {
+    // fetch full quiz with questions
+    const r = await fetch(`/api/student/learning?kind=quiz-detail&id=${q.id}`);
+    // Actually let's just use the quiz endpoint we have — but we need questions. Use POST attempt style.
+    // Load questions from public endpoint
+    const detail = await fetch(`/api/quiz/${q.id}`).then(r => r.ok ? r.json() : null).catch(() => null);
+    setAttempt(q);
+    setQuizDetail(detail);
+    setAnswers({});
+    setResult(null);
+  };
+
+  const submit = async () => {
+    const r = await fetch("/api/student/learning", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ action: "attemptQuiz", quizId: attempt.id, answers: (quizDetail?.questions || []).map((_: any, i: number) => answers[i] ?? -1) }),
+    });
+    const d = await r.json();
+    setResult(d);
+    load();
+  };
+
+  if (loading) return <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>;
+
+  if (attempt && quizDetail) {
+    const qs = (quizDetail.questions || []) as any[];
+    return (
+      <div>
+        <button onClick={() => { setAttempt(null); setQuizDetail(null); setResult(null); }} className="mb-4 px-3 py-1.5 rounded-[10px] bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold flex items-center gap-1">
+          <ChevronLeft className="w-3.5 h-3.5 rotate-180" /> بازگشت
+        </button>
+        <h2 className="text-lg font-black text-white mb-4">📝 {attempt.title}</h2>
+        {result ? (
+          <div className={`p-6 rounded-[16px] ${result.passed ? "bg-emerald-500/15 border-emerald-500/40" : "bg-red-500/15 border-red-500/40"} border`}>
+            <div className="text-2xl font-black text-white mb-2">{result.passed ? "🎉 قبول شدید!" : "❌ متاسفانه رد شدید"}</div>
+            <div className="text-sm text-slate-300 mb-4">نمره شما: <b>{result.score}/{result.maxScore}</b> ({result.percent}٪)</div>
+            {result.passed && <div className="text-xs text-emerald-300">🏆 ۳۰ امتیاز به شما تعلق گرفت</div>}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {qs.map((q: any, i: number) => (
+              <div key={i} className="p-4 rounded-[14px] bg-white/5 border border-white/10">
+                <div className="text-sm font-black text-white mb-3">{i+1}. {q.q}</div>
+                <div className="space-y-2">
+                  {(q.options || []).map((opt: string, oi: number) => (
+                    <label key={oi} className={`flex items-center gap-2 p-2 rounded-[8px] cursor-pointer transition ${answers[i] === oi ? "bg-primary-500/25 border border-primary-500/50" : "bg-white/5 hover:bg-white/10 border border-transparent"}`}>
+                      <input type="radio" name={`q${i}`} checked={answers[i] === oi} onChange={() => setAnswers(a => ({...a, [i]: oi}))} />
+                      <span className="text-xs text-slate-200 font-bold">{opt}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <button onClick={submit} className="w-full py-3 rounded-[12px] gradient-button text-white text-sm font-black">ثبت پاسخ نهایی</button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-black flex items-center gap-2"><CheckCheck className="w-5 h-5 text-primary-400" /> آزمون‌های من</h2>
+          <p className="text-slate-500 text-sm mt-1">آزمون‌های دوره‌های شما</p>
+        </div>
+        <div className="px-4 py-2 rounded-[12px] bg-gradient-to-l from-amber-500/25 to-yellow-500/15 border border-amber-500/30 flex items-center gap-2">
+          <Trophy className="w-4 h-4 text-amber-300" />
+          <div>
+            <div className="text-[10px] text-slate-400 font-bold">امتیاز شما</div>
+            <div className="text-lg font-black text-amber-300">{points.toLocaleString("fa-IR")}</div>
+          </div>
+        </div>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="text-center py-16 bg-white/5 border border-white/10 rounded-[16px]">
+          <CheckCheck className="w-12 h-12 mx-auto text-slate-500 mb-3" />
+          <p className="text-slate-500">هنوز آزمونی برای شما تعریف نشده</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {items.map((q: any) => (
+            <div key={q.id} className="p-5 rounded-[16px] bg-white/5 border border-white/10">
+              <h3 className="font-black text-white text-sm mb-1">{q.title}</h3>
+              <div className="text-[11px] text-slate-400 mb-3">{q.course_title}</div>
+              {q.description && <p className="text-xs text-slate-300 mb-3">{q.description}</p>}
+              <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 mb-3">
+                <div>⏱ {q.duration_minutes} دقیقه</div>
+                <div>✅ حد قبولی: {q.passing_score}٪</div>
+                <div>🔄 تلاش‌های شما: {q.my_attempts || 0}/{q.max_attempts}</div>
+                {q.best_score !== null && <div>🏆 بهترین: {q.best_score}٪</div>}
+              </div>
+              <button
+                onClick={() => startQuiz(q)}
+                disabled={(q.my_attempts || 0) >= q.max_attempts}
+                className="w-full py-2 rounded-[10px] bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-xs font-black"
+              >
+                {(q.my_attempts || 0) >= q.max_attempts ? "سقف تلاش تمام شد" : q.my_attempts ? "شرکت مجدد" : "شرکت در آزمون"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============ TICKETS TAB (Support) ============ */
+function TicketsTab() {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState({ subject: "", message: "", category: "general", priority: "normal" });
+  const [openTicket, setOpenTicket] = useState<any>(null);
+  const [replies, setReplies] = useState<any[]>([]);
+  const [replyText, setReplyText] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const load = () => { setLoading(true); fetch("/api/tickets?scope=mine").then(r => r.json()).then(d => { setItems(d.items || []); setLoading(false); }); };
+  useEffect(load, []);
+
+  const create = async () => {
+    if (!form.subject || !form.message) { setMsg("❌ موضوع و متن الزامی است"); return; }
+    const r = await fetch("/api/tickets", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ action: "create", ...form })});
+    const d = await r.json();
+    if (r.ok) { setMsg("✅ تیکت ایجاد شد"); setCreating(false); setForm({ subject: "", message: "", category: "general", priority: "normal" }); load(); }
+    else setMsg("❌ " + (d.error || "خطا"));
+  };
+
+  const openDetail = async (t: any) => {
+    const r = await fetch(`/api/tickets?ticketId=${t.id}`).then(r => r.json());
+    setOpenTicket(r.ticket);
+    setReplies(r.replies || []);
+  };
+
+  const reply = async () => {
+    if (!replyText.trim() || !openTicket) return;
+    await fetch("/api/tickets", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ action: "reply", ticketId: openTicket.id, message: replyText })});
+    setReplyText("");
+    openDetail(openTicket);
+    load();
+  };
+
+  if (loading) return <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>;
+
+  if (openTicket) {
+    return (
+      <div>
+        <button onClick={() => { setOpenTicket(null); setReplies([]); }} className="mb-4 px-3 py-1.5 rounded-[10px] bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold flex items-center gap-1"><ChevronLeft className="w-3.5 h-3.5 rotate-180" /> بازگشت</button>
+        <div className="p-5 rounded-[16px] bg-white/5 border border-white/10 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-black text-white">{openTicket.subject}</h3>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${openTicket.status === "open" ? "bg-amber-500/20 text-amber-400" : openTicket.status === "resolved" ? "bg-emerald-500/20 text-emerald-400" : "bg-primary-500/20 text-primary-300"}`}>
+              {openTicket.status === "open" ? "باز" : openTicket.status === "in_progress" ? "در حال بررسی" : openTicket.status === "resolved" ? "حل شده" : "بسته"}
+            </span>
+          </div>
+          <div className="text-[10px] text-slate-500">{new Date(openTicket.created_at).toLocaleString("fa-IR")}</div>
+          <p className="text-sm text-slate-300 mt-3 leading-relaxed whitespace-pre-wrap">{openTicket.message}</p>
+        </div>
+
+        <div className="space-y-3 mb-4">
+          {replies.map((r: any) => (
+            <div key={r.id} className={`p-4 rounded-[14px] ${r.is_staff ? "bg-primary-500/10 border border-primary-500/25" : "bg-white/5 border border-white/10"}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${r.is_staff ? "bg-primary-500 text-white" : "bg-white/10 text-slate-300"}`}>
+                  {r.is_staff ? "👨‍💼 پشتیبانی" : "👤 شما"}
+                </span>
+                <span className="text-[10px] text-slate-500">{new Date(r.created_at).toLocaleString("fa-IR")}</span>
+              </div>
+              <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">{r.message}</p>
+            </div>
+          ))}
+        </div>
+
+        {openTicket.status !== "closed" && (
+          <div className="p-4 rounded-[14px] bg-white/5 border border-white/10">
+            <textarea value={replyText} onChange={e => setReplyText(e.target.value)} rows={3} placeholder="پاسخ خود را بنویسید..." className="w-full px-3 py-2 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold resize-none mb-2" />
+            <button onClick={reply} disabled={!replyText.trim()} className="px-4 py-2 rounded-[10px] bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-xs font-black flex items-center gap-1">
+              <Send className="w-3.5 h-3.5" /> ارسال پاسخ
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-black flex items-center gap-2"><LifeBuoy className="w-5 h-5 text-primary-400" /> تیکت‌های پشتیبانی</h2>
+          <p className="text-slate-500 text-sm mt-1">در صورت مشکل با پشتیبانی سامانه در ارتباط باشید</p>
+        </div>
+        <button onClick={() => setCreating(true)} className="px-4 py-2 rounded-[10px] gradient-button text-white text-xs font-black flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> تیکت جدید</button>
+      </div>
+
+      {msg && <div className="mb-4 p-3 rounded-[10px] bg-primary-500/15 text-primary-300 text-xs font-bold">{msg}</div>}
+
+      {creating && (
+        <div className="mb-4 p-5 rounded-[16px] bg-[#111a2e] border border-white/10 space-y-3">
+          <input value={form.subject} onChange={e => setForm({...form, subject: e.target.value})} placeholder="موضوع" className="w-full px-3 py-2 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" />
+          <textarea value={form.message} onChange={e => setForm({...form, message: e.target.value})} rows={4} placeholder="متن مشکل یا سوال..." className="w-full px-3 py-2 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold resize-none" />
+          <div className="grid grid-cols-2 gap-2">
+            <select value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="px-3 py-2 rounded-[10px] bg-white/85 text-slate-900 text-xs font-bold">
+              <option value="general">عمومی</option>
+              <option value="payment">پرداخت</option>
+              <option value="technical">فنی</option>
+              <option value="complaint">شکایت</option>
+            </select>
+            <select value={form.priority} onChange={e => setForm({...form, priority: e.target.value})} className="px-3 py-2 rounded-[10px] bg-white/85 text-slate-900 text-xs font-bold">
+              <option value="low">اولویت پایین</option>
+              <option value="normal">عادی</option>
+              <option value="high">بالا</option>
+              <option value="urgent">فوری</option>
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={create} className="flex-1 py-2 rounded-[10px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black">ارسال تیکت</button>
+            <button onClick={() => setCreating(false)} className="px-4 py-2 rounded-[10px] bg-white/10 text-slate-300 text-xs font-black">انصراف</button>
+          </div>
+        </div>
+      )}
+
+      {items.length === 0 ? (
+        <div className="text-center py-16 bg-white/5 border border-white/10 rounded-[16px]">
+          <LifeBuoy className="w-12 h-12 mx-auto text-slate-500 mb-3" />
+          <p className="text-slate-500">هنوز تیکتی ثبت نکرده‌اید</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {items.map((t: any) => (
+            <button key={t.id} onClick={() => openDetail(t)} className="w-full text-right p-4 rounded-[14px] bg-white/5 hover:bg-white/10 border border-white/10 transition">
+              <div className="flex items-center justify-between gap-3 mb-1">
+                <div className="font-black text-white text-sm">{t.subject}</div>
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${t.status === "open" ? "bg-amber-500/20 text-amber-400" : t.status === "resolved" ? "bg-emerald-500/20 text-emerald-400" : t.status === "in_progress" ? "bg-primary-500/20 text-primary-300" : "bg-slate-500/20 text-slate-400"}`}>
+                  {t.status === "open" ? "باز" : t.status === "in_progress" ? "در حال بررسی" : t.status === "resolved" ? "حل شده" : "بسته"}
+                </span>
+              </div>
+              <div className="text-[10px] text-slate-500 flex items-center gap-3">
+                <span>{new Date(t.updated_at).toLocaleString("fa-IR")}</span>
+                {t.replies_count > 0 && <span className="text-primary-300">💬 {t.replies_count} پاسخ</span>}
+                {t.priority === "urgent" && <span className="text-red-400">🔥 فوری</span>}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
