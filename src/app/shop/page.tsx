@@ -73,7 +73,7 @@ function ShopCourseCard({ course, index }: { course: ShopCourse; index: number }
       {/* Cover with gradient overlay */}
       <div className={`relative aspect-[16/10] bg-gradient-to-br ${gradient} overflow-hidden`}>
         {course.cover_image ? (
-          <img src={course.cover_image} alt={course.title} className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-90" />
+          <img src={course.cover_image} alt={course.title} className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-90" loading="lazy" decoding="async" />
         ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
 
