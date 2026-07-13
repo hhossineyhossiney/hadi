@@ -507,3 +507,135 @@ export const sellableLessonProgress = pgTable("sellable_lesson_progress", {
   completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+/* ═══════════════════════════════════════════════════════════════
+   V3 — Assignments, Quizzes, Live Classes, Support Tickets, Activities
+   ═══════════════════════════════════════════════════════════════ */
+
+// تکالیف
+export const assignments = pgTable("assignments", {
+  id: serial("id").primaryKey(),
+  courseId: integer("course_id").notNull(),
+  instituteId: integer("institute_id").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  dueDate: timestamp("due_date"),
+  maxScore: integer("max_score").default(100),
+  attachmentUrl: text("attachment_url"),
+  createdBy: integer("created_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// تحویل تکلیف توسط هنرجو
+export const assignmentSubmissions = pgTable("assignment_submissions", {
+  id: serial("id").primaryKey(),
+  assignmentId: integer("assignment_id").notNull(),
+  userId: integer("user_id").notNull(),
+  registrationId: integer("registration_id"),
+  submissionText: text("submission_text"),
+  fileUrl: text("file_url"),
+  status: varchar("status", { length: 20 }).default("pending"), // pending|reviewed|late
+  score: integer("score"),
+  feedback: text("feedback"),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  reviewedAt: timestamp("reviewed_at"),
+});
+
+// آزمون‌ها
+export const quizzes = pgTable("quizzes", {
+  id: serial("id").primaryKey(),
+  courseId: integer("course_id").notNull(),
+  instituteId: integer("institute_id").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  durationMinutes: integer("duration_minutes").default(30),
+  passingScore: integer("passing_score").default(60),
+  maxAttempts: integer("max_attempts").default(1),
+  scheduledAt: timestamp("scheduled_at"),
+  availableUntil: timestamp("available_until"),
+  questions: jsonb("questions").default([]), // [{q, options:[], correctIndex, points}]
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// نتایج آزمون
+export const quizAttempts = pgTable("quiz_attempts", {
+  id: serial("id").primaryKey(),
+  quizId: integer("quiz_id").notNull(),
+  userId: integer("user_id").notNull(),
+  score: integer("score").default(0),
+  maxScore: integer("max_score").default(0),
+  percent: integer("percent").default(0),
+  passed: boolean("passed").default(false),
+  answers: jsonb("answers").default([]),
+  startedAt: timestamp("started_at").defaultNow(),
+  submittedAt: timestamp("submitted_at"),
+});
+
+// کلاس‌های آنلاین (Live)
+export const liveClasses = pgTable("live_classes", {
+  id: serial("id").primaryKey(),
+  courseId: integer("course_id").notNull(),
+  instituteId: integer("institute_id").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  meetingUrl: text("meeting_url").notNull(), // Zoom, Skyroom, Meet, ...
+  provider: varchar("provider", { length: 30 }).default("skyroom"), // zoom|skyroom|meet|other
+  meetingId: varchar("meeting_id", { length: 100 }),
+  password: varchar("password", { length: 100 }),
+  scheduledAt: timestamp("scheduled_at").notNull(),
+  durationMinutes: integer("duration_minutes").default(60),
+  status: varchar("status", { length: 20 }).default("scheduled"), // scheduled|live|ended|cancelled
+  recordingUrl: text("recording_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// تیکت‌های پشتیبانی
+export const supportTickets = pgTable("support_tickets", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  message: text("message").notNull(),
+  category: varchar("category", { length: 50 }).default("general"), // general|payment|technical|complaint
+  priority: varchar("priority", { length: 20 }).default("normal"), // low|normal|high|urgent
+  status: varchar("status", { length: 20 }).default("open"), // open|in_progress|resolved|closed
+  assignedTo: integer("assigned_to"),
+  attachmentUrl: text("attachment_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+// پاسخ‌های تیکت
+export const ticketReplies = pgTable("ticket_replies", {
+  id: serial("id").primaryKey(),
+  ticketId: integer("ticket_id").notNull(),
+  userId: integer("user_id").notNull(),
+  message: text("message").notNull(),
+  isStaff: boolean("is_staff").default(false),
+  attachmentUrl: text("attachment_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// سیستم امتیاز و گیمیفیکیشن
+export const userPoints = pgTable("user_points", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  points: integer("points").notNull(),
+  reason: varchar("reason", { length: 100 }), // registration, lesson_complete, quiz_pass, etc
+  refType: varchar("ref_type", { length: 50 }), // course, quiz, lesson
+  refId: integer("ref_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// جدول فعالیت‌ها (Audit log)
+export const activities = pgTable("activities", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id"),
+  userName: varchar("user_name", { length: 255 }),
+  action: varchar("action", { length: 100 }).notNull(), // purchase, registration, payment, complete, etc.
+  description: text("description"),
+  refType: varchar("ref_type", { length: 50 }),
+  refId: integer("ref_id"),
+  amount: decimal("amount", { precision: 12, scale: 0 }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
