@@ -125,7 +125,7 @@ export default function ShopShowcase() {
                         {/* Cover */}
                         <div className={`relative aspect-[16/10] bg-gradient-to-br ${gradient} overflow-hidden`}>
                           {c.cover_image && (
-                            <img src={c.cover_image} alt={c.title} className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-90" />
+                            <img src={c.cover_image} alt={c.title} className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-90" loading="lazy" decoding="async" />
                           )}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
 
