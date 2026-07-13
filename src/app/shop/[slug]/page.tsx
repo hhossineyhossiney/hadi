@@ -225,7 +225,7 @@ export default function ShopCourseDetail({ params }: { params: Promise<{ slug: s
                 {course.instructor && (
                   <div className="flex items-center gap-3 p-4 rounded-[16px] bg-white/5 backdrop-blur-sm border border-white/10 max-w-md">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white text-lg font-black shrink-0">
-                      {course.instructorAvatar ? <img src={course.instructorAvatar} className="w-full h-full rounded-full object-cover" /> : course.instructor.charAt(0)}
+                      {course.instructorAvatar ? <img src={course.instructorAvatar} className="w-full h-full rounded-full object-cover" loading="lazy" decoding="async" /> : course.instructor.charAt(0)}
                     </div>
                     <div className="min-w-0">
                       <div className="text-[10px] text-slate-400 font-bold">مدرس</div>
@@ -242,7 +242,7 @@ export default function ShopCourseDetail({ params }: { params: Promise<{ slug: s
                   {/* Cover / trailer */}
                   <div className="relative aspect-video bg-gradient-to-br from-primary-500 to-secondary-500">
                     {course.coverImage ? (
-                      <img src={course.coverImage} className="w-full h-full object-cover" />
+                      <img src={course.coverImage} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <PlayCircle className="w-16 h-16 text-white/70" />
@@ -386,7 +386,7 @@ export default function ShopCourseDetail({ params }: { params: Promise<{ slug: s
                               {(chi + 1).toLocaleString("fa-IR")}
                             </div>
                             {ch.coverImage && (
-                              <img src={ch.coverImage} className="w-12 h-12 rounded-[10px] object-cover shrink-0 border border-[var(--border-default)]" />
+                              <img src={ch.coverImage} className="w-12 h-12 rounded-[10px] object-cover shrink-0 border border-[var(--border-default)]" loading="lazy" decoding="async" />
                             )}
                             <div className="text-right flex-1 min-w-0">
                               <div className="font-black text-sm text-text-primary truncate">{ch.title}</div>
@@ -415,7 +415,7 @@ export default function ShopCourseDetail({ params }: { params: Promise<{ slug: s
                                       className={`w-full flex items-center gap-3 px-5 py-3 text-right hover:bg-[var(--panel-hover,rgba(11,79,139,0.06))] transition ${canView ? "cursor-pointer" : "opacity-70 cursor-not-allowed"}`}
                                     >
                                       {l.coverImage ? (
-                                        <img src={l.coverImage} className="w-9 h-9 rounded-[8px] object-cover shrink-0 border border-[var(--border-default)]" />
+                                        <img src={l.coverImage} className="w-9 h-9 rounded-[8px] object-cover shrink-0 border border-[var(--border-default)]" loading="lazy" decoding="async" />
                                       ) : canView ? (
                                         <PlayCircle className="w-4 h-4 text-primary-500 shrink-0" />
                                       ) : (
@@ -505,7 +505,7 @@ export default function ShopCourseDetail({ params }: { params: Promise<{ slug: s
                 <div className="bg-[var(--bg-glass-card)] rounded-[18px] border border-[var(--border-default)] p-6">
                   <div className="flex items-center gap-4 mb-4">
                     <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white text-2xl font-black shrink-0">
-                      {course.instructorAvatar ? <img src={course.instructorAvatar} className="w-full h-full rounded-full object-cover" /> : (course.instructor || "-").charAt(0)}
+                      {course.instructorAvatar ? <img src={course.instructorAvatar} className="w-full h-full rounded-full object-cover" loading="lazy" decoding="async" /> : (course.instructor || "-").charAt(0)}
                     </div>
                     <div>
                       <div className="text-lg font-black text-text-primary">{course.instructor}</div>
