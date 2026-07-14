@@ -697,3 +697,90 @@ export const attendance = pgTable("attendance", {
   markedBy: integer("marked_by"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+/* ═══════════════════════════════════════════════════════════════
+   V5 — Group Messenger + Subscription Plans
+   ═══════════════════════════════════════════════════════════════ */
+
+// پلن‌های اشتراک برای آموزشگاه‌ها (مدیر کل تعیین می‌کنه)
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),          // "پلن پایه", "طلایی", "ویژه"
+  slug: varchar("slug", { length: 100 }).notNull().unique(),
+  description: text("description"),
+  price: decimal("price", { precision: 12, scale: 0 }).notNull(),       // قیمت ماهانه (تومان)
+  priceYearly: decimal("price_yearly", { precision: 12, scale: 0 }),   // اختیاری — قیمت سالانه
+  durationDays: integer("duration_days").default(30),
+  maxCourses: integer("max_courses").default(0),          // 0 = نامحدود
+  maxStudents: integer("max_students").default(0),
+  maxShopCourses: integer("max_shop_courses").default(0),
+  commissionPercent: decimal("commission_percent", { precision: 5, scale: 2 }).default("10.00"),
+  features: jsonb("features").default([]),                 // ["پشتیبانی 24/7", "آمار پیشرفته", ...]
+  color: varchar("color", { length: 30 }).default("primary"),
+  isPopular: boolean("is_popular").default(false),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// اشتراک فعلی هر آموزشگاه
+export const instituteSubscriptions = pgTable("institute_subscriptions", {
+  id: serial("id").primaryKey(),
+  instituteId: integer("institute_id").references(() => institutes.id, { onDelete: "cascade" }).notNull(),
+  planId: integer("plan_id").references(() => subscriptionPlans.id).notNull(),
+  status: varchar("status", { length: 20 }).default("active"), // active | expired | cancelled | trial
+  startedAt: timestamp("started_at").defaultNow(),
+  expiresAt: timestamp("expires_at"),
+  autoRenew: boolean("auto_renew").default(false),
+  price: decimal("price", { precision: 12, scale: 0 }),
+  paymentMethod: varchar("payment_method", { length: 30 }),
+  paymentRef: varchar("payment_ref", { length: 100 }),
+  activatedBy: integer("activated_by"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// گروه‌های پیام‌رسان
+export const messageGroups = pgTable("message_groups", {
+  id: serial("id").primaryKey(),
+  instituteId: integer("institute_id").references(() => institutes.id, { onDelete: "cascade" }),
+  courseId: integer("course_id"),                          // اختیاری - گروه دوره‌ای
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  avatar: text("avatar"),
+  type: varchar("type", { length: 20 }).default("course"), // course | announcement | general
+  createdBy: integer("created_by"),
+  isActive: boolean("is_active").default(true),
+  memberCount: integer("member_count").default(0),
+  lastMessageAt: timestamp("last_message_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// اعضای گروه
+export const messageGroupMembers = pgTable("message_group_members", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").references(() => messageGroups.id, { onDelete: "cascade" }).notNull(),
+  userId: integer("user_id").notNull(),
+  role: varchar("role", { length: 20 }).default("member"), // admin | member
+  joinedAt: timestamp("joined_at").defaultNow(),
+  lastReadAt: timestamp("last_read_at"),
+  isMuted: boolean("is_muted").default(false),
+});
+
+// پیام‌های گروه
+export const groupMessages = pgTable("group_messages", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").references(() => messageGroups.id, { onDelete: "cascade" }).notNull(),
+  senderId: integer("sender_id").notNull(),
+  senderName: varchar("sender_name", { length: 255 }),
+  senderRole: varchar("sender_role", { length: 20 }),      // manager | student | admin
+  content: text("content"),
+  messageType: varchar("message_type", { length: 20 }).default("text"), // text | image | file | system
+  attachmentUrl: text("attachment_url"),
+  replyToId: integer("reply_to_id"),
+  isPinned: boolean("is_pinned").default(false),
+  isDeleted: boolean("is_deleted").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
