@@ -545,22 +545,22 @@ const MIGRATIONS: { name: string; sql: string }[] = [
       CREATE INDEX IF NOT EXISTS idx_grades_course ON grades(course_id);
     `,
   },
-  // 14) V4-c: Attendance
+  // 14) V4-c: Attendance (ensure columns exist — safe for existing tables)
   {
     name: "v4_attendance",
     sql: `
       CREATE TABLE IF NOT EXISTS attendance (
         id SERIAL PRIMARY KEY,
-        registration_id INTEGER NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
-        user_id INTEGER NOT NULL,
-        course_id INTEGER NOT NULL,
-        session_id INTEGER,
-        session_date VARCHAR(30),
-        status VARCHAR(20) NOT NULL,
-        notes TEXT,
-        marked_by INTEGER,
         created_at TIMESTAMP DEFAULT NOW()
       );
+      ALTER TABLE attendance ADD COLUMN IF NOT EXISTS registration_id INTEGER;
+      ALTER TABLE attendance ADD COLUMN IF NOT EXISTS user_id INTEGER;
+      ALTER TABLE attendance ADD COLUMN IF NOT EXISTS course_id INTEGER;
+      ALTER TABLE attendance ADD COLUMN IF NOT EXISTS session_id INTEGER;
+      ALTER TABLE attendance ADD COLUMN IF NOT EXISTS session_date VARCHAR(30);
+      ALTER TABLE attendance ADD COLUMN IF NOT EXISTS status VARCHAR(20);
+      ALTER TABLE attendance ADD COLUMN IF NOT EXISTS notes TEXT;
+      ALTER TABLE attendance ADD COLUMN IF NOT EXISTS marked_by INTEGER;
       CREATE INDEX IF NOT EXISTS idx_att_user ON attendance(user_id);
       CREATE INDEX IF NOT EXISTS idx_att_course ON attendance(course_id);
       CREATE INDEX IF NOT EXISTS idx_att_date ON attendance(session_date);
