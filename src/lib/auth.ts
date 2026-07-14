@@ -78,5 +78,10 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60,   // update session every 24h
+  },
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60,
   },
 };
