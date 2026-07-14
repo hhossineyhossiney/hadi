@@ -1,22 +1,14 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoriesBar from "@/components/StoriesBar";
-import HeroSection from "@/components/HeroSection";
+import PublicHero from "@/components/PublicHero";
 import CategoryCards from "@/components/CategoryCards";
 import InstitutesShowcase from "@/components/InstitutesShowcase";
 import CoursesShowcase from "@/components/CoursesShowcase";
+import ShopShowcase from "@/components/ShopShowcase";
 import StatsSection from "@/components/StatsSection";
 import FaqSection from "@/components/FaqSection";
 import VerifyLicenseBanner from "@/components/VerifyLicenseBanner";
-import ShopShowcase from "@/components/ShopShowcase";
-import PlatformFeatures from "@/components/PlatformFeatures";
-import UserRolesSection from "@/components/UserRolesSection";
-import AITechSection from "@/components/AITechSection";
-import PremiumCTA from "@/components/PremiumCTA";
-import ProblemSolution from "@/components/ProblemSolution";
-import HowItWorks from "@/components/HowItWorks";
-import TrustBar from "@/components/TrustBar";
-import TestimonialsSection from "@/components/TestimonialsSection";
 import { db } from "@/db";
 import { categories, institutes, regions, courses, siteSettings } from "@/db/schema";
 import { eq, count, sql, inArray, and } from "drizzle-orm";
@@ -144,13 +136,7 @@ export default async function HomePage() {
     <main className="min-h-screen">
       <Navbar />
       <StoriesBar />
-      <HeroSection />
-      <TrustBar />
-      <ProblemSolution />
-      <PlatformFeatures />
-      <HowItWorks />
-      <UserRolesSection />
-      <AITechSection />
+      <PublicHero />
       <CategoryCards categories={cats} />
       <CoursesShowcase
         courses={latestCourses}
@@ -159,11 +145,9 @@ export default async function HomePage() {
       />
       <ShopShowcase />
       <InstitutesShowcase institutes={institutesWithCourseCount} />
-      <TestimonialsSection />
-      <StatsSection />
       <VerifyLicenseBanner />
+      <StatsSection />
       <FaqSection />
-      <PremiumCTA />
       <Footer />
     </main>
   );
