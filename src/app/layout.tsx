@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Providers from "@/components/Providers";
 import MobileNav from "@/components/MobileNav";
+import AIChatWidget from "@/components/AIChatWidget";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <Providers>
           {children}
           <MobileNav />
+          <AIChatWidget />
         </Providers>
       </body>
     </html>
