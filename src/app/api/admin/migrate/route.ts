@@ -564,6 +564,116 @@ const MIGRATIONS: { name: string; sql: string }[] = [
       CREATE INDEX IF NOT EXISTS idx_att_user ON attendance(user_id);
       CREATE INDEX IF NOT EXISTS idx_att_course ON attendance(course_id);
       CREATE INDEX IF NOT EXISTS idx_att_date ON attendance(session_date);
+    `,
+  },
+  // 15) V5: Subscription plans + group messenger
+  {
+    name: "v5_plans",
+    sql: `
+      CREATE TABLE IF NOT EXISTS subscription_plans (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        slug VARCHAR(100) NOT NULL UNIQUE,
+        description TEXT,
+        price DECIMAL(12, 0) NOT NULL,
+        price_yearly DECIMAL(12, 0),
+        duration_days INTEGER DEFAULT 30,
+        max_courses INTEGER DEFAULT 0,
+        max_students INTEGER DEFAULT 0,
+        max_shop_courses INTEGER DEFAULT 0,
+        commission_percent DECIMAL(5, 2) DEFAULT 10.00,
+        features JSONB DEFAULT '[]'::jsonb,
+        color VARCHAR(30) DEFAULT 'primary',
+        is_popular BOOLEAN DEFAULT false,
+        is_active BOOLEAN DEFAULT true,
+        sort_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS institute_subscriptions (
+        id SERIAL PRIMARY KEY,
+        institute_id INTEGER NOT NULL REFERENCES institutes(id) ON DELETE CASCADE,
+        plan_id INTEGER NOT NULL REFERENCES subscription_plans(id),
+        status VARCHAR(20) DEFAULT 'active',
+        started_at TIMESTAMP DEFAULT NOW(),
+        expires_at TIMESTAMP,
+        auto_renew BOOLEAN DEFAULT false,
+        price DECIMAL(12, 0),
+        payment_method VARCHAR(30),
+        payment_ref VARCHAR(100),
+        activated_by INTEGER,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_sub_inst ON institute_subscriptions(institute_id);
+
+      -- Seed default plans (only if empty)
+      INSERT INTO subscription_plans (name, slug, description, price, price_yearly, duration_days, max_courses, max_students, max_shop_courses, commission_percent, features, color, is_popular, sort_order)
+      SELECT * FROM (VALUES
+        ('پلن رایگان', 'free', 'مناسب آموزشگاه‌های تازه‌کار برای شروع', 0, 0, 30, 5, 50, 0, 15.00,
+         '["مدیریت ۵ دوره", "تا ۵۰ هنرجو", "پشتیبانی پایه", "دسترسی به پنل مدیریت"]'::jsonb,
+         'slate', false, 1),
+        ('پلن پایه', 'basic', 'برای آموزشگاه‌های متوسط با تعداد هنرجویان بیشتر', 490000, 4900000, 30, 20, 300, 3, 12.00,
+         '["مدیریت ۲۰ دوره", "تا ۳۰۰ هنرجو", "۳ دوره فروش آنلاین", "پشتیبانی ۸ ساعته", "گزارش‌های Excel", "پیام‌رسان گروهی"]'::jsonb,
+         'primary', false, 2),
+        ('پلن طلایی', 'gold', 'محبوب‌ترین پلن — مناسب اکثر آموزشگاه‌ها', 990000, 9900000, 30, 50, 1000, 10, 10.00,
+         '["مدیریت ۵۰ دوره", "تا ۱۰۰۰ هنرجو", "۱۰ دوره فروش آنلاین", "پشتیبانی ۱۶ ساعته", "کمیسیون کاهش‌یافته ۱۰٪", "دسترسی به همه امکانات", "استوری و بنر ویژه"]'::jsonb,
+         'amber', true, 3),
+        ('پلن ویژه', 'premium', 'برای آموزشگاه‌های بزرگ با نیاز نامحدود', 1990000, 19900000, 30, 0, 0, 0, 7.00,
+         '["دوره نامحدود", "هنرجو نامحدود", "فروش آنلاین نامحدود", "پشتیبانی ۲۴/۷ ویژه", "کمیسیون کاهش‌یافته ۷٪", "همه امکانات + استوری در صفحه اصلی", "درج در بخش برگزیدگان"]'::jsonb,
+         'purple', false, 4)
+      ) AS v(name, slug, description, price, price_yearly, duration_days, max_courses, max_students, max_shop_courses, commission_percent, features, color, is_popular, sort_order)
+      WHERE NOT EXISTS (SELECT 1 FROM subscription_plans);
+    `,
+  },
+  {
+    name: "v5_messenger",
+    sql: `
+      CREATE TABLE IF NOT EXISTS message_groups (
+        id SERIAL PRIMARY KEY,
+        institute_id INTEGER REFERENCES institutes(id) ON DELETE CASCADE,
+        course_id INTEGER,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        avatar TEXT,
+        type VARCHAR(20) DEFAULT 'course',
+        created_by INTEGER,
+        is_active BOOLEAN DEFAULT true,
+        member_count INTEGER DEFAULT 0,
+        last_message_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_mg_inst ON message_groups(institute_id);
+
+      CREATE TABLE IF NOT EXISTS message_group_members (
+        id SERIAL PRIMARY KEY,
+        group_id INTEGER NOT NULL REFERENCES message_groups(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL,
+        role VARCHAR(20) DEFAULT 'member',
+        joined_at TIMESTAMP DEFAULT NOW(),
+        last_read_at TIMESTAMP,
+        is_muted BOOLEAN DEFAULT false
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_mg_member ON message_group_members(group_id, user_id);
+      CREATE INDEX IF NOT EXISTS idx_mg_user ON message_group_members(user_id);
+
+      CREATE TABLE IF NOT EXISTS group_messages (
+        id SERIAL PRIMARY KEY,
+        group_id INTEGER NOT NULL REFERENCES message_groups(id) ON DELETE CASCADE,
+        sender_id INTEGER NOT NULL,
+        sender_name VARCHAR(255),
+        sender_role VARCHAR(20),
+        content TEXT,
+        message_type VARCHAR(20) DEFAULT 'text',
+        attachment_url TEXT,
+        reply_to_id INTEGER,
+        is_pinned BOOLEAN DEFAULT false,
+        is_deleted BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_gm_group ON group_messages(group_id, created_at DESC);
 
       CREATE TABLE IF NOT EXISTS sellable_purchases (
         id SERIAL PRIMARY KEY,
