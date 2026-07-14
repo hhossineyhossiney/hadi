@@ -126,8 +126,13 @@ export async function aiComplete(opts: AICompleteOpts): Promise<AICompleteResult
         throw new Error(`AI_ERROR ${lastErr}`);
       }
       const data = await res.json();
+      const text = data.choices?.[0]?.message?.content?.trim() || "";
+      if (!text) {
+        lastErr = `${model} returned empty text`;
+        continue; // try next model
+      }
       return {
-        text: data.choices?.[0]?.message?.content?.trim() || "",
+        text,
         usage: {
           promptTokens: data.usage?.prompt_tokens || 0,
           completionTokens: data.usage?.completion_tokens || 0,
