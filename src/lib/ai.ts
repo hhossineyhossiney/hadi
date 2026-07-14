@@ -2,10 +2,15 @@ import { db } from "@/db";
 import { siteSettings } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-// ─── Config ──────────────────────────────────────────────────────────
+// ─── Config: OpenRouter (OpenAI-compatible API) ──────────────────────
+const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
+const HTTP_REFERER = "https://amozeshgahazadconfig.vercel.app";
+const X_TITLE = "Zabarkhan AI";
+
 export const AI_MODELS = {
-  fast: "gpt-4o-mini",
-  pro: "gpt-4o",
+  fast: "meta-llama/llama-3.3-70b-instruct:free",
+  pro: "google/gemini-2.0-flash-exp:free",
+  premium: "openai/gpt-4o-mini",
 } as const;
 
 export type AIRole = "system" | "user" | "assistant";
@@ -15,25 +20,25 @@ export interface AIMessage {
 }
 
 // ─── Get API key (env → db) ──────────────────────────────────────────
-export async function getOpenAIKey(): Promise<string | null> {
-  // env fallback
-  const envKey = process.env.OPENAI_API_KEY;
+export async function getAIKey(): Promise<string | null> {
+  const envKey = process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY;
   if (envKey && envKey.length > 20) return envKey;
-
   try {
     const [row] = await db
       .select()
       .from(siteSettings)
       .where(eq(siteSettings.key, "openai_api_key"))
       .limit(1);
-    if (row && typeof row.value === "string" && row.value.length > 20) return row.value;
-    // stored as array in default? fall back to first element
-    if (Array.isArray(row?.value) && typeof row.value[0] === "string") return row.value[0];
+    if (row && typeof row.value === "string" && (row.value as string).length > 20)
+      return row.value as string;
+    if (Array.isArray(row?.value) && typeof row.value[0] === "string")
+      return row.value[0] as string;
   } catch {}
   return null;
 }
+export const getOpenAIKey = getAIKey;
 
-// ─── Save key (admin only, from bootstrap or panel) ──────────────────
+// ─── Save key ────────────────────────────────────────────────────────
 export async function saveOpenAIKey(key: string): Promise<void> {
   const [existing] = await db
     .select()
@@ -53,7 +58,7 @@ export async function saveOpenAIKey(key: string): Promise<void> {
   }
 }
 
-// ─── Basic completion (non-stream) ───────────────────────────────────
+// ─── Non-stream completion ───────────────────────────────────────────
 export interface AICompleteOpts {
   messages: AIMessage[];
   model?: string;
@@ -63,19 +68,13 @@ export interface AICompleteOpts {
 
 export interface AICompleteResult {
   text: string;
-  usage: {
-    promptTokens: number;
-    completionTokens: number;
-    totalTokens: number;
-  };
+  usage: { promptTokens: number; completionTokens: number; totalTokens: number };
   model: string;
 }
 
 export async function aiComplete(opts: AICompleteOpts): Promise<AICompleteResult> {
-  const apiKey = await getOpenAIKey();
-  if (!apiKey) {
-    throw new Error("OPENAI_KEY_MISSING");
-  }
+  const apiKey = await getAIKey();
+  if (!apiKey) throw new Error("OPENAI_KEY_MISSING");
   const model = opts.model || AI_MODELS.fast;
   const body = {
     model,
@@ -83,17 +82,19 @@ export async function aiComplete(opts: AICompleteOpts): Promise<AICompleteResult
     temperature: opts.temperature ?? 0.7,
     max_tokens: opts.maxTokens ?? 800,
   };
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+  const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
+      "HTTP-Referer": HTTP_REFERER,
+      "X-Title": X_TITLE,
     },
     body: JSON.stringify(body),
   });
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`OPENAI_ERROR ${res.status}: ${errText.slice(0, 200)}`);
+    throw new Error(`AI_ERROR ${res.status}: ${errText.slice(0, 300)}`);
   }
   const data = await res.json();
   return {
@@ -107,9 +108,9 @@ export async function aiComplete(opts: AICompleteOpts): Promise<AICompleteResult
   };
 }
 
-// ─── SSE Stream helper (for /api/ai/chat) ────────────────────────────
+// ─── Stream (SSE) ────────────────────────────────────────────────────
 export async function aiStream(opts: AICompleteOpts): Promise<ReadableStream<Uint8Array>> {
-  const apiKey = await getOpenAIKey();
+  const apiKey = await getAIKey();
   if (!apiKey) throw new Error("OPENAI_KEY_MISSING");
   const model = opts.model || AI_MODELS.fast;
   const body = {
@@ -119,17 +120,19 @@ export async function aiStream(opts: AICompleteOpts): Promise<ReadableStream<Uin
     max_tokens: opts.maxTokens ?? 1200,
     stream: true,
   };
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+  const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
+      "HTTP-Referer": HTTP_REFERER,
+      "X-Title": X_TITLE,
     },
     body: JSON.stringify(body),
   });
   if (!res.ok || !res.body) {
     const err = await res.text();
-    throw new Error(`OPENAI_ERROR ${res.status}: ${err.slice(0, 200)}`);
+    throw new Error(`AI_ERROR ${res.status}: ${err.slice(0, 300)}`);
   }
 
   const decoder = new TextDecoder();
@@ -148,6 +151,7 @@ export async function aiStream(opts: AICompleteOpts): Promise<ReadableStream<Uin
           buffer = lines.pop() || "";
           for (const line of lines) {
             const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith(":")) continue; // openrouter sends comments
             if (!trimmed.startsWith("data:")) continue;
             const data = trimmed.slice(5).trim();
             if (data === "[DONE]") {
@@ -179,21 +183,25 @@ export const SYSTEM_PROMPTS = {
   general: `تو دستیار هوشمند "سامانه آموزشگاه‌های آزاد فنی و حرفه‌ای شهرستان زبرخان" هستی.
 همیشه به فارسی روان و مؤدبانه پاسخ بده. مختصر و مفید باش. اگه سوال درباره ثبت‌نام، دوره، آموزشگاه یا مجوزه، راهنمایی کن.
 دوره‌های ما شامل: کامپیوتر (ICDL)، حسابداری، خیاطی، آرایشگری، آشپزی، طراحی و بیش از ۱۴۰ دوره فعال میشه.
-برای ثبت‌نام کاربر می‌تونه به /register بره، برای مشاهده دوره‌ها /courses، برای فروشگاه آنلاین /shop.`,
+برای ثبت‌نام کاربر می‌تونه به /register بره، برای مشاهده دوره‌ها /courses، برای فروشگاه آنلاین /shop.
+فقط به فارسی پاسخ بده.`,
 
   tutor: `تو یک معلم خصوصی هوشمند برای هنرجویان آموزشگاه‌های فنی و حرفه‌ای هستی.
 سبک تدریست: صبور، شفاف، مثال‌محور. مفاهیم پیچیده رو ساده کن. از مثال روزمره استفاده کن.
 اگه هنرجو سوال درسی می‌پرسه، مرحله‌به‌مرحله توضیح بده. اگه تمرین می‌فرسته، اول راه حل کلی، بعد گام‌به‌گام.
-همیشه انگیزه بده و در پایان یه چالش کوچیک برای تمرین ارائه کن.`,
+همیشه انگیزه بده و در پایان یه چالش کوچیک برای تمرین ارائه کن.
+فقط به فارسی پاسخ بده.`,
 
   content_course: `تو یک نویسنده حرفه‌ای محتوای آموزشی هستی.
 از عنوان دوره‌ای که مدیر آموزشگاه میده، یک توضیح جذاب، حرفه‌ای و SEO دار به فارسی بنویس.
 شامل: هوک اول، ۳ مزیت کلیدی، مخاطب هدف، نتیجه پس از دوره، CTA در انتها.
-لحن: انگیزشی، متخصص، مطمئن. طول: ۱۵۰ تا ۲۵۰ کلمه.`,
+لحن: انگیزشی، متخصص، مطمئن. طول: ۱۵۰ تا ۲۵۰ کلمه.
+فقط به فارسی پاسخ بده.`,
 
   content_sms: `تو یک کپی‌رایتر ارشد پیامک تبلیغاتی هستی.
 پیامک ۱۶۰ کاراکتری فارسی، جذاب، با CTA واضح تولید کن.
-عناصر: هوک قوی، پیشنهاد ارزشمند، deadline (اختیاری)، لینک کوتاه یا شماره تماس.`,
+عناصر: هوک قوی، پیشنهاد ارزشمند، deadline (اختیاری)، لینک کوتاه یا شماره تماس.
+اگر ممکنه ۳ نسخه بده. فقط به فارسی پاسخ بده.`,
 
   content_insta: `تو یک متخصص محتوای اینستاگرام برای آموزشگاه‌های آموزشی هستی.
 پست حرفه‌ای بساز شامل:
@@ -201,16 +209,12 @@ export const SYSTEM_PROMPTS = {
 2. کپشن ۱۵۰-۲۰۰ کلمه‌ای با ایموجی و ساختار خوانا
 3. ۱۰-۱۵ هشتگ مرتبط فارسی و انگلیسی
 4. CTA پایانی
-لحن جوان، مدرن، انگیزشی.`,
+لحن جوان، مدرن، انگیزشی. فقط به فارسی پاسخ بده.`,
 };
 
-// ─── Simple rate limit (in-memory + best-effort) ─────────────────────
+// ─── Rate limit ──────────────────────────────────────────────────────
 const RATE = new Map<string, { count: number; resetAt: number }>();
-export function checkRateLimit(key: string, maxPerHour = 30): {
-  allowed: boolean;
-  remaining: number;
-  resetAt: number;
-} {
+export function checkRateLimit(key: string, maxPerHour = 30) {
   const now = Date.now();
   const hourMs = 60 * 60 * 1000;
   const entry = RATE.get(key);
