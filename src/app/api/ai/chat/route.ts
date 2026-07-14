@@ -1,0 +1,64 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { aiStream, SYSTEM_PROMPTS, checkRateLimit, type AIMessage } from "@/lib/ai";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json().catch(() => ({}));
+    const messages: AIMessage[] = Array.isArray(body.messages) ? body.messages : [];
+    const mode: keyof typeof SYSTEM_PROMPTS = body.mode || "general";
+    if (!messages.length) {
+      return NextResponse.json({ error: "messages required" }, { status: 400 });
+    }
+    // last N only
+    const trimmed = messages.slice(-12).map((m) => ({
+      role: m.role === "assistant" ? "assistant" : m.role === "system" ? "system" : "user",
+      content: String(m.content || "").slice(0, 4000),
+    }));
+
+    // Rate limit key (user id or ip)
+    const session = await getServerSession(authOptions);
+    const uid = (session?.user as any)?.id;
+    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "anon";
+    const rlKey = uid ? `u:${uid}` : `ip:${ip}`;
+    const rl = checkRateLimit(rlKey, uid ? 60 : 15);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "rate_limit", resetAt: rl.resetAt },
+        { status: 429 }
+      );
+    }
+
+    const systemPrompt = SYSTEM_PROMPTS[mode] || SYSTEM_PROMPTS.general;
+    const finalMessages: AIMessage[] = [
+      { role: "system", content: systemPrompt },
+      ...trimmed as AIMessage[],
+    ];
+
+    const stream = await aiStream({
+      messages: finalMessages,
+      temperature: 0.7,
+      maxTokens: 1000,
+    });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        "X-Accel-Buffering": "no",
+      },
+    });
+  } catch (e: any) {
+    const msg = String(e?.message || e);
+    if (msg.includes("OPENAI_KEY_MISSING")) {
+      return NextResponse.json(
+        { error: "کلید API تنظیم نشده. با مدیر تماس بگیرید." },
+        { status: 503 }
+      );
+    }
+    return NextResponse.json({ error: msg.slice(0, 300) }, { status: 500 });
+  }
+}
