@@ -553,7 +553,7 @@ const MIGRATIONS: { name: string; sql: string }[] = [
       );
       CREATE INDEX IF NOT EXISTS idx_att_user ON attendance(user_id);
       CREATE INDEX IF NOT EXISTS idx_att_course ON attendance(course_id);
-      CREATE UNIQUE INDEX IF NOT EXISTS uq_att_user_session ON attendance(user_id, session_id) WHERE session_id IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_att_date ON attendance(session_date);
 
       CREATE TABLE IF NOT EXISTS sellable_purchases (
         id SERIAL PRIMARY KEY,
