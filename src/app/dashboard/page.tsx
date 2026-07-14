@@ -69,7 +69,7 @@ interface DashboardData {
   upcomingSessions: any[];
 }
 
-type TabKey = "dashboard" | "courses" | "shop" | "live" | "assignments" | "quizzes" | "grades" | "attendance" | "progress" | "schedule" | "tickets" | "chat" | "notifications" | "certificates" | "wallet" | "fees" | "favorites" | "portfolio" | "profile" | "security" | "activity";
+type TabKey = "dashboard" | "courses" | "shop" | "live" | "assignments" | "quizzes" | "grades" | "attendance" | "progress" | "schedule" | "tickets" | "chat" | "groups" | "notifications" | "certificates" | "wallet" | "fees" | "favorites" | "portfolio" | "profile" | "security" | "activity";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
@@ -82,6 +82,7 @@ const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "attendance", label: "حضور و غیاب", icon: Check },
   { key: "progress", label: "وضعیت پیشرفت", icon: TrendingUp },
   { key: "schedule", label: "تقویم آموزشی", icon: CalendarDays },
+  { key: "groups", label: "گروه‌های چت", icon: MessageCircle },
   { key: "tickets", label: "پشتیبانی و تیکت", icon: LifeBuoy },
   { key: "chat", label: "چت با آموزشگاه", icon: MessageCircle },
   { key: "notifications", label: "اعلان‌ها", icon: Bell },
@@ -107,7 +108,7 @@ function StudentDashboardContent() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
   const tabParam = searchParams.get("tab") || "";
-  const validTabs: TabKey[] = ["dashboard","courses","shop","live","assignments","quizzes","grades","attendance","progress","schedule","tickets","chat","notifications","certificates","wallet","fees","favorites","portfolio","profile","security","activity"];
+  const validTabs: TabKey[] = ["dashboard","courses","shop","live","assignments","quizzes","grades","attendance","progress","schedule","tickets","chat","groups","notifications","certificates","wallet","fees","favorites","portfolio","profile","security","activity"];
   const [tab, setTab] = useState<TabKey>((validTabs.includes(tabParam as TabKey) ? (tabParam as TabKey) : "dashboard"));
   const { open: drawerOpen, setOpen: setDrawerOpen } = useMobilePanelDrawer();
 
@@ -272,6 +273,7 @@ function StudentDashboardContent() {
           {tab === "attendance" && <StudentAttendanceTab />}
           {tab === "security" && <StudentSecurityTab />}
           {tab === "activity" && <StudentActivityTab />}
+          {tab === "groups" && <StudentGroupsTab />}
         </main>
       </div>
     </div>
@@ -2931,6 +2933,103 @@ function StudentActivityTab() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ============ STUDENT GROUPS TAB ============ */
+function StudentGroupsTab() {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [openGroup, setOpenGroup] = useState<any>(null);
+
+  const load = () => { setLoading(true); fetch("/api/groups").then(r => r.json()).then(d => { setItems(d.items || []); setLoading(false); }); };
+  useEffect(load, []);
+
+  if (openGroup) return <StudentGroupChat group={openGroup} onBack={() => { setOpenGroup(null); load(); }} />;
+
+  return (
+    <div>
+      <h2 className="text-xl font-black mb-1 flex items-center gap-2"><MessageCircle className="w-5 h-5 text-primary-400" /> گروه‌های چت</h2>
+      <p className="text-slate-500 text-sm mb-6">گروه‌های چت دوره‌هایی که در آن‌ها عضو هستید</p>
+      {loading ? (
+        <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>
+      ) : items.length === 0 ? (
+        <div className="text-center py-16 bg-white/5 border border-white/10 rounded-[16px]">
+          <MessageCircle className="w-12 h-12 mx-auto text-slate-500 mb-3" />
+          <p className="text-slate-500">هنوز در هیچ گروهی عضو نیستید</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {items.map((g: any) => (
+            <button key={g.id} onClick={() => setOpenGroup(g)} className="w-full text-right p-4 rounded-[14px] bg-white/5 hover:bg-white/10 border border-white/10 transition flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-black shrink-0">
+                {(g.title||"?").charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-white text-sm">{g.title}</span>
+                  {g.unread_count > 0 && <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[9px] font-black">{Number(g.unread_count).toLocaleString("fa-IR")}</span>}
+                </div>
+                {g.last_message && <div className="text-[11px] text-slate-400 truncate mt-0.5">{g.last_message}</div>}
+                <div className="text-[9px] text-slate-500 mt-1">👥 {g.member_count || 0} عضو</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StudentGroupChat({ group, onBack }: { group: any; onBack: () => void }) {
+  const [data, setData] = useState<any>(null);
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const load = () => fetch(`/api/groups?groupId=${group.id}`).then(r => r.json()).then(setData);
+  useEffect(() => { load(); const iv = setInterval(load, 8000); return () => clearInterval(iv); }, [group.id]);
+  useEffect(() => { const el = document.getElementById("std-group-msgs"); if (el) el.scrollTop = el.scrollHeight; }, [data?.messages?.length]);
+
+  const send = async () => {
+    if (!text.trim()) return;
+    setSending(true);
+    await fetch("/api/groups", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ action: "sendMessage", groupId: group.id, content: text })});
+    setText("");
+    setSending(false);
+    load();
+  };
+
+  return (
+    <div className="flex flex-col h-[75vh]">
+      <div className="flex items-center gap-3 p-4 rounded-t-[16px] bg-white/5 border border-white/10 border-b-0">
+        <button onClick={onBack} className="p-2 rounded-[8px] bg-white/5 text-slate-300"><ChevronLeft className="w-4 h-4 rotate-180" /></button>
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-black">{(group.title||"?").charAt(0)}</div>
+        <div className="flex-1">
+          <div className="font-black text-white text-sm">{group.title}</div>
+          <div className="text-[10px] text-slate-400">{data?.members?.length || group.member_count || 0} عضو</div>
+        </div>
+      </div>
+      <div id="std-group-msgs" className="flex-1 overflow-y-auto p-4 bg-black/20 border-x border-white/10 space-y-2">
+        {(data?.messages || []).map((m: any) => (
+          <div key={m.id} className="flex justify-start">
+            <div className={`max-w-[75%] p-3 rounded-[14px] ${m.sender_role === "manager" ? "bg-emerald-500/25 border border-emerald-500/40" : m.sender_role === "admin" ? "bg-primary-500/25 border border-primary-500/40" : "bg-white/10"} text-white`}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-black opacity-80">{m.sender_name || "کاربر"}</span>
+                {m.sender_role === "manager" && <span className="px-1.5 py-0.5 rounded-full bg-emerald-500 text-white text-[8px] font-black">مدیر</span>}
+              </div>
+              <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
+              <div className="text-[9px] opacity-60 mt-1">{new Date(m.created_at).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })}</div>
+            </div>
+          </div>
+        ))}
+        {(data?.messages?.length || 0) === 0 && <div className="text-center py-10 text-slate-500 text-sm">هنوز پیامی در گروه نیست</div>}
+      </div>
+      <div className="p-3 bg-white/5 border border-white/10 border-t-0 rounded-b-[16px] flex gap-2">
+        <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="پیام..." className="flex-1 px-3 py-2 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" />
+        <button onClick={send} disabled={sending || !text.trim()} className="px-4 py-2 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white text-xs font-black disabled:opacity-50 flex items-center gap-1">
+          <Send className="w-4 h-4" /> ارسال
+        </button>
+      </div>
     </div>
   );
 }
