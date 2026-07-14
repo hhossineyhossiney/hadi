@@ -103,7 +103,7 @@ export default function StoriesBar() {
 
   if (loading) {
     return (
-      <section className="pt-8" style={{ background: "transparent" }}>
+      <section className="pt-28 lg:pt-24" style={{ background: "transparent" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-2">
           <div className="flex items-center gap-4 overflow-hidden">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -120,11 +120,11 @@ export default function StoriesBar() {
 
   if (groups.length === 0) {
     // Still need navbar spacing when there are no stories
-    return <div className="pt-8" aria-hidden="true" />;
+    return <div className="pt-24 lg:pt-20" aria-hidden="true" />;
   }
 
   return (
-    <section className="pt-8" style={{ background: "transparent" }}>
+    <section className="pt-28 lg:pt-24" style={{ background: "transparent" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-2">
         <div
           ref={scrollRef}
