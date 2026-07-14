@@ -8,6 +8,7 @@ import {
   LayoutDashboard, Image as ImageIcon, Award, Plus, LogOut, ShieldCheck, Eye, EyeOff,
   UserCircle2, FolderOpen, Menu, Bell, TrendingUp, CalendarDays,
   MessageCircle, Video, Link as LinkIcon, Calendar, ShoppingBag, PlayCircle,
+  ChevronLeft,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSession, signIn, signOut } from "next-auth/react";
@@ -21,7 +22,7 @@ import MoneyInput from "@/components/MoneyInput";
 import WeekdayPicker from "@/components/WeekdayPicker";
 import { calculateCourseSchedule, formatScheduleDays } from "@/lib/schedule";
 
-type TabKey = "dashboard" | "courses" | "shop" | "students" | "sessions" | "progress" | "live" | "assignments" | "quizzes" | "grades" | "instructors" | "attendance" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
+type TabKey = "dashboard" | "courses" | "shop" | "students" | "sessions" | "progress" | "live" | "assignments" | "quizzes" | "grades" | "instructors" | "attendance" | "groups" | "reports" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
@@ -36,6 +37,8 @@ const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "live", label: "کلاس‌های آنلاین (Live)", icon: Video },
   { key: "assignments", label: "مدیریت تکالیف", icon: ImageIcon },
   { key: "quizzes", label: "مدیریت آزمون‌ها", icon: Check },
+  { key: "groups", label: "گروه‌های پیام‌رسان", icon: MessageCircle },
+  { key: "reports", label: "گزارش‌گیری Excel", icon: FolderOpen },
   { key: "notifications", label: "ارسال اعلان", icon: Bell },
   { key: "gallery", label: "گالری نمونه‌کارها", icon: ImageIcon },
   { key: "banner", label: "بنر اسلایدی آموزشگاه", icon: ImagePlus },
@@ -234,6 +237,8 @@ export default function ManagerPanelPage() {
           {tab === "grades" && <ManagerGradesTab data={data} />}
           {tab === "instructors" && <ManagerInstructorsTab />}
           {tab === "attendance" && <ManagerAttendanceTab data={data} />}
+          {tab === "reports" && <ManagerReportsTab />}
+          {tab === "groups" && <ManagerGroupsTab data={data} />}
         </div>
       </div>
     </main>
@@ -3551,6 +3556,222 @@ function ManagerAttendanceTab({ data }: { data: any }) {
           </button>
         </>
       )}
+    </div>
+  );
+}
+
+/* ============================= MANAGER REPORTS (Excel Downloads) ============================= */
+function ManagerReportsTab() {
+  const [loading, setLoading] = useState<string | null>(null);
+  const download = async (type: string, label: string) => {
+    setLoading(type);
+    try {
+      const res = await fetch(`/api/manager/report?type=${type}&format=excel`);
+      if (!res.ok) { alert("خطا در دانلود گزارش"); setLoading(null); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${type}-${new Date().toISOString().slice(0,10)}.xlsx`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) { alert("خطا: " + (e as any)?.message); }
+    setLoading(null);
+  };
+
+  const REPORTS = [
+    { k: "students", l: "لیست هنرجویان", d: "نام، موبایل، دوره، وضعیت، پیشرفت و تاریخ ثبت‌نام", c: "from-indigo-500/15 to-indigo-500/5 border-indigo-500/30", icon: Users },
+    { k: "courses", l: "لیست دوره‌ها", d: "دوره‌ها با آمار ثبت‌نام، ظرفیت، شهریه و مدرس", c: "from-primary-500/15 to-primary-500/5 border-primary-500/30", icon: BookOpen },
+    { k: "grades", l: "نمرات و کارنامه‌ها", d: "همه نمرات ثبت‌شده با تفکیک تئوری/عملی و وضعیت قبولی", c: "from-emerald-500/15 to-emerald-500/5 border-emerald-500/30", icon: Award },
+    { k: "attendance", l: "حضور و غیاب", d: "لیست کامل حضور و غیاب هنرجویان با تاریخ و وضعیت", c: "from-amber-500/15 to-amber-500/5 border-amber-500/30", icon: CheckCircle },
+    { k: "revenue", l: "درآمد فروش آنلاین", d: "خریدهای دوره‌های آنلاین با مبلغ، کمیسیون و خالص دریافتی", c: "from-fuchsia-500/15 to-fuchsia-500/5 border-fuchsia-500/30", icon: Wallet },
+    { k: "fees", l: "شهریه و اقساط", d: "همه شهریه‌ها، اقساط، هزینه‌های اضافه با تاریخ پرداخت", c: "from-rose-500/15 to-rose-500/5 border-rose-500/30", icon: FolderOpen },
+  ];
+
+  return (
+    <div>
+      <h2 className="text-2xl font-black mb-1 flex items-center gap-2"><FolderOpen className="w-5 h-5 text-primary-400" /> گزارش‌گیری Excel</h2>
+      <p className="text-slate-400 text-sm mb-6">با یک کلیک گزارش کامل هر بخش را به‌صورت فایل Excel دانلود کنید</p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {REPORTS.map(r => (
+          <div key={r.k} className={`p-5 rounded-[18px] bg-gradient-to-br ${r.c} border relative overflow-hidden`}>
+            <div className="w-11 h-11 rounded-[12px] bg-white/10 flex items-center justify-center mb-3">
+              <r.icon className="w-5 h-5 text-white" />
+            </div>
+            <div className="text-sm font-black text-white mb-1">{r.l}</div>
+            <p className="text-[11px] text-slate-300 leading-relaxed mb-4">{r.d}</p>
+            <button onClick={() => download(r.k, r.l)} disabled={loading === r.k} className="w-full py-2.5 rounded-[10px] bg-white/95 hover:bg-white text-slate-900 text-xs font-black flex items-center justify-center gap-2 disabled:opacity-60">
+              {loading === r.k ? <Loader2 className="w-4 h-4 animate-spin" /> : <>📊 دانلود Excel</>}
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-6 p-4 rounded-[12px] bg-primary-500/10 border border-primary-500/30 text-xs text-slate-300">
+        💡 <b>نکته:</b> فایل‌های Excel با فرمت xlsx و ستون‌های فارسی راست‌چین صادر می‌شوند. می‌توانید مستقیم در Microsoft Excel یا Google Sheets باز کنید.
+      </div>
+    </div>
+  );
+}
+
+/* ============================= MANAGER GROUPS TAB ============================= */
+function ManagerGroupsTab({ data }: { data: any }) {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [openGroup, setOpenGroup] = useState<any>(null);
+  const [msg, setMsg] = useState("");
+  const [form, setForm] = useState<any>({ title: "", description: "", courseId: "", type: "course", autoAddStudents: true });
+  const courses = (data?.courses || []) as any[];
+
+  const load = () => { setLoading(true); fetch("/api/groups").then(r => r.json()).then(d => { setItems(d.items || []); setLoading(false); }); };
+  useEffect(load, []);
+
+  const create = async () => {
+    if (!form.title) { setMsg("❌ عنوان الزامی است"); return; }
+    const r = await fetch("/api/groups", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ action: "createGroup", ...form })});
+    const d = await r.json();
+    if (r.ok) { setMsg("✅ گروه ایجاد شد"); setCreating(false); setForm({ title: "", description: "", courseId: "", type: "course", autoAddStudents: true }); load(); }
+    else setMsg("❌ " + (d.error || "خطا"));
+  };
+
+  if (openGroup) return <GroupChatView group={openGroup} onBack={() => { setOpenGroup(null); load(); }} isManager={true} />;
+
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
+        <div>
+          <h2 className="text-2xl font-black mb-1 flex items-center gap-2"><MessageCircle className="w-5 h-5 text-primary-400" /> گروه‌های پیام‌رسان</h2>
+          <p className="text-slate-400 text-sm">ایجاد گروه چت برای هر دوره — ارسال پیام گروهی به هنرجویان</p>
+        </div>
+        <button onClick={() => setCreating(!creating)} className="px-4 py-2 rounded-[12px] gradient-button text-white font-black text-sm flex items-center gap-1"><Plus className="w-4 h-4" /> گروه جدید</button>
+      </div>
+      {msg && <div className={`mb-4 p-3 rounded-[10px] text-xs font-bold ${msg.startsWith("❌") ? "bg-error-500/15 text-error-400" : "bg-emerald-500/15 text-emerald-400"}`}>{msg}</div>}
+
+      {creating && (
+        <div className="mb-4 p-5 rounded-[16px] bg-[#111a2e] border border-white/10 space-y-3">
+          <input value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="عنوان گروه" className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" />
+          <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={2} placeholder="توضیح (اختیاری)" className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold resize-none" />
+          <div className="grid grid-cols-2 gap-2">
+            <select value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold">
+              <option value="course">دوره‌ای (چت هنرجویان یک دوره)</option>
+              <option value="announcement">اطلاعیه (فقط اطلاعیه مدیر)</option>
+              <option value="general">عمومی</option>
+            </select>
+            <select value={form.courseId} onChange={e => setForm({...form, courseId: e.target.value})} className="px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold">
+              <option value="">— دوره (اختیاری) —</option>
+              {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+            </select>
+          </div>
+          <label className="flex items-center gap-2 text-xs text-slate-300 font-bold">
+            <input type="checkbox" checked={form.autoAddStudents} onChange={e => setForm({...form, autoAddStudents: e.target.checked})} />
+            افزودن خودکار همه هنرجویان تأیید‌شده این دوره
+          </label>
+          <div className="flex gap-2">
+            <button onClick={create} className="flex-1 py-2.5 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white text-sm font-black">ذخیره گروه</button>
+            <button onClick={() => setCreating(false)} className="px-4 py-2.5 rounded-[10px] bg-white/10 text-slate-300 text-sm font-black">انصراف</button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>
+      ) : items.length === 0 ? (
+        <div className="text-center py-16 bg-[#111a2e] border border-white/5 rounded-[16px]">
+          <MessageCircle className="w-12 h-12 mx-auto text-slate-500 mb-3" />
+          <p className="text-slate-500 text-sm">هیچ گروهی نساخته‌اید</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {items.map((g: any) => (
+            <button key={g.id} onClick={() => setOpenGroup(g)} className="w-full text-right p-4 rounded-[14px] bg-[#111a2e] hover:bg-white/5 border border-white/10 transition flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-black shrink-0">
+                {(g.title || "?").charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-white text-sm">{g.title}</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-primary-500/20 text-primary-300">{g.type === "course" ? "دوره‌ای" : g.type === "announcement" ? "اطلاعیه" : "عمومی"}</span>
+                  {g.unread_count > 0 && <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[9px] font-black">{Number(g.unread_count).toLocaleString("fa-IR")} خوانده نشده</span>}
+                </div>
+                {g.last_message && <div className="text-[11px] text-slate-400 truncate mt-0.5">{g.last_message}</div>}
+                <div className="text-[9px] text-slate-500 mt-1">👥 {g.member_count || 0} عضو • 💬 {g.msg_count || 0} پیام</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================= GROUP CHAT VIEW ============================= */
+function GroupChatView({ group, onBack, isManager }: { group: any; onBack: () => void; isManager: boolean }) {
+  const [data, setData] = useState<any>(null);
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const listRef = useState<any>(null)[0];
+
+  const load = () => fetch(`/api/groups?groupId=${group.id}`).then(r => r.json()).then(setData);
+  useEffect(() => {
+    load();
+    const iv = setInterval(load, 8000);
+    return () => clearInterval(iv);
+  }, [group.id]);
+  useEffect(() => {
+    // auto-scroll
+    const el = document.getElementById("group-msgs");
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [data?.messages?.length]);
+
+  const send = async () => {
+    if (!text.trim()) return;
+    setSending(true);
+    await fetch("/api/groups", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ action: "sendMessage", groupId: group.id, content: text })});
+    setText("");
+    setSending(false);
+    load();
+  };
+
+  return (
+    <div className="flex flex-col h-[70vh]">
+      <div className="flex items-center justify-between p-4 rounded-t-[16px] bg-[#111a2e] border border-white/10 border-b-0">
+        <div className="flex items-center gap-3">
+          <button onClick={onBack} className="p-2 rounded-[8px] bg-white/5 hover:bg-white/10 text-slate-300"><ChevronLeft className="w-4 h-4 rotate-180" /></button>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-black">{(group.title||"?").charAt(0)}</div>
+          <div>
+            <div className="font-black text-white text-sm">{group.title}</div>
+            <div className="text-[10px] text-slate-400">{data?.members?.length || group.member_count || 0} عضو</div>
+          </div>
+        </div>
+      </div>
+      <div id="group-msgs" className="flex-1 overflow-y-auto p-4 bg-white/5 border-x border-white/10 space-y-2">
+        {(data?.messages || []).map((m: any) => {
+          const isMine = data?.currentUserId === m.sender_id;
+          const isSystem = m.message_type === "system";
+          if (isSystem) return <div key={m.id} className="text-center text-[10px] text-slate-500 py-2">{m.content}</div>;
+          return (
+            <div key={m.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[75%] p-3 rounded-[14px] ${isMine ? "bg-primary-600 text-white" : m.sender_role === "manager" ? "bg-emerald-500/25 text-white border border-emerald-500/40" : "bg-white/10 text-white"}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-black opacity-80">{m.sender_name || "کاربر"}</span>
+                  {m.sender_role === "manager" && <span className="px-1.5 py-0.5 rounded-full bg-emerald-500 text-white text-[8px] font-black">مدیر</span>}
+                </div>
+                <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
+                <div className="text-[9px] opacity-60 mt-1 text-right">{new Date(m.created_at).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })}</div>
+              </div>
+            </div>
+          );
+        })}
+        {(data?.messages?.length || 0) === 0 && <div className="text-center py-10 text-slate-500 text-sm">هنوز پیامی ارسال نشده</div>}
+      </div>
+      <div className="p-3 bg-[#111a2e] border border-white/10 border-t-0 rounded-b-[16px] flex gap-2">
+        <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="پیام خود را بنویسید..." className="flex-1 px-3 py-2 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" />
+        <button onClick={send} disabled={sending || !text.trim()} className="px-4 py-2 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white text-xs font-black disabled:opacity-50 flex items-center gap-1">
+          <Send className="w-4 h-4" /> ارسال
+        </button>
+      </div>
     </div>
   );
 }
