@@ -8,17 +8,18 @@ const HTTP_REFERER = "https://amozeshgahazadconfig.vercel.app";
 const X_TITLE = "Zabarkhan AI";
 
 export const AI_MODELS = {
-  fast: "google/gemini-2.0-flash-exp:free",
+  fast: "qwen/qwen3-next-80b-a3b-instruct:free",
   pro: "meta-llama/llama-3.3-70b-instruct:free",
   premium: "openai/gpt-4o-mini",
 } as const;
 
-// Fallback chain — try in order if previous fails with 429/5xx
+// Fallback chain — try in order if previous fails
 export const AI_FALLBACK_CHAIN = [
-  "google/gemini-2.0-flash-exp:free",
-  "deepseek/deepseek-chat-v3.1:free",
+  "qwen/qwen3-next-80b-a3b-instruct:free",
+  "nousresearch/hermes-3-llama-3.1-405b:free",
   "meta-llama/llama-3.3-70b-instruct:free",
-  "qwen/qwen-2.5-72b-instruct:free",
+  "openai/gpt-oss-20b:free",
+  "google/gemma-4-31b-it:free",
   "meta-llama/llama-3.2-3b-instruct:free",
 ];
 
@@ -120,8 +121,8 @@ export async function aiComplete(opts: AICompleteOpts): Promise<AICompleteResult
       const { ok, res } = await tryComplete(apiKey, model, opts);
       if (!ok) {
         lastErr = `${res.status}: ${(await res.text()).slice(0, 200)}`;
-        // Retry on 429/5xx only
-        if (res.status === 429 || res.status >= 500) continue;
+        // Retry on 429/404/5xx
+        if (res.status === 429 || res.status === 404 || res.status >= 500) continue;
         throw new Error(`AI_ERROR ${lastErr}`);
       }
       const data = await res.json();
@@ -184,7 +185,8 @@ export async function aiStream(opts: AICompleteOpts): Promise<ReadableStream<Uin
       break;
     }
     lastErr = `${model} → ${r.status}: ${(await r.text()).slice(0, 150)}`;
-    if (r.status !== 429 && r.status < 500) {
+    // Retry on 429, 404 (model unavailable), 5xx
+    if (r.status !== 429 && r.status !== 404 && r.status < 500) {
       throw new Error(`AI_ERROR ${lastErr}`);
     }
   }
