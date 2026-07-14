@@ -22,10 +22,11 @@ import MoneyInput from "@/components/MoneyInput";
 import WeekdayPicker from "@/components/WeekdayPicker";
 import { calculateCourseSchedule, formatScheduleDays } from "@/lib/schedule";
 
-type TabKey = "dashboard" | "courses" | "shop" | "students" | "sessions" | "progress" | "live" | "assignments" | "quizzes" | "grades" | "instructors" | "attendance" | "groups" | "reports" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
+type TabKey = "dashboard" | "courses" | "shop" | "students" | "sessions" | "progress" | "live" | "assignments" | "quizzes" | "grades" | "instructors" | "attendance" | "groups" | "reports" | "subscription" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
+  { key: "subscription", label: "پلن اشتراک من", icon: Award },
   { key: "courses", label: "مدیریت دوره‌ها", icon: BookOpen },
   { key: "shop", label: "فروش آنلاین دوره", icon: Wallet },
   { key: "students", label: "لیست هنرجویان", icon: Users },
@@ -239,6 +240,7 @@ export default function ManagerPanelPage() {
           {tab === "attendance" && <ManagerAttendanceTab data={data} />}
           {tab === "reports" && <ManagerReportsTab />}
           {tab === "groups" && <ManagerGroupsTab data={data} />}
+          {tab === "subscription" && <ManagerSubscriptionTab />}
         </div>
       </div>
     </main>
@@ -3772,6 +3774,201 @@ function GroupChatView({ group, onBack, isManager }: { group: any; onBack: () =>
           <Send className="w-4 h-4" /> ارسال
         </button>
       </div>
+    </div>
+  );
+}
+
+/* ============================= MANAGER SUBSCRIPTION TAB ============================= */
+function ManagerSubscriptionTab() {
+  const [data, setData] = useState<any>(null);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/manager/subscription").then(r => r.json()),
+      fetch("/api/admin/plans").then(r => r.json()),
+    ]).then(([d, p]) => { setData(d); setPlans(p.items || []); setLoading(false); });
+  }, []);
+
+  if (loading) return <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>;
+
+  const cur = data?.current;
+  const usage = data?.usage || {};
+  const hist = data?.history || [];
+  const isActive = cur?.status === "active" && (!cur.expires_at || new Date(cur.expires_at) > new Date());
+  const daysLeft = cur?.expires_at ? Math.max(0, Math.ceil((new Date(cur.expires_at).getTime() - Date.now()) / 86400000)) : null;
+
+  const usagePercent = (used: number, max: number) => max === 0 ? 0 : Math.min(100, Math.round((used / max) * 100));
+
+  return (
+    <div>
+      <h2 className="text-2xl font-black text-white mb-1 flex items-center gap-2"><Award className="w-5 h-5 text-amber-400" /> پلن اشتراک من</h2>
+      <p className="text-slate-400 text-sm mb-6">وضعیت پلن فعلی، میزان مصرف، و امکان ارتقا</p>
+
+      {/* Current plan card */}
+      {cur ? (
+        <div className={`p-6 rounded-[20px] mb-6 relative overflow-hidden ${
+          cur.plan_color === "amber" ? "bg-gradient-to-br from-amber-500/25 to-amber-500/5 border-2 border-amber-500/50" :
+          cur.plan_color === "purple" ? "bg-gradient-to-br from-purple-500/25 to-purple-500/5 border-2 border-purple-500/50" :
+          cur.plan_color === "slate" ? "bg-gradient-to-br from-slate-500/25 to-slate-500/5 border-2 border-slate-500/50" :
+          "bg-gradient-to-br from-primary-500/25 to-primary-500/5 border-2 border-primary-500/50"
+        }`}>
+          <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
+            <div>
+              <div className="text-[11px] font-black text-amber-300 mb-1">🏆 پلن فعال</div>
+              <h3 className="text-2xl font-black text-white mb-1">{cur.plan_name}</h3>
+              <p className="text-xs text-slate-300">{cur.plan_description}</p>
+            </div>
+            <div className="text-left">
+              <span className={`px-3 py-1 rounded-full text-[11px] font-black inline-block mb-2 ${isActive ? "bg-emerald-500 text-white" : "bg-red-500 text-white"}`}>
+                {isActive ? "✓ فعال" : cur.status === "expired" ? "منقضی شده" : "لغو شده"}
+              </span>
+              {daysLeft !== null && (
+                <div className={`text-xs font-black ${daysLeft <= 7 ? "text-red-400" : daysLeft <= 30 ? "text-amber-400" : "text-slate-300"}`}>
+                  ⏰ {daysLeft.toLocaleString("fa-IR")} روز باقی‌مانده
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div className="p-3 rounded-[12px] bg-black/25">
+              <div className="text-[10px] text-slate-400 mb-1">شروع اشتراک</div>
+              <div className="text-xs font-black text-white">{new Date(cur.started_at).toLocaleDateString("fa-IR")}</div>
+            </div>
+            <div className="p-3 rounded-[12px] bg-black/25">
+              <div className="text-[10px] text-slate-400 mb-1">تاریخ انقضا</div>
+              <div className="text-xs font-black text-white">{cur.expires_at ? new Date(cur.expires_at).toLocaleDateString("fa-IR") : "—"}</div>
+            </div>
+            <div className="p-3 rounded-[12px] bg-black/25">
+              <div className="text-[10px] text-slate-400 mb-1">هزینه</div>
+              <div className="text-xs font-black text-emerald-400" dir="ltr">{Number(cur.price || 0).toLocaleString("fa-IR")} ت</div>
+            </div>
+            <div className="p-3 rounded-[12px] bg-black/25">
+              <div className="text-[10px] text-slate-400 mb-1">کمیسیون سامانه</div>
+              <div className="text-xs font-black text-amber-400">{cur.commission_percent}٪</div>
+            </div>
+          </div>
+
+          {/* Usage bars */}
+          <div className="space-y-3">
+            <div>
+              <div className="flex items-center justify-between text-[10px] mb-1">
+                <span className="text-slate-300 font-bold">📚 دوره‌ها: {usage.courses}/{cur.max_courses === 0 ? "∞" : cur.max_courses}</span>
+                <span className="text-slate-400">{cur.max_courses === 0 ? "نامحدود" : `${usagePercent(usage.courses, cur.max_courses)}٪`}</span>
+              </div>
+              <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                <div className="h-full bg-gradient-to-l from-primary-500 to-primary-300 transition-all" style={{ width: cur.max_courses === 0 ? "20%" : `${usagePercent(usage.courses, cur.max_courses)}%` }} />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between text-[10px] mb-1">
+                <span className="text-slate-300 font-bold">👥 هنرجویان: {usage.students}/{cur.max_students === 0 ? "∞" : cur.max_students}</span>
+                <span className="text-slate-400">{cur.max_students === 0 ? "نامحدود" : `${usagePercent(usage.students, cur.max_students)}٪`}</span>
+              </div>
+              <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                <div className="h-full bg-gradient-to-l from-emerald-500 to-emerald-300 transition-all" style={{ width: cur.max_students === 0 ? "20%" : `${usagePercent(usage.students, cur.max_students)}%` }} />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between text-[10px] mb-1">
+                <span className="text-slate-300 font-bold">🎬 دوره‌های فروش آنلاین: {usage.shopCourses}/{cur.max_shop_courses === 0 ? "0 (غیرمجاز)" : cur.max_shop_courses}</span>
+                <span className="text-slate-400">{cur.max_shop_courses === 0 ? "—" : `${usagePercent(usage.shopCourses, cur.max_shop_courses)}٪`}</span>
+              </div>
+              <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                <div className="h-full bg-gradient-to-l from-amber-500 to-amber-300 transition-all" style={{ width: cur.max_shop_courses === 0 ? "0%" : `${usagePercent(usage.shopCourses, cur.max_shop_courses)}%` }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Features */}
+          {Array.isArray(cur.features) && cur.features.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <div className="text-[10px] font-black text-slate-400 mb-2">امکانات پلن شما:</div>
+              <div className="flex flex-wrap gap-1.5">
+                {cur.features.map((f: string, i: number) => (
+                  <span key={i} className="px-2.5 py-1 rounded-full bg-white/10 text-[10px] font-bold text-white flex items-center gap-1">
+                    <Check className="w-3 h-3 text-emerald-400" /> {f}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="p-6 rounded-[16px] bg-amber-500/15 border-2 border-amber-500/30 mb-6 text-center">
+          <div className="text-lg font-black text-amber-300 mb-2">⚠ شما هنوز اشتراک فعالی ندارید</div>
+          <p className="text-sm text-slate-300 mb-4">برای فعال‌سازی، یکی از پلن‌های زیر رو انتخاب کنید و با مدیر کل تماس بگیرید.</p>
+        </div>
+      )}
+
+      {/* Available plans for upgrade */}
+      <h3 className="text-lg font-black text-white mb-3 flex items-center gap-2">
+        <Wallet className="w-5 h-5 text-primary-400" /> پلن‌های قابل ارتقا
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {plans.filter((p: any) => Number(p.price) > 0 && p.id !== cur?.plan_id).map((p: any) => {
+          const c = p.color || "primary";
+          return (
+            <div key={p.id} className={`p-5 rounded-[16px] border relative overflow-hidden ${
+              c === "amber" ? "bg-gradient-to-br from-amber-500/15 to-amber-500/5 border-amber-500/40" :
+              c === "purple" ? "bg-gradient-to-br from-purple-500/15 to-purple-500/5 border-purple-500/40" :
+              c === "slate" ? "bg-gradient-to-br from-slate-500/15 to-slate-500/5 border-slate-500/40" :
+              "bg-gradient-to-br from-primary-500/15 to-primary-500/5 border-primary-500/40"
+            }`}>
+              {p.is_popular && <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-amber-400 text-slate-900 text-[9px] font-black">🏆 محبوب</div>}
+              <div className="text-base font-black text-white mb-1">{p.name}</div>
+              <div className="text-[10px] text-slate-400 mb-2 min-h-[30px]">{p.description}</div>
+              <div className="text-xl font-black text-white mb-2" dir="ltr">{Number(p.price).toLocaleString("fa-IR")}<span className="text-[10px] text-slate-400 mr-1">تومان</span></div>
+              <div className="text-[9px] text-slate-500 mb-3">/ {p.duration_days} روز</div>
+              <ul className="space-y-1 mb-4 min-h-[80px]">
+                {(p.features || []).slice(0, 4).map((f: string, i: number) => (
+                  <li key={i} className="text-[10px] text-slate-200 flex items-start gap-1"><Check className="w-3 h-3 text-emerald-400 mt-0.5 shrink-0" /> {f}</li>
+                ))}
+              </ul>
+              <a href="tel:09159513179" className="block text-center py-2 rounded-[8px] gradient-button text-white text-xs font-black">
+                📞 تماس برای فعال‌سازی
+              </a>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* History */}
+      {hist.length > 0 && (
+        <div>
+          <h3 className="text-sm font-black text-white mb-3">📜 تاریخچه اشتراک‌ها</h3>
+          <div className="bg-[#111a2e] border border-white/5 rounded-[16px] overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-right text-[10px] font-black text-slate-500 border-b border-white/5">
+                  <th className="px-4 py-3">پلن</th>
+                  <th className="px-4 py-3">وضعیت</th>
+                  <th className="px-4 py-3">شروع</th>
+                  <th className="px-4 py-3">پایان</th>
+                  <th className="px-4 py-3">مبلغ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {hist.map((h: any) => (
+                  <tr key={h.id} className="hover:bg-white/5">
+                    <td className="px-4 py-3 font-bold text-white">{h.plan_name}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${h.status === "active" ? "bg-emerald-500/20 text-emerald-400" : h.status === "expired" ? "bg-red-500/20 text-red-400" : "bg-slate-500/20 text-slate-400"}`}>
+                        {h.status === "active" ? "فعال" : h.status === "expired" ? "منقضی" : "لغو شده"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-500 text-[10px]">{new Date(h.started_at).toLocaleDateString("fa-IR")}</td>
+                    <td className="px-4 py-3 text-slate-500 text-[10px]">{h.expires_at ? new Date(h.expires_at).toLocaleDateString("fa-IR") : "—"}</td>
+                    <td className="px-4 py-3 text-emerald-400 font-bold" dir="ltr">{Number(h.price || 0).toLocaleString("fa-IR")} ت</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
