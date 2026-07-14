@@ -493,9 +493,9 @@ const MIGRATIONS: { name: string; sql: string }[] = [
       CREATE INDEX IF NOT EXISTS idx_activities_time ON activities(created_at DESC);
     `,
   },
-  // 14) V4: Instructors, Grades, Attendance
+  // 14) V4-a: Instructors
   {
-    name: "v4_tables",
+    name: "v4_instructors",
     sql: `
       CREATE TABLE IF NOT EXISTS instructors (
         id SERIAL PRIMARY KEY,
@@ -515,7 +515,12 @@ const MIGRATIONS: { name: string; sql: string }[] = [
         updated_at TIMESTAMP DEFAULT NOW()
       );
       CREATE INDEX IF NOT EXISTS idx_instructors_inst ON instructors(institute_id);
-
+    `,
+  },
+  // 14) V4-b: Grades
+  {
+    name: "v4_grades",
+    sql: `
       CREATE TABLE IF NOT EXISTS grades (
         id SERIAL PRIMARY KEY,
         registration_id INTEGER NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
@@ -538,7 +543,12 @@ const MIGRATIONS: { name: string; sql: string }[] = [
       CREATE INDEX IF NOT EXISTS idx_grades_user ON grades(user_id);
       CREATE INDEX IF NOT EXISTS idx_grades_registration ON grades(registration_id);
       CREATE INDEX IF NOT EXISTS idx_grades_course ON grades(course_id);
-
+    `,
+  },
+  // 14) V4-c: Attendance
+  {
+    name: "v4_attendance",
+    sql: `
       CREATE TABLE IF NOT EXISTS attendance (
         id SERIAL PRIMARY KEY,
         registration_id INTEGER NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
