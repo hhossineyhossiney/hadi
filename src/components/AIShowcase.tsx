@@ -256,11 +256,11 @@ export default function AIShowcase() {
             className="flex flex-col sm:flex-row items-center justify-center gap-3"
           >
             <Link
-              href="/register"
+              href="/ai/tools"
               className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-l from-fuchsia-600 via-purple-600 to-blue-600 text-white text-sm font-black flex items-center justify-center gap-2 hover:scale-[1.03] transition-transform shadow-2xl shadow-fuchsia-500/30 group"
             >
               <Rocket className="w-5 h-5" />
-              شروع رایگان AI
+              استفاده از ابزارها همین حالا
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             </Link>
             <a
@@ -440,11 +440,11 @@ export default function AIShowcase() {
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <Link
-                  href="/register"
+                  href="/ai/tools"
                   className="px-8 py-4 rounded-2xl bg-white text-slate-900 text-sm font-black flex items-center gap-2 hover:scale-[1.03] transition-transform shadow-2xl"
                 >
                   <Rocket className="w-5 h-5" />
-                  فعال‌سازی AI رایگان
+                  ورود به ابزارهای AI
                   <ArrowLeft className="w-4 h-4" />
                 </Link>
                 <Link
