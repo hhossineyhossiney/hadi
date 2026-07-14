@@ -21,14 +21,17 @@ import MoneyInput from "@/components/MoneyInput";
 import WeekdayPicker from "@/components/WeekdayPicker";
 import { calculateCourseSchedule, formatScheduleDays } from "@/lib/schedule";
 
-type TabKey = "dashboard" | "courses" | "shop" | "students" | "sessions" | "progress" | "live" | "assignments" | "quizzes" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
+type TabKey = "dashboard" | "courses" | "shop" | "students" | "sessions" | "progress" | "live" | "assignments" | "quizzes" | "grades" | "instructors" | "attendance" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
   { key: "courses", label: "مدیریت دوره‌ها", icon: BookOpen },
   { key: "shop", label: "فروش آنلاین دوره", icon: Wallet },
   { key: "students", label: "لیست هنرجویان", icon: Users },
+  { key: "instructors", label: "مدیریت اساتید", icon: UserCircle2 },
   { key: "progress", label: "وضعیت پیشرفت هنرجویان", icon: TrendingUp },
+  { key: "grades", label: "ثبت نمرات و کارنامه", icon: Award },
+  { key: "attendance", label: "حضور و غیاب", icon: CheckCircle },
   { key: "sessions", label: "تقویم جلسات دوره‌ها", icon: CalendarDays },
   { key: "live", label: "کلاس‌های آنلاین (Live)", icon: Video },
   { key: "assignments", label: "مدیریت تکالیف", icon: ImageIcon },
@@ -228,6 +231,9 @@ export default function ManagerPanelPage() {
           {tab === "live" && <ManagerLiveTab data={data} />}
           {tab === "assignments" && <ManagerAssignmentsTab data={data} />}
           {tab === "quizzes" && <ManagerQuizzesTab data={data} />}
+          {tab === "grades" && <ManagerGradesTab data={data} />}
+          {tab === "instructors" && <ManagerInstructorsTab />}
+          {tab === "attendance" && <ManagerAttendanceTab data={data} />}
         </div>
       </div>
     </main>
@@ -3139,6 +3145,412 @@ function ScheduleBuilder({ startDate, scheduleDays, scheduleTime, sessionDuratio
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ============================= INSTRUCTORS MANAGER TAB ============================= */
+function ManagerInstructorsTab() {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<any>(null);
+  const [msg, setMsg] = useState("");
+
+  const load = () => {
+    setLoading(true);
+    fetch("/api/manager/instructors").then(r => r.json()).then(d => { setItems(d.items || []); setLoading(false); });
+  };
+  useEffect(load, []);
+
+  const act = async (payload: any) => {
+    const r = await fetch("/api/manager/instructors", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+    const d = await r.json();
+    if (r.ok) { setMsg("✅ ذخیره شد"); load(); return true; }
+    setMsg("❌ " + (d.error || "خطا")); return false;
+  };
+
+  const newItem = () => setEditing({ id: null, name: "", title: "", phone: "", email: "", bio: "", specialties: [""], yearsExperience: 0, avatar: "", isActive: true });
+
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <h2 className="text-2xl font-black mb-1 flex items-center gap-2"><UserCircle2 className="w-5 h-5 text-primary-400" /> مدیریت اساتید</h2>
+          <p className="text-slate-400 text-sm">ثبت و مدیریت اساتید آموزشگاه</p>
+        </div>
+        <button onClick={newItem} className="px-4 py-2 rounded-[12px] gradient-button text-white font-black text-sm flex items-center gap-1">
+          <Plus className="w-4 h-4" /> استاد جدید
+        </button>
+      </div>
+      {msg && <div className={`mb-4 p-3 rounded-[10px] text-xs font-bold ${msg.startsWith("❌") ? "bg-error-500/15 text-error-400" : "bg-emerald-500/15 text-emerald-400"}`}>{msg}</div>}
+
+      {loading ? (
+        <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>
+      ) : items.length === 0 && !editing ? (
+        <div className="text-center py-16 bg-[#111a2e] border border-white/5 rounded-[16px]">
+          <UserCircle2 className="w-12 h-12 mx-auto text-slate-500 mb-3" />
+          <p className="text-slate-500 text-sm">هنوز استادی ثبت نکرده‌اید</p>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {items.map((ins: any) => (
+            <div key={ins.id} className="rounded-[16px] bg-[#111a2e] border border-white/10 p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-black text-lg shrink-0 overflow-hidden">
+                  {ins.avatar ? <img src={ins.avatar} className="w-full h-full object-cover" loading="lazy" decoding="async" /> : (ins.name || "?").charAt(0)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-black text-white text-sm">{ins.name}</div>
+                  {ins.title && <div className="text-[11px] text-primary-300">{ins.title}</div>}
+                </div>
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${ins.is_active ? "bg-emerald-500/20 text-emerald-400" : "bg-slate-500/20 text-slate-400"}`}>
+                  {ins.is_active ? "فعال" : "غیرفعال"}
+                </span>
+              </div>
+              <div className="text-[10px] text-slate-400 space-y-1 mb-3">
+                {ins.phone && <div>📱 <span dir="ltr">{ins.phone}</span></div>}
+                {ins.years_experience > 0 && <div>💼 {ins.years_experience} سال سابقه</div>}
+                {Array.isArray(ins.specialties) && ins.specialties.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {ins.specialties.filter((s: string) => s).map((s: string, i: number) => (
+                      <span key={i} className="px-1.5 py-0.5 rounded-full bg-white/5 text-[9px]">{s}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-1.5">
+                <button onClick={() => setEditing({ ...ins, specialties: ins.specialties || [""] })} className="flex-1 px-3 py-2 rounded-[8px] bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 text-[11px] font-black flex items-center justify-center gap-1">
+                  <Pencil className="w-3 h-3" /> ویرایش
+                </button>
+                <button onClick={() => { if (confirm("حذف این استاد؟")) act({ action: "delete", id: ins.id }); }} className="px-3 py-2 rounded-[8px] bg-error-500/20 text-error-400"><Trash2 className="w-3 h-3" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {editing && (
+        <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4" onClick={() => setEditing(null)}>
+          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-[#082D53] rounded-[18px] border border-white/10 p-5 space-y-3" onClick={e => e.stopPropagation()}>
+            <div className="text-sm font-black text-white mb-2">{editing.id ? "ویرایش استاد" : "استاد جدید"}</div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="text-[10px] font-black text-slate-400 block mb-1">نام و نام‌خانوادگی *</label>
+                <input value={editing.name || ""} onChange={e => setEditing({...editing, name: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">تخصص</label>
+                <input value={editing.title || ""} onChange={e => setEditing({...editing, title: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">سابقه (سال)</label>
+                <input type="number" value={editing.years_experience || editing.yearsExperience || 0} onChange={e => setEditing({...editing, yearsExperience: Number(e.target.value)})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">موبایل</label>
+                <input value={editing.phone || ""} onChange={e => setEditing({...editing, phone: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">ایمیل</label>
+                <input value={editing.email || ""} onChange={e => setEditing({...editing, email: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+              </div>
+              <div className="col-span-2">
+                <label className="text-[10px] font-black text-slate-400 block mb-1">رزومه</label>
+                <textarea value={editing.bio || ""} onChange={e => setEditing({...editing, bio: e.target.value})} rows={3} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold resize-none" />
+              </div>
+              <div className="col-span-2">
+                <label className="text-[10px] font-black text-slate-400 block mb-1">تخصص‌ها (با کاما جدا کنید)</label>
+                <input
+                  value={(editing.specialties || []).join("، ")}
+                  onChange={e => setEditing({...editing, specialties: e.target.value.split(/[،,]/).map(s => s.trim()).filter(Boolean)})}
+                  className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold"
+                  placeholder="مثلاً: خیاطی، طراحی، آشپزی"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="text-[10px] font-black text-slate-400 block mb-1">تصویر (URL)</label>
+                <input value={editing.avatar || ""} onChange={e => setEditing({...editing, avatar: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold" dir="ltr" />
+              </div>
+              <div className="col-span-2 flex items-center gap-2">
+                <input type="checkbox" checked={editing.is_active !== false && editing.isActive !== false} onChange={e => setEditing({...editing, isActive: e.target.checked, is_active: e.target.checked})} />
+                <span className="text-xs text-slate-300 font-bold">فعال</span>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button onClick={async () => {
+                if (!editing.name) { setMsg("❌ نام الزامی است"); return; }
+                const payload: any = { action: editing.id ? "update" : "create", ...editing };
+                if (payload.is_active !== undefined) payload.isActive = payload.is_active;
+                if (payload.years_experience !== undefined) payload.yearsExperience = payload.years_experience;
+                if (await act(payload)) setEditing(null);
+              }} className="flex-1 py-2.5 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white text-sm font-black">ذخیره</button>
+              <button onClick={() => setEditing(null)} className="flex-1 py-2.5 rounded-[10px] bg-white/10 text-slate-300 text-sm font-black">انصراف</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================= GRADES MANAGER TAB ============================= */
+function ManagerGradesTab({ data }: { data: any }) {
+  const [items, setItems] = useState<any[]>([]);
+  const [instructors, setInstructors] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<any>(null);
+  const [msg, setMsg] = useState("");
+  const [filterCourse, setFilterCourse] = useState("");
+  const students = (data?.students || []).filter((s: any) => s.status === "approved");
+  const courses = (data?.courses || []) as any[];
+
+  const load = () => {
+    setLoading(true);
+    fetch("/api/manager/grades" + (filterCourse ? `?courseId=${filterCourse}` : "")).then(r => r.json()).then(d => { setItems(d.items || []); setLoading(false); });
+    fetch("/api/manager/instructors").then(r => r.json()).then(d => setInstructors(d.items || []));
+  };
+  useEffect(load, [filterCourse]);
+
+  const act = async (payload: any) => {
+    const r = await fetch("/api/manager/grades", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+    const d = await r.json();
+    if (r.ok) { setMsg("✅ ذخیره شد"); load(); return true; }
+    setMsg("❌ " + (d.error || "خطا")); return false;
+  };
+
+  const newGrade = () => setEditing({ id: null, registrationId: "", subject: "", theoreticalScore: "", practicalScore: "", finalScore: "", maxScore: 20, passingScore: 10, instructorId: "", description: "" });
+
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
+        <div>
+          <h2 className="text-2xl font-black mb-1 flex items-center gap-2"><Award className="w-5 h-5 text-primary-400" /> ثبت نمرات و کارنامه</h2>
+          <p className="text-slate-400 text-sm">ثبت نمره تئوری، عملی و نمره نهایی برای هنرجویان</p>
+        </div>
+        <div className="flex gap-2">
+          <select value={filterCourse} onChange={e => setFilterCourse(e.target.value)} className="px-3 py-2 rounded-[10px] bg-white/85 text-slate-900 text-xs font-bold">
+            <option value="">همه دوره‌ها</option>
+            {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
+          </select>
+          <button onClick={newGrade} className="px-4 py-2 rounded-[12px] gradient-button text-white font-black text-sm flex items-center gap-1"><Plus className="w-4 h-4" /> ثبت نمره جدید</button>
+        </div>
+      </div>
+      {msg && <div className={`mb-4 p-3 rounded-[10px] text-xs font-bold ${msg.startsWith("❌") ? "bg-error-500/15 text-error-400" : "bg-emerald-500/15 text-emerald-400"}`}>{msg}</div>}
+
+      {loading ? (
+        <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>
+      ) : items.length === 0 && !editing ? (
+        <div className="text-center py-16 bg-[#111a2e] border border-white/5 rounded-[16px]">
+          <Award className="w-12 h-12 mx-auto text-slate-500 mb-3" />
+          <p className="text-slate-500 text-sm">هنوز نمره‌ای ثبت نشده</p>
+        </div>
+      ) : (
+        <div className="bg-[#111a2e] border border-white/5 rounded-[16px] overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-right text-[10px] font-black text-slate-500 border-b border-white/5">
+                <th className="px-4 py-3">هنرجو</th>
+                <th className="px-4 py-3">دوره</th>
+                <th className="px-4 py-3">موضوع</th>
+                <th className="px-4 py-3">تئوری</th>
+                <th className="px-4 py-3">عملی</th>
+                <th className="px-4 py-3">نهایی</th>
+                <th className="px-4 py-3">وضعیت</th>
+                <th className="px-4 py-3">اقدام</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {items.map((g: any) => (
+                <tr key={g.id} className="hover:bg-white/5">
+                  <td className="px-4 py-3 font-bold text-white">{g.student_name}<div className="text-[9px] text-slate-500" dir="ltr">{g.student_phone}</div></td>
+                  <td className="px-4 py-3 text-slate-300">{g.course_title}</td>
+                  <td className="px-4 py-3 text-slate-300">{g.subject || "—"}</td>
+                  <td className="px-4 py-3 text-slate-300" dir="ltr">{g.theoretical_score ?? "—"}</td>
+                  <td className="px-4 py-3 text-slate-300" dir="ltr">{g.practical_score ?? "—"}</td>
+                  <td className="px-4 py-3 font-black text-white" dir="ltr">{g.final_score ?? "—"}/{g.max_score}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${g.status === "passed" ? "bg-emerald-500/20 text-emerald-400" : g.status === "failed" ? "bg-red-500/20 text-red-400" : "bg-amber-500/20 text-amber-400"}`}>
+                      {g.status === "passed" ? "قبول" : g.status === "failed" ? "مردود" : "در انتظار"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-1">
+                      <button onClick={() => setEditing({...g, registrationId: g.registration_id})} className="p-1.5 rounded-[6px] bg-sky-500/20 text-sky-400"><Pencil className="w-3 h-3" /></button>
+                      <button onClick={() => { if (confirm("حذف این نمره؟")) act({ action: "delete", id: g.id }); }} className="p-1.5 rounded-[6px] bg-error-500/20 text-error-400"><Trash2 className="w-3 h-3" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {editing && (
+        <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4" onClick={() => setEditing(null)}>
+          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-[#082D53] rounded-[18px] border border-white/10 p-5 space-y-3" onClick={e => e.stopPropagation()}>
+            <div className="text-sm font-black text-white mb-2">{editing.id ? "ویرایش نمره" : "ثبت نمره جدید"}</div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="text-[10px] font-black text-slate-400 block mb-1">هنرجو *</label>
+                <select value={editing.registrationId || ""} onChange={e => setEditing({...editing, registrationId: e.target.value})} disabled={!!editing.id} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold disabled:opacity-60">
+                  <option value="">— انتخاب هنرجو —</option>
+                  {students.map((s: any) => <option key={s.id} value={s.id}>{s.fullName} — {s.courseTitle}</option>)}
+                </select>
+              </div>
+              <div className="col-span-2">
+                <label className="text-[10px] font-black text-slate-400 block mb-1">موضوع (اختیاری)</label>
+                <input value={editing.subject || ""} onChange={e => setEditing({...editing, subject: e.target.value})} placeholder="مثلاً: فصل ۱ — کار با مقدماتی" className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">نمره تئوری</label>
+                <input type="number" step="0.25" value={editing.theoretical_score ?? editing.theoreticalScore ?? ""} onChange={e => setEditing({...editing, theoreticalScore: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">نمره عملی</label>
+                <input type="number" step="0.25" value={editing.practical_score ?? editing.practicalScore ?? ""} onChange={e => setEditing({...editing, practicalScore: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">نمره نهایی *</label>
+                <input type="number" step="0.25" value={editing.final_score ?? editing.finalScore ?? ""} onChange={e => setEditing({...editing, finalScore: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">نمره کل</label>
+                <input type="number" value={editing.max_score ?? editing.maxScore ?? 20} onChange={e => setEditing({...editing, maxScore: Number(e.target.value)})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">حد قبولی</label>
+                <input type="number" step="0.25" value={editing.passing_score ?? editing.passingScore ?? 10} onChange={e => setEditing({...editing, passingScore: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">استاد</label>
+                <select value={editing.instructor_id ?? editing.instructorId ?? ""} onChange={e => setEditing({...editing, instructorId: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold">
+                  <option value="">—</option>
+                  {instructors.map((ins: any) => <option key={ins.id} value={ins.id}>{ins.name}</option>)}
+                </select>
+              </div>
+              <div className="col-span-2">
+                <label className="text-[10px] font-black text-slate-400 block mb-1">توضیحات</label>
+                <textarea value={editing.description || ""} onChange={e => setEditing({...editing, description: e.target.value})} rows={2} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold resize-none" />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button onClick={async () => {
+                if (!editing.registrationId || editing.finalScore === "" || editing.finalScore == null) { setMsg("❌ هنرجو و نمره نهایی الزامی است"); return; }
+                if (await act({ action: editing.id ? "update" : "create", ...editing })) setEditing(null);
+              }} className="flex-1 py-2.5 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white text-sm font-black">ذخیره</button>
+              <button onClick={() => setEditing(null)} className="flex-1 py-2.5 rounded-[10px] bg-white/10 text-slate-300 text-sm font-black">انصراف</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================= ATTENDANCE MANAGER TAB ============================= */
+function ManagerAttendanceTab({ data }: { data: any }) {
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [attendance, setAttendance] = useState<Record<number, string>>({});
+  const [existing, setExisting] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState("");
+  const students = (data?.students || []).filter((s: any) => s.status === "approved");
+  const courses = (data?.courses || []) as any[];
+  const courseStudents = selectedCourse ? students.filter((s: any) => String(s.courseId) === String(selectedCourse)) : [];
+
+  const load = () => {
+    if (!selectedCourse || !selectedDate) return;
+    setLoading(true);
+    fetch(`/api/manager/attendance?courseId=${selectedCourse}&date=${selectedDate}`).then(r => r.json()).then(d => {
+      setExisting(d.items || []);
+      const map: Record<number, string> = {};
+      (d.items || []).forEach((a: any) => { map[a.user_id] = a.status; });
+      setAttendance(map);
+      setLoading(false);
+    });
+  };
+  useEffect(load, [selectedCourse, selectedDate]);
+
+  const mark = (userId: number, status: string) => {
+    setAttendance(a => ({...a, [userId]: status}));
+  };
+  const submit = async () => {
+    const records = courseStudents.map((s: any) => ({
+      registrationId: s.id,
+      userId: s.userId,
+      status: attendance[s.userId] || "absent",
+    }));
+    const r = await fetch("/api/manager/attendance", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ action: "bulkMark", courseId: selectedCourse, sessionDate: selectedDate, records })});
+    const d = await r.json();
+    if (r.ok) { setMsg(`✅ حضور و غیاب ${d.count || 0} هنرجو ثبت شد`); load(); }
+    else setMsg("❌ " + (d.error || "خطا"));
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-black mb-1 flex items-center gap-2"><CheckCircle className="w-5 h-5 text-primary-400" /> حضور و غیاب</h2>
+      <p className="text-slate-400 text-sm mb-6">ثبت حضور و غیاب هنرجویان در جلسات کلاس</p>
+      {msg && <div className={`mb-4 p-3 rounded-[10px] text-xs font-bold ${msg.startsWith("❌") ? "bg-error-500/15 text-error-400" : "bg-emerald-500/15 text-emerald-400"}`}>{msg}</div>}
+
+      <div className="grid md:grid-cols-2 gap-3 mb-4 p-4 rounded-[14px] bg-[#111a2e] border border-white/10">
+        <div>
+          <label className="text-[10px] font-black text-slate-400 block mb-1">انتخاب دوره</label>
+          <select value={selectedCourse} onChange={e => setSelectedCourse(e.target.value)} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold">
+            <option value="">— انتخاب دوره —</option>
+            {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-[10px] font-black text-slate-400 block mb-1">تاریخ جلسه</label>
+          <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+        </div>
+      </div>
+
+      {!selectedCourse ? (
+        <div className="text-center py-10 text-slate-500">ابتدا دوره را انتخاب کنید</div>
+      ) : loading ? (
+        <div className="text-center py-10"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>
+      ) : courseStudents.length === 0 ? (
+        <div className="text-center py-10 text-slate-500">هنرجویی در این دوره تأیید نشده</div>
+      ) : (
+        <>
+          <div className="bg-[#111a2e] border border-white/5 rounded-[16px] overflow-hidden mb-4">
+            {courseStudents.map((s: any) => (
+              <div key={s.id} className="flex items-center gap-3 p-3 border-b border-white/5 last:border-0">
+                <div className="w-10 h-10 rounded-full bg-primary-500/20 text-primary-300 flex items-center justify-center font-black text-sm shrink-0">
+                  {(s.fullName || "?").charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-black text-white text-sm">{s.fullName}</div>
+                  <div className="text-[10px] text-slate-500" dir="ltr">{s.phone}</div>
+                </div>
+                <div className="flex gap-1">
+                  {[
+                    { k: "present", l: "حاضر", c: "emerald" },
+                    { k: "late", l: "تاخیر", c: "amber" },
+                    { k: "excused", l: "با اجازه", c: "sky" },
+                    { k: "absent", l: "غایب", c: "red" },
+                  ].map(o => (
+                    <button key={o.k} onClick={() => mark(s.userId, o.k)}
+                      className={`px-2.5 py-1.5 rounded-[8px] text-[10px] font-black transition ${
+                        attendance[s.userId] === o.k
+                          ? `bg-${o.c}-500 text-white shadow-lg`
+                          : `bg-${o.c}-500/10 text-${o.c}-400 hover:bg-${o.c}-500/25`
+                      }`}>
+                      {o.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <button onClick={submit} className="px-6 py-3 rounded-[12px] gradient-button text-white font-black text-sm flex items-center gap-2">
+            <Check className="w-4 h-4" /> ثبت حضور و غیاب این جلسه
+          </button>
+        </>
+      )}
     </div>
   );
 }
