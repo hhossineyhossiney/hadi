@@ -8,10 +8,19 @@ const HTTP_REFERER = "https://amozeshgahazadconfig.vercel.app";
 const X_TITLE = "Zabarkhan AI";
 
 export const AI_MODELS = {
-  fast: "meta-llama/llama-3.3-70b-instruct:free",
-  pro: "google/gemini-2.0-flash-exp:free",
+  fast: "google/gemini-2.0-flash-exp:free",
+  pro: "meta-llama/llama-3.3-70b-instruct:free",
   premium: "openai/gpt-4o-mini",
 } as const;
+
+// Fallback chain — try in order if previous fails with 429/5xx
+export const AI_FALLBACK_CHAIN = [
+  "google/gemini-2.0-flash-exp:free",
+  "deepseek/deepseek-chat-v3.1:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "qwen/qwen-2.5-72b-instruct:free",
+  "meta-llama/llama-3.2-3b-instruct:free",
+];
 
 export type AIRole = "system" | "user" | "assistant";
 export interface AIMessage {
@@ -72,10 +81,11 @@ export interface AICompleteResult {
   model: string;
 }
 
-export async function aiComplete(opts: AICompleteOpts): Promise<AICompleteResult> {
-  const apiKey = await getAIKey();
-  if (!apiKey) throw new Error("OPENAI_KEY_MISSING");
-  const model = opts.model || AI_MODELS.fast;
+async function tryComplete(
+  apiKey: string,
+  model: string,
+  opts: AICompleteOpts
+): Promise<{ ok: boolean; res: Response }> {
   const body = {
     model,
     messages: opts.messages,
@@ -92,27 +102,52 @@ export async function aiComplete(opts: AICompleteOpts): Promise<AICompleteResult
     },
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`AI_ERROR ${res.status}: ${errText.slice(0, 300)}`);
+  return { ok: res.ok, res };
+}
+
+export async function aiComplete(opts: AICompleteOpts): Promise<AICompleteResult> {
+  const apiKey = await getAIKey();
+  if (!apiKey) throw new Error("OPENAI_KEY_MISSING");
+
+  // Build chain: primary first, then fallbacks
+  const chain = opts.model
+    ? [opts.model, ...AI_FALLBACK_CHAIN.filter((m) => m !== opts.model)]
+    : AI_FALLBACK_CHAIN;
+
+  let lastErr = "";
+  for (const model of chain) {
+    try {
+      const { ok, res } = await tryComplete(apiKey, model, opts);
+      if (!ok) {
+        lastErr = `${res.status}: ${(await res.text()).slice(0, 200)}`;
+        // Retry on 429/5xx only
+        if (res.status === 429 || res.status >= 500) continue;
+        throw new Error(`AI_ERROR ${lastErr}`);
+      }
+      const data = await res.json();
+      return {
+        text: data.choices?.[0]?.message?.content?.trim() || "",
+        usage: {
+          promptTokens: data.usage?.prompt_tokens || 0,
+          completionTokens: data.usage?.completion_tokens || 0,
+          totalTokens: data.usage?.total_tokens || 0,
+        },
+        model,
+      };
+    } catch (e: any) {
+      lastErr = String(e?.message || e);
+      continue;
+    }
   }
-  const data = await res.json();
-  return {
-    text: data.choices?.[0]?.message?.content?.trim() || "",
-    usage: {
-      promptTokens: data.usage?.prompt_tokens || 0,
-      completionTokens: data.usage?.completion_tokens || 0,
-      totalTokens: data.usage?.total_tokens || 0,
-    },
-    model,
-  };
+  throw new Error(`AI_ERROR all providers failed: ${lastErr.slice(0, 200)}`);
 }
 
 // ─── Stream (SSE) ────────────────────────────────────────────────────
-export async function aiStream(opts: AICompleteOpts): Promise<ReadableStream<Uint8Array>> {
-  const apiKey = await getAIKey();
-  if (!apiKey) throw new Error("OPENAI_KEY_MISSING");
-  const model = opts.model || AI_MODELS.fast;
+async function tryStream(
+  apiKey: string,
+  model: string,
+  opts: AICompleteOpts
+): Promise<Response> {
   const body = {
     model,
     messages: opts.messages,
@@ -120,7 +155,7 @@ export async function aiStream(opts: AICompleteOpts): Promise<ReadableStream<Uin
     max_tokens: opts.maxTokens ?? 1200,
     stream: true,
   };
-  const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+  return fetch(`${OPENROUTER_BASE}/chat/completions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -130,10 +165,30 @@ export async function aiStream(opts: AICompleteOpts): Promise<ReadableStream<Uin
     },
     body: JSON.stringify(body),
   });
-  if (!res.ok || !res.body) {
-    const err = await res.text();
-    throw new Error(`AI_ERROR ${res.status}: ${err.slice(0, 300)}`);
+}
+
+export async function aiStream(opts: AICompleteOpts): Promise<ReadableStream<Uint8Array>> {
+  const apiKey = await getAIKey();
+  if (!apiKey) throw new Error("OPENAI_KEY_MISSING");
+
+  const chain = opts.model
+    ? [opts.model, ...AI_FALLBACK_CHAIN.filter((m) => m !== opts.model)]
+    : AI_FALLBACK_CHAIN;
+
+  let res: Response | null = null;
+  let lastErr = "";
+  for (const model of chain) {
+    const r = await tryStream(apiKey, model, opts);
+    if (r.ok && r.body) {
+      res = r;
+      break;
+    }
+    lastErr = `${model} → ${r.status}: ${(await r.text()).slice(0, 150)}`;
+    if (r.status !== 429 && r.status < 500) {
+      throw new Error(`AI_ERROR ${lastErr}`);
+    }
   }
+  if (!res || !res.body) throw new Error(`AI_ERROR all providers failed: ${lastErr}`);
 
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
