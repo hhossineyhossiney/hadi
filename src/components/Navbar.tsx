@@ -80,54 +80,11 @@ export default function Navbar() {
             </Link>
 
             {status === "authenticated" && user ? (
-              <div className="flex items-center gap-2.5 bg-surface p-1.5 pl-3 rounded-[18px] border border-border-default shadow-sm">
-                <div className="w-8 h-8 rounded-[12px] bg-primary-100 flex items-center justify-center text-primary-700 font-black text-sm">
-                  {user.name ? user.name.charAt(0) : "U"}
-                </div>
-
-                <div className="flex flex-col text-right">
-                  <span className="text-xs font-bold text-text-primary">
-                    {user.name || "کاربر پلتفرم"}
-                  </span>
-                  <span className="text-[10px] text-text-tertiary" dir="ltr">
-                    {user.phone || ""}
-                  </span>
-                </div>
-
-                {isAdmin ? (
-                  <Link
-                    href="/admin"
-                    className="mr-2 px-3 py-1.5 rounded-[10px] text-xs font-bold text-white bg-secondary-600 hover:bg-secondary-700 transition-all flex items-center gap-1"
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    مدیریت
-                  </Link>
-                ) : user.role === "institute" ? (
-                  <Link
-                    href="/panel"
-                    className="mr-2 px-3 py-1.5 rounded-[10px] text-xs font-bold text-white bg-primary-700 hover:bg-primary-800 transition-all flex items-center gap-1"
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    پنل آموزشگاه
-                  </Link>
-                ) : (
-                  <Link
-                    href={`/dashboard?phone=${encodeURIComponent(user.phone || "")}`}
-                    className="mr-2 px-3 py-1.5 rounded-[10px] text-xs font-bold text-white gradient-button hover:gradient-button-hover transition-all flex items-center gap-1"
-                  >
-                    <User className="w-3.5 h-3.5" />
-                    پنل من
-                  </Link>
-                )}
-
-                <button
-                  onClick={() => signOut({ callbackUrl: "/" })}
-                  className="p-1.5 rounded-[10px] text-error-500 hover:bg-error-50 transition-colors cursor-pointer"
-                  title="خروج از حساب کاربری"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
+              <UserMenu user={user} isAdmin={isAdmin} />
+            ) : status === "loading" ? (
+              <div className="flex items-center gap-2">
                 <ThemeToggle compact />
+                <div className="w-24 h-9 rounded-[12px] bg-white/5 animate-pulse" />
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -147,13 +104,7 @@ export default function Navbar() {
           <div className="lg:hidden flex items-center gap-1 shrink-0">
             <ThemeToggle compact />
             {status === "authenticated" && user ? (
-              <Link
-                href={isAdmin ? "/admin" : user.role === "institute" ? "/panel" : "/dashboard"}
-                className="w-9 h-9 rounded-full bg-primary-600 flex items-center justify-center text-white font-black text-sm shrink-0"
-                title={user.name || "پنل من"}
-              >
-                {user.name ? user.name.charAt(0) : "U"}
-              </Link>
+              <UserMenuMobile user={user} isAdmin={isAdmin} />
             ) : status === "unauthenticated" ? (
               <Link
                 href="/login"
@@ -259,5 +210,184 @@ export default function Navbar() {
         )}
       </AnimatePresence>
     </nav>
+  );
+}
+
+/* ═════════ USER MENU (desktop) — Dropdown with panel + logout ═════════ */
+function UserMenu({ user, isAdmin }: { user: any; isAdmin: boolean }) {
+  const [open, setOpen] = useState(false);
+  const roleLabel = isAdmin ? "مدیر کل سامانه" : user.role === "institute" ? "مدیر آموزشگاه" : "هنرجو";
+  const roleColor = isAdmin ? "from-purple-500 to-fuchsia-500" : user.role === "institute" ? "from-amber-500 to-orange-500" : "from-primary-500 to-secondary-500";
+  const roleEmoji = isAdmin ? "👑" : user.role === "institute" ? "🏢" : "🎓";
+  const panelHref = "/my";
+
+  useEffect(() => {
+    const close = (e: any) => {
+      if (!e.target.closest?.("[data-user-menu]")) setOpen(false);
+    };
+    if (open) document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [open]);
+
+  return (
+    <div className="relative flex items-center gap-2" data-user-menu>
+      <ThemeToggle compact />
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 p-1 pl-3 rounded-[16px] bg-surface border border-border-default hover:border-primary-500/50 transition-all cursor-pointer"
+      >
+        <div className={`w-9 h-9 rounded-[12px] bg-gradient-to-br ${roleColor} flex items-center justify-center text-white font-black shadow-lg`}>
+          {user.name ? user.name.charAt(0) : "U"}
+        </div>
+        <div className="text-right hidden md:block">
+          <div className="text-xs font-black text-text-primary flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            {user.name || "کاربر"}
+          </div>
+          <div className="text-[10px] text-text-tertiary">{roleEmoji} {roleLabel}</div>
+        </div>
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 mt-2 w-72 rounded-[18px] bg-[var(--bg-glass-card)] border border-[var(--border-default)] shadow-2xl overflow-hidden z-[100] animate-fade-in-scale">
+          <div className={`p-4 bg-gradient-to-br ${roleColor} text-white`}>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-[14px] bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl font-black">
+                {user.name ? user.name.charAt(0) : "U"}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="font-black text-sm truncate">{user.name || "کاربر"}</div>
+                <div className="text-[11px] opacity-90 truncate" dir="ltr">{user.phone || user.email || ""}</div>
+                <div className="text-[10px] mt-0.5 opacity-80">{roleEmoji} {roleLabel}</div>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-white/20 flex items-center gap-2 text-[10px]">
+              <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+              <span className="opacity-90">در سامانه فعال هستید</span>
+            </div>
+          </div>
+
+          <div className="p-2">
+            <Link href={panelHref} onClick={() => setOpen(false)} className="flex items-center gap-3 p-3 rounded-[12px] hover:bg-primary-500/10 text-text-primary transition group">
+              <div className="w-9 h-9 rounded-[10px] bg-primary-500/15 text-primary-500 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition">
+                <User className="w-4 h-4" />
+              </div>
+              <div className="flex-1">
+                <div className="text-xs font-black">ورود به پنل من</div>
+                <div className="text-[10px] text-text-tertiary">داشبورد، دوره‌ها، مدیریت</div>
+              </div>
+            </Link>
+
+            <Link href="/" onClick={() => setOpen(false)} className="flex items-center gap-3 p-3 rounded-[12px] hover:bg-white/5 text-text-primary transition">
+              <div className="w-9 h-9 rounded-[10px] bg-white/5 flex items-center justify-center">
+                <span className="text-sm">🏠</span>
+              </div>
+              <div className="flex-1"><div className="text-xs font-black">صفحه اصلی</div></div>
+            </Link>
+
+            <button
+              onClick={() => { setOpen(false); signOut({ callbackUrl: "/" }); }}
+              className="w-full flex items-center gap-3 p-3 rounded-[12px] hover:bg-error-500/10 text-error-500 transition mt-1"
+            >
+              <div className="w-9 h-9 rounded-[10px] bg-error-500/15 flex items-center justify-center">
+                <LogOut className="w-4 h-4" />
+              </div>
+              <div className="flex-1 text-right">
+                <div className="text-xs font-black">خروج از حساب</div>
+                <div className="text-[10px] opacity-70">پایان جلسه</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═════════ USER MENU (mobile) — bottom-sheet style ═════════ */
+function UserMenuMobile({ user, isAdmin }: { user: any; isAdmin: boolean }) {
+  const [open, setOpen] = useState(false);
+  const roleLabel = isAdmin ? "مدیر کل" : user.role === "institute" ? "مدیر آموزشگاه" : "هنرجو";
+  const roleColor = isAdmin ? "from-purple-500 to-fuchsia-500" : user.role === "institute" ? "from-amber-500 to-orange-500" : "from-primary-500 to-secondary-500";
+  const roleEmoji = isAdmin ? "👑" : user.role === "institute" ? "🏢" : "🎓";
+
+  useEffect(() => {
+    if (open) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
+    return () => { document.body.style.overflow = ""; };
+  }, [open]);
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className={`relative w-9 h-9 rounded-full bg-gradient-to-br ${roleColor} flex items-center justify-center text-white font-black text-sm shrink-0 shadow-lg`}
+        title={user.name || "پنل من"}
+      >
+        {user.name ? user.name.charAt(0) : "U"}
+        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[var(--bg-canvas)]" />
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={() => setOpen(false)}>
+          <div className="w-full sm:max-w-md bg-[var(--bg-glass-card)] border-t sm:border border-[var(--border-default)] rounded-t-[24px] sm:rounded-[24px] animate-slide-in-right overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className={`p-5 bg-gradient-to-br ${roleColor} text-white relative`}>
+              <button onClick={() => setOpen(false)} className="absolute left-3 top-3 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                <X className="w-4 h-4" />
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-[16px] bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl font-black shrink-0">
+                  {user.name ? user.name.charAt(0) : "U"}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-black text-base truncate">{user.name || "کاربر"}</div>
+                  <div className="text-[11px] opacity-90 truncate" dir="ltr">{user.phone || user.email || ""}</div>
+                  <div className="text-[11px] mt-1 opacity-90">{roleEmoji} {roleLabel}</div>
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-white/20 flex items-center gap-2 text-[11px]">
+                <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+                <span>در سامانه فعال هستید</span>
+              </div>
+            </div>
+
+            <div className="p-3 space-y-1">
+              <Link href="/my" onClick={() => setOpen(false)} className="w-full flex items-center gap-3 p-3.5 rounded-[14px] bg-primary-500/10 hover:bg-primary-500/20 text-text-primary transition">
+                <div className="w-10 h-10 rounded-[12px] bg-primary-500 text-white flex items-center justify-center shrink-0">
+                  <User className="w-5 h-5" />
+                </div>
+                <div className="flex-1 text-right">
+                  <div className="text-sm font-black">ورود به پنل من</div>
+                  <div className="text-[10px] text-text-tertiary">داشبورد کامل</div>
+                </div>
+              </Link>
+
+              <Link href="/" onClick={() => setOpen(false)} className="w-full flex items-center gap-3 p-3.5 rounded-[14px] hover:bg-white/5 text-text-primary transition">
+                <div className="w-10 h-10 rounded-[12px] bg-white/5 flex items-center justify-center shrink-0"><span>🏠</span></div>
+                <div className="flex-1 text-right"><div className="text-sm font-black">صفحه اصلی</div></div>
+              </Link>
+
+              <Link href="/shop" onClick={() => setOpen(false)} className="w-full flex items-center gap-3 p-3.5 rounded-[14px] hover:bg-white/5 text-text-primary transition">
+                <div className="w-10 h-10 rounded-[12px] bg-white/5 flex items-center justify-center shrink-0"><span>🎬</span></div>
+                <div className="flex-1 text-right"><div className="text-sm font-black">فروشگاه دوره‌ها</div></div>
+              </Link>
+
+              <button
+                onClick={() => { setOpen(false); signOut({ callbackUrl: "/" }); }}
+                className="w-full flex items-center gap-3 p-3.5 rounded-[14px] hover:bg-error-500/10 text-error-500 transition mt-2 border-t border-[var(--border-default)] pt-4"
+              >
+                <div className="w-10 h-10 rounded-[12px] bg-error-500/15 flex items-center justify-center shrink-0">
+                  <LogOut className="w-5 h-5" />
+                </div>
+                <div className="flex-1 text-right">
+                  <div className="text-sm font-black">خروج از حساب</div>
+                  <div className="text-[10px] opacity-70">پایان جلسه شما</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
