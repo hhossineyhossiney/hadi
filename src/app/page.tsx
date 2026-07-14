@@ -6,6 +6,7 @@ import CategoryCards from "@/components/CategoryCards";
 import InstitutesShowcase from "@/components/InstitutesShowcase";
 import CoursesShowcase from "@/components/CoursesShowcase";
 import ShopShowcase from "@/components/ShopShowcase";
+import AITechSection from "@/components/AITechSection";
 import StatsSection from "@/components/StatsSection";
 import FaqSection from "@/components/FaqSection";
 import VerifyLicenseBanner from "@/components/VerifyLicenseBanner";
@@ -143,6 +144,7 @@ export default async function HomePage() {
         categories={rawCats.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
         institutes={instituteListForFilter}
       />
+      <AITechSection />
       <ShopShowcase />
       <InstitutesShowcase institutes={institutesWithCourseCount} />
       <VerifyLicenseBanner />
