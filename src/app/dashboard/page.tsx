@@ -69,7 +69,7 @@ interface DashboardData {
   upcomingSessions: any[];
 }
 
-type TabKey = "dashboard" | "courses" | "shop" | "live" | "assignments" | "quizzes" | "progress" | "schedule" | "tickets" | "chat" | "notifications" | "certificates" | "wallet" | "fees" | "favorites" | "portfolio" | "profile";
+type TabKey = "dashboard" | "courses" | "shop" | "live" | "assignments" | "quizzes" | "grades" | "attendance" | "progress" | "schedule" | "tickets" | "chat" | "notifications" | "certificates" | "wallet" | "fees" | "favorites" | "portfolio" | "profile" | "security" | "activity";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
@@ -78,6 +78,8 @@ const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "live", label: "کلاس‌های آنلاین (Live)", icon: Video },
   { key: "assignments", label: "تکالیف", icon: FileText },
   { key: "quizzes", label: "آزمون‌ها", icon: CheckCheck },
+  { key: "grades", label: "کارنامه و نمرات", icon: Award },
+  { key: "attendance", label: "حضور و غیاب", icon: Check },
   { key: "progress", label: "وضعیت پیشرفت", icon: TrendingUp },
   { key: "schedule", label: "تقویم آموزشی", icon: CalendarDays },
   { key: "tickets", label: "پشتیبانی و تیکت", icon: LifeBuoy },
@@ -89,6 +91,8 @@ const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "favorites", label: "علاقه‌مندی‌ها", icon: Heart },
   { key: "portfolio", label: "رزومه و نمونه‌کار", icon: Briefcase },
   { key: "profile", label: "ویرایش پروفایل", icon: User },
+  { key: "security", label: "امنیت و تغییر رمز", icon: ShieldCheck },
+  { key: "activity", label: "تاریخچه فعالیت", icon: Clock },
 ];
 
 function StudentDashboardContent() {
@@ -103,7 +107,7 @@ function StudentDashboardContent() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
   const tabParam = searchParams.get("tab") || "";
-  const validTabs: TabKey[] = ["dashboard","courses","shop","live","assignments","quizzes","progress","schedule","tickets","chat","notifications","certificates","wallet","fees","favorites","portfolio","profile"];
+  const validTabs: TabKey[] = ["dashboard","courses","shop","live","assignments","quizzes","grades","attendance","progress","schedule","tickets","chat","notifications","certificates","wallet","fees","favorites","portfolio","profile","security","activity"];
   const [tab, setTab] = useState<TabKey>((validTabs.includes(tabParam as TabKey) ? (tabParam as TabKey) : "dashboard"));
   const { open: drawerOpen, setOpen: setDrawerOpen } = useMobilePanelDrawer();
 
@@ -264,6 +268,10 @@ function StudentDashboardContent() {
           {tab === "assignments" && <AssignmentsTab />}
           {tab === "quizzes" && <QuizzesTab />}
           {tab === "tickets" && <TicketsTab />}
+          {tab === "grades" && <StudentGradesTab />}
+          {tab === "attendance" && <StudentAttendanceTab />}
+          {tab === "security" && <StudentSecurityTab />}
+          {tab === "activity" && <StudentActivityTab />}
         </main>
       </div>
     </div>
@@ -2669,6 +2677,257 @@ function TicketsTab() {
                 {t.priority === "urgent" && <span className="text-red-400">🔥 فوری</span>}
               </div>
             </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============ STUDENT GRADES TAB (کارنامه) ============ */
+function StudentGradesTab() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { fetch("/api/student/grades").then(r => r.json()).then(d => { setData(d); setLoading(false); }); }, []);
+  if (loading) return <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>;
+  const items = data?.items || [];
+  const s = data?.stats || {};
+  const printPage = () => window.print();
+
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3 mb-6 flex-wrap">
+        <div>
+          <h2 className="text-xl font-black flex items-center gap-2"><Award className="w-5 h-5 text-primary-400" /> کارنامه و نمرات</h2>
+          <p className="text-slate-500 text-sm mt-1">نمرات ثبت‌شده توسط اساتید و آموزشگاه</p>
+        </div>
+        <button onClick={printPage} className="px-4 py-2 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white text-xs font-black flex items-center gap-1 print:hidden">
+          🖨 چاپ کارنامه
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="p-4 rounded-[14px] bg-gradient-to-br from-primary-500/15 to-primary-500/5 border border-primary-500/25">
+          <div className="text-[10px] text-slate-400 font-bold mb-1">معدل کل</div>
+          <div className="text-2xl font-black text-primary-300" dir="ltr">{s.average || 0}<span className="text-sm text-slate-400">/{s.averageOutOf || 20}</span></div>
+        </div>
+        <div className="p-4 rounded-[14px] bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 border border-emerald-500/25">
+          <div className="text-[10px] text-slate-400 font-bold mb-1">قبول‌شده</div>
+          <div className="text-2xl font-black text-emerald-300">{Number(s.passed || 0).toLocaleString("fa-IR")}</div>
+        </div>
+        <div className="p-4 rounded-[14px] bg-gradient-to-br from-red-500/15 to-red-500/5 border border-red-500/25">
+          <div className="text-[10px] text-slate-400 font-bold mb-1">مردود</div>
+          <div className="text-2xl font-black text-red-300">{Number(s.failed || 0).toLocaleString("fa-IR")}</div>
+        </div>
+        <div className="p-4 rounded-[14px] bg-gradient-to-br from-amber-500/15 to-amber-500/5 border border-amber-500/25">
+          <div className="text-[10px] text-slate-400 font-bold mb-1">نرخ قبولی</div>
+          <div className="text-2xl font-black text-amber-300">{s.passRate || 0}٪</div>
+        </div>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="text-center py-16 bg-white/5 border border-white/10 rounded-[16px]">
+          <Award className="w-12 h-12 mx-auto text-slate-500 mb-3" />
+          <p className="text-slate-500">هنوز نمره‌ای برای شما ثبت نشده</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto bg-white/5 border border-white/10 rounded-[16px]">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-right text-[10px] font-black text-slate-500 border-b border-white/10">
+                <th className="px-4 py-3">دوره / موضوع</th>
+                <th className="px-4 py-3">آموزشگاه</th>
+                <th className="px-4 py-3">استاد</th>
+                <th className="px-4 py-3">تئوری</th>
+                <th className="px-4 py-3">عملی</th>
+                <th className="px-4 py-3">نمره نهایی</th>
+                <th className="px-4 py-3">وضعیت</th>
+                <th className="px-4 py-3">تاریخ</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {items.map((g: any) => (
+                <tr key={g.id} className="hover:bg-white/5">
+                  <td className="px-4 py-3">
+                    <div className="font-black text-white">{g.course_title}</div>
+                    {g.subject && <div className="text-[10px] text-slate-500">{g.subject}</div>}
+                  </td>
+                  <td className="px-4 py-3 text-slate-300">{g.institute_name || "—"}</td>
+                  <td className="px-4 py-3 text-slate-300">{g.instructor_name || "—"}</td>
+                  <td className="px-4 py-3 text-slate-300" dir="ltr">{g.theoretical_score ?? "—"}</td>
+                  <td className="px-4 py-3 text-slate-300" dir="ltr">{g.practical_score ?? "—"}</td>
+                  <td className="px-4 py-3 font-black text-white" dir="ltr">{g.final_score ?? "—"}/{g.max_score}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${g.status === "passed" ? "bg-emerald-500/20 text-emerald-400" : g.status === "failed" ? "bg-red-500/20 text-red-400" : "bg-amber-500/20 text-amber-400"}`}>
+                      {g.status === "passed" ? "قبول" : g.status === "failed" ? "مردود" : "در انتظار"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-slate-500 text-[10px]">{new Date(g.graded_at).toLocaleDateString("fa-IR")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============ STUDENT ATTENDANCE TAB ============ */
+function StudentAttendanceTab() {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { fetch("/api/student/attendance").then(r => r.json()).then(d => { setItems(d.items || []); setLoading(false); }); }, []);
+  if (loading) return <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>;
+
+  const groupedByCourse = items.reduce((acc: Record<string, any[]>, a: any) => {
+    const key = a.course_title || "بدون دوره";
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(a);
+    return acc;
+  }, {});
+  const total = items.length;
+  const present = items.filter(a => a.status === "present").length;
+  const absent = items.filter(a => a.status === "absent").length;
+  const late = items.filter(a => a.status === "late").length;
+
+  return (
+    <div>
+      <h2 className="text-xl font-black mb-1 flex items-center gap-2"><Check className="w-5 h-5 text-primary-400" /> حضور و غیاب من</h2>
+      <p className="text-slate-500 text-sm mb-6">وضعیت حضور شما در جلسات کلاس</p>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="p-4 rounded-[14px] bg-emerald-500/10 border border-emerald-500/25">
+          <div className="text-[10px] text-slate-400 font-bold">حاضر</div>
+          <div className="text-2xl font-black text-emerald-300">{Number(present).toLocaleString("fa-IR")}</div>
+        </div>
+        <div className="p-4 rounded-[14px] bg-amber-500/10 border border-amber-500/25">
+          <div className="text-[10px] text-slate-400 font-bold">تاخیر</div>
+          <div className="text-2xl font-black text-amber-300">{Number(late).toLocaleString("fa-IR")}</div>
+        </div>
+        <div className="p-4 rounded-[14px] bg-red-500/10 border border-red-500/25">
+          <div className="text-[10px] text-slate-400 font-bold">غایب</div>
+          <div className="text-2xl font-black text-red-300">{Number(absent).toLocaleString("fa-IR")}</div>
+        </div>
+        <div className="p-4 rounded-[14px] bg-primary-500/10 border border-primary-500/25">
+          <div className="text-[10px] text-slate-400 font-bold">نرخ حضور</div>
+          <div className="text-2xl font-black text-primary-300">{total > 0 ? Math.round((present / total) * 100) : 0}٪</div>
+        </div>
+      </div>
+
+      {total === 0 ? (
+        <div className="text-center py-16 bg-white/5 border border-white/10 rounded-[16px]">
+          <p className="text-slate-500">هنوز حضور و غیابی ثبت نشده</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {Object.entries(groupedByCourse).map(([courseName, records]) => (
+            <div key={courseName} className="rounded-[16px] bg-white/5 border border-white/10 overflow-hidden">
+              <div className="px-4 py-3 bg-white/5 font-black text-white text-sm border-b border-white/5">{courseName} ({records.length.toLocaleString("fa-IR")} جلسه)</div>
+              <div className="divide-y divide-white/5">
+                {records.map((r: any) => (
+                  <div key={r.id} className="flex items-center gap-3 p-3">
+                    <span className={`w-3 h-3 rounded-full shrink-0 ${r.status === "present" ? "bg-emerald-500" : r.status === "late" ? "bg-amber-500" : r.status === "excused" ? "bg-sky-500" : "bg-red-500"}`} />
+                    <span className="text-sm font-bold text-white flex-1">{r.session_date}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${r.status === "present" ? "bg-emerald-500/20 text-emerald-400" : r.status === "late" ? "bg-amber-500/20 text-amber-400" : r.status === "excused" ? "bg-sky-500/20 text-sky-400" : "bg-red-500/20 text-red-400"}`}>
+                      {r.status === "present" ? "حاضر" : r.status === "late" ? "تاخیر" : r.status === "excused" ? "با اجازه" : "غایب"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============ STUDENT SECURITY TAB (تغییر رمز) ============ */
+function StudentSecurityTab() {
+  const [current, setCurrent] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [show, setShow] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const submit = async () => {
+    setMsg("");
+    if (!current || !newPass) { setMsg("❌ رمز فعلی و رمز جدید الزامی است"); return; }
+    if (newPass.length < 6) { setMsg("❌ رمز جدید حداقل ۶ کاراکتر باید باشد"); return; }
+    if (newPass !== confirm) { setMsg("❌ تکرار رمز مطابقت ندارد"); return; }
+    setLoading(true);
+    const r = await fetch("/api/student/security/change-password", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ currentPassword: current, newPassword: newPass })});
+    const d = await r.json();
+    if (r.ok) { setMsg("✅ رمز عبور با موفقیت تغییر کرد"); setCurrent(""); setNewPass(""); setConfirm(""); }
+    else setMsg("❌ " + (d.error || "خطا"));
+    setLoading(false);
+  };
+
+  return (
+    <div>
+      <h2 className="text-xl font-black mb-1 flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-primary-400" /> امنیت حساب</h2>
+      <p className="text-slate-500 text-sm mb-6">تغییر رمز عبور برای حفظ امنیت حساب</p>
+
+      <div className="max-w-md p-5 rounded-[16px] bg-white/5 border border-white/10 space-y-3">
+        {msg && <div className={`p-3 rounded-[10px] text-xs font-bold ${msg.startsWith("❌") ? "bg-error-500/15 text-error-400" : "bg-emerald-500/15 text-emerald-400"}`}>{msg}</div>}
+        <div>
+          <label className="text-[10px] font-black text-slate-400 block mb-1">رمز عبور فعلی</label>
+          <div className="relative">
+            <input type={show ? "text" : "password"} value={current} onChange={e => setCurrent(e.target.value)} className="w-full px-3 py-2.5 pr-10 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+          </div>
+        </div>
+        <div>
+          <label className="text-[10px] font-black text-slate-400 block mb-1">رمز عبور جدید (حداقل ۶ کاراکتر)</label>
+          <input type={show ? "text" : "password"} value={newPass} onChange={e => setNewPass(e.target.value)} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+        </div>
+        <div>
+          <label className="text-[10px] font-black text-slate-400 block mb-1">تکرار رمز جدید</label>
+          <input type={show ? "text" : "password"} value={confirm} onChange={e => setConfirm(e.target.value)} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+        </div>
+        <label className="flex items-center gap-2 text-xs text-slate-300 font-bold cursor-pointer">
+          <input type="checkbox" checked={show} onChange={e => setShow(e.target.checked)} /> نمایش رمزها
+        </label>
+        <button onClick={submit} disabled={loading} className="w-full py-3 rounded-[12px] gradient-button text-white text-sm font-black disabled:opacity-50 flex items-center justify-center gap-2">
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />} تغییر رمز عبور
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ============ STUDENT ACTIVITY LOG TAB ============ */
+function StudentActivityTab() {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { fetch("/api/student/activity").then(r => r.json()).then(d => { setItems(d.items || []); setLoading(false); }); }, []);
+  if (loading) return <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>;
+
+  return (
+    <div>
+      <h2 className="text-xl font-black mb-1 flex items-center gap-2"><Clock className="w-5 h-5 text-primary-400" /> تاریخچه فعالیت‌ها</h2>
+      <p className="text-slate-500 text-sm mb-6">همه فعالیت‌های شما در سامانه</p>
+
+      {items.length === 0 ? (
+        <div className="text-center py-16 bg-white/5 border border-white/10 rounded-[16px]">
+          <Clock className="w-12 h-12 mx-auto text-slate-500 mb-3" />
+          <p className="text-slate-500">فعالیتی ثبت نشده</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {items.map((a: any, i: number) => (
+            <div key={i} className="flex items-start gap-3 p-4 rounded-[14px] bg-white/5 border border-white/10 hover:bg-white/10 transition">
+              <div className="w-8 h-8 rounded-[10px] bg-primary-500/20 text-primary-300 flex items-center justify-center shrink-0 text-lg">
+                {a.icon || "•"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-black text-white">{a.action}</div>
+                {a.description && <div className="text-xs text-slate-400 mt-0.5">{a.description}</div>}
+                <div className="text-[10px] text-slate-500 mt-1">{new Date(a.time).toLocaleString("fa-IR")}</div>
+              </div>
+              {a.amount && <div className="text-xs font-black text-emerald-400 shrink-0" dir="ltr">{Number(a.amount).toLocaleString("fa-IR")} ت</div>}
+            </div>
           ))}
         </div>
       )}
