@@ -14,12 +14,13 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import { useMobilePanelDrawer } from "@/components/panel/useMobilePanelDrawer";
 import { normalizePhone } from "@/lib/phone";
 
-type TabKey = "dashboard" | "analytics" | "tickets" | "institutes" | "awards" | "managers" | "registrations" | "finance" | "chat" | "categories" | "regions" | "faqs" | "homepage" | "telegram" | "shop_perms";
+type TabKey = "dashboard" | "analytics" | "tickets" | "plans" | "institutes" | "awards" | "managers" | "registrations" | "finance" | "chat" | "categories" | "regions" | "faqs" | "homepage" | "telegram" | "shop_perms";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد مدیریتی", icon: LayoutDashboard },
   { key: "analytics", label: "نمودارها و گزارش‌ها", icon: TrendingUp },
   { key: "tickets", label: "تیکت‌های پشتیبانی", icon: HelpCircle },
+  { key: "plans", label: "پلن‌ها و اشتراک", icon: Award },
   { key: "institutes", label: "مدیریت آموزشگاه‌ها", icon: Building2 },
   { key: "awards", label: "برگزیدگان سال ⭐", icon: Award },
   { key: "managers", label: "مدیران آموزشگاه‌ها", icon: Users2 },
@@ -196,6 +197,7 @@ export default function AdminPage() {
           {tab === "shop_perms" && <ShopPermsTab />}
           {tab === "analytics" && <AnalyticsTab />}
           {tab === "tickets" && <AdminTicketsTab />}
+          {tab === "plans" && <AdminPlansTab />}
         </div>
       </div>
     </main>
@@ -1893,6 +1895,235 @@ function AdminTicketsTab() {
               </div>
             </button>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============ ADMIN PLANS TAB (پلن‌ها و اشتراک آموزشگاه‌ها) ============ */
+function AdminPlansTab() {
+  const [plans, setPlans] = useState<any[]>([]);
+  const [subs, setSubs] = useState<any[]>([]);
+  const [insts, setInsts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState("");
+  const [editing, setEditing] = useState<any>(null);
+  const [assigning, setAssigning] = useState<any>(null); // {plan, ...}
+  const [view, setView] = useState<"plans" | "subs">("plans");
+
+  const load = () => {
+    setLoading(true);
+    Promise.all([
+      fetch("/api/admin/plans").then(r => r.json()),
+      fetch("/api/admin/plans?scope=subscriptions").then(r => r.json()),
+      fetch("/api/admin/shop-permissions").then(r => r.json()),
+    ]).then(([p, s, i]) => {
+      setPlans(p.items || []); setSubs(s.items || []); setInsts(i.institutes || []); setLoading(false);
+    });
+  };
+  useEffect(load, []);
+
+  const act = async (payload: any) => {
+    const r = await fetch("/api/admin/plans", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+    const d = await r.json();
+    if (r.ok) { setMsg("✅ ذخیره شد"); load(); return true; }
+    setMsg("❌ " + (d.error || "خطا")); return false;
+  };
+
+  const newPlan = () => setEditing({ id: null, name: "", slug: "", description: "", price: "", priceYearly: "", durationDays: 30, maxCourses: 0, maxStudents: 0, maxShopCourses: 0, commissionPercent: "10.00", features: [""], color: "primary", isPopular: false, sortOrder: 99 });
+
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
+        <div>
+          <h2 className="text-2xl font-black text-white mb-1 flex items-center gap-2"><Award className="w-5 h-5 text-amber-400" /> پلن‌ها و اشتراک آموزشگاه‌ها</h2>
+          <p className="text-slate-400 text-sm">تعریف پلن‌های اشتراک و اختصاص به آموزشگاه‌ها</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => setView("plans")} className={`px-3 py-2 rounded-[10px] text-xs font-black ${view === "plans" ? "bg-primary-600 text-white" : "bg-white/5 text-slate-300"}`}>پلن‌ها ({plans.length})</button>
+          <button onClick={() => setView("subs")} className={`px-3 py-2 rounded-[10px] text-xs font-black ${view === "subs" ? "bg-primary-600 text-white" : "bg-white/5 text-slate-300"}`}>اشتراک‌ها ({subs.length})</button>
+          {view === "plans" && <button onClick={newPlan} className="px-4 py-2 rounded-[10px] gradient-button text-white text-xs font-black flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> پلن جدید</button>}
+        </div>
+      </div>
+      {msg && <div className={`mb-4 p-3 rounded-[10px] text-xs font-bold ${msg.startsWith("❌") ? "bg-error-500/15 text-error-400" : "bg-emerald-500/15 text-emerald-400"}`}>{msg}</div>}
+
+      {loading ? (
+        <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>
+      ) : view === "plans" ? (
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {plans.map((p: any) => {
+            const c = p.color || "primary";
+            return (
+              <div key={p.id} className={`p-5 rounded-[18px] border relative overflow-hidden ${
+                c === "amber" ? "bg-gradient-to-br from-amber-500/20 to-amber-500/5 border-amber-500/40" :
+                c === "purple" ? "bg-gradient-to-br from-purple-500/20 to-purple-500/5 border-purple-500/40" :
+                c === "slate" ? "bg-gradient-to-br from-slate-500/20 to-slate-500/5 border-slate-500/40" :
+                "bg-gradient-to-br from-primary-500/20 to-primary-500/5 border-primary-500/40"
+              }`}>
+                {p.is_popular && <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-amber-400 text-slate-900 text-[9px] font-black">🏆 محبوب</div>}
+                <div className="text-lg font-black text-white mb-1">{p.name}</div>
+                <div className="text-[10px] text-slate-400 mb-3 min-h-[30px]">{p.description}</div>
+                <div className="text-3xl font-black text-white mb-1" dir="ltr">{Number(p.price).toLocaleString("fa-IR")}<span className="text-xs text-slate-400 mr-1">تومان</span></div>
+                <div className="text-[10px] text-slate-500 mb-4">/ {p.duration_days} روز</div>
+                <ul className="space-y-1.5 mb-4 min-h-[100px]">
+                  {(p.features || []).slice(0, 6).map((f: string, i: number) => (
+                    <li key={i} className="text-[10px] text-slate-200 flex items-start gap-1"><Check className="w-3 h-3 text-emerald-400 mt-0.5 shrink-0" /> {f}</li>
+                  ))}
+                </ul>
+                <div className="text-[10px] text-slate-400 mb-3 space-y-0.5">
+                  <div>📚 {p.max_courses === 0 ? "نامحدود" : `${p.max_courses} دوره`}</div>
+                  <div>👥 {p.max_students === 0 ? "نامحدود" : `${p.max_students} هنرجو`}</div>
+                  <div>🎬 {p.max_shop_courses === 0 ? "بدون فروش" : `${p.max_shop_courses} دوره آنلاین`}</div>
+                  <div>💰 کمیسیون: {p.commission_percent}٪</div>
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={() => setAssigning({ planId: p.id, planName: p.name, instituteId: "", durationDays: p.duration_days, notes: "" })} className="flex-1 px-2 py-1.5 rounded-[8px] bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black">اختصاص به آموزشگاه</button>
+                  <button onClick={() => setEditing({...p, features: p.features || [""]})} className="px-2 py-1.5 rounded-[8px] bg-sky-500/20 text-sky-400"><Pencil className="w-3 h-3" /></button>
+                  <button onClick={() => { if (confirm("حذف این پلن؟")) act({ action: "deletePlan", id: p.id }); }} className="px-2 py-1.5 rounded-[8px] bg-error-500/20 text-error-400"><Trash2 className="w-3 h-3" /></button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="bg-[#111a2e] border border-white/5 rounded-[16px] overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-right text-[10px] font-black text-slate-500 border-b border-white/5">
+                <th className="px-4 py-3">آموزشگاه</th>
+                <th className="px-4 py-3">پلن</th>
+                <th className="px-4 py-3">وضعیت</th>
+                <th className="px-4 py-3">شروع</th>
+                <th className="px-4 py-3">پایان</th>
+                <th className="px-4 py-3">مبلغ</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {subs.length === 0 ? (
+                <tr><td colSpan={6} className="p-10 text-center text-slate-500">هنوز اشتراکی تعریف نشده</td></tr>
+              ) : subs.map((s: any) => (
+                <tr key={s.id} className="hover:bg-white/5">
+                  <td className="px-4 py-3 font-bold text-white">{s.institute_name}</td>
+                  <td className="px-4 py-3 text-slate-300">{s.plan_name}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${s.status === "active" ? "bg-emerald-500/20 text-emerald-400" : s.status === "expired" ? "bg-red-500/20 text-red-400" : "bg-slate-500/20 text-slate-400"}`}>
+                      {s.status === "active" ? "فعال" : s.status === "expired" ? "منقضی" : "لغو شده"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-slate-500 text-[10px]">{new Date(s.started_at).toLocaleDateString("fa-IR")}</td>
+                  <td className="px-4 py-3 text-slate-500 text-[10px]">{s.expires_at ? new Date(s.expires_at).toLocaleDateString("fa-IR") : "—"}</td>
+                  <td className="px-4 py-3 text-emerald-400 font-bold" dir="ltr">{Number(s.price || 0).toLocaleString("fa-IR")} ت</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {editing && (
+        <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4" onClick={() => setEditing(null)}>
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#082D53] rounded-[18px] border border-white/10 p-5 space-y-3" onClick={e => e.stopPropagation()}>
+            <div className="text-sm font-black text-white mb-2">{editing.id ? "ویرایش پلن" : "پلن جدید"}</div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">نام پلن *</label>
+                <input value={editing.name || ""} onChange={e => setEditing({...editing, name: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">Slug (انگلیسی) *</label>
+                <input value={editing.slug || ""} onChange={e => setEditing({...editing, slug: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+              </div>
+              <div className="col-span-2">
+                <label className="text-[10px] font-black text-slate-400 block mb-1">توضیح</label>
+                <textarea value={editing.description || ""} onChange={e => setEditing({...editing, description: e.target.value})} rows={2} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold resize-none" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">قیمت ماهانه (تومان) *</label>
+                <input type="number" value={editing.price || ""} onChange={e => setEditing({...editing, price: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">قیمت سالانه (اختیاری)</label>
+                <input type="number" value={editing.price_yearly ?? editing.priceYearly ?? ""} onChange={e => setEditing({...editing, priceYearly: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">مدت (روز)</label>
+                <input type="number" value={editing.duration_days ?? editing.durationDays ?? 30} onChange={e => setEditing({...editing, durationDays: Number(e.target.value)})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">درصد کمیسیون</label>
+                <input type="number" step="0.01" value={editing.commission_percent ?? editing.commissionPercent ?? "10.00"} onChange={e => setEditing({...editing, commissionPercent: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">حداکثر دوره (۰ = نامحدود)</label>
+                <input type="number" value={editing.max_courses ?? editing.maxCourses ?? 0} onChange={e => setEditing({...editing, maxCourses: Number(e.target.value)})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">حداکثر هنرجو</label>
+                <input type="number" value={editing.max_students ?? editing.maxStudents ?? 0} onChange={e => setEditing({...editing, maxStudents: Number(e.target.value)})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">دوره فروش آنلاین</label>
+                <input type="number" value={editing.max_shop_courses ?? editing.maxShopCourses ?? 0} onChange={e => setEditing({...editing, maxShopCourses: Number(e.target.value)})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 block mb-1">رنگ</label>
+                <select value={editing.color || "primary"} onChange={e => setEditing({...editing, color: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold">
+                  <option value="slate">خاکستری</option>
+                  <option value="primary">فیروزه‌ای</option>
+                  <option value="amber">طلایی</option>
+                  <option value="purple">بنفش</option>
+                </select>
+              </div>
+              <div className="col-span-2">
+                <label className="text-[10px] font-black text-slate-400 block mb-1">امکانات (هر خط یکی)</label>
+                <textarea value={(editing.features || []).join("\n")} onChange={e => setEditing({...editing, features: e.target.value.split("\n").filter(Boolean)})} rows={5} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold resize-none" />
+              </div>
+              <label className="flex items-center gap-2 text-xs text-slate-300 font-bold">
+                <input type="checkbox" checked={!!editing.is_popular || !!editing.isPopular} onChange={e => setEditing({...editing, isPopular: e.target.checked})} /> پلن محبوب (نمایش برچسب)
+              </label>
+              <label className="flex items-center gap-2 text-xs text-slate-300 font-bold">
+                <input type="checkbox" checked={editing.is_active !== false && editing.isActive !== false} onChange={e => setEditing({...editing, isActive: e.target.checked})} /> فعال
+              </label>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button onClick={async () => {
+                if (!editing.name || !editing.slug || editing.price == null) { setMsg("❌ نام، slug و قیمت الزامی"); return; }
+                if (await act({ action: editing.id ? "updatePlan" : "createPlan", ...editing })) setEditing(null);
+              }} className="flex-1 py-2.5 rounded-[10px] bg-primary-600 text-white text-sm font-black">ذخیره</button>
+              <button onClick={() => setEditing(null)} className="flex-1 py-2.5 rounded-[10px] bg-white/10 text-slate-300 text-sm font-black">انصراف</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {assigning && (
+        <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4" onClick={() => setAssigning(null)}>
+          <div className="w-full max-w-md bg-[#082D53] rounded-[18px] border border-white/10 p-5 space-y-3" onClick={e => e.stopPropagation()}>
+            <div className="text-sm font-black text-white mb-2">اختصاص پلن «{assigning.planName}» به آموزشگاه</div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 block mb-1">انتخاب آموزشگاه *</label>
+              <select value={assigning.instituteId} onChange={e => setAssigning({...assigning, instituteId: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold">
+                <option value="">— انتخاب —</option>
+                {insts.map((i: any) => <option key={i.id} value={i.id}>{i.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 block mb-1">مدت (روز)</label>
+              <input type="number" value={assigning.durationDays} onChange={e => setAssigning({...assigning, durationDays: Number(e.target.value)})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 block mb-1">یادداشت</label>
+              <textarea value={assigning.notes} onChange={e => setAssigning({...assigning, notes: e.target.value})} rows={2} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold resize-none" />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button onClick={async () => {
+                if (!assigning.instituteId) { setMsg("❌ آموزشگاه انتخاب نشده"); return; }
+                if (await act({ action: "assignPlan", planId: assigning.planId, instituteId: assigning.instituteId, durationDays: assigning.durationDays, notes: assigning.notes })) setAssigning(null);
+              }} className="flex-1 py-2.5 rounded-[10px] bg-emerald-600 text-white text-sm font-black">اختصاص</button>
+              <button onClick={() => setAssigning(null)} className="flex-1 py-2.5 rounded-[10px] bg-white/10 text-slate-300 text-sm font-black">انصراف</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
