@@ -2,7 +2,6 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoriesBar from "@/components/StoriesBar";
 import HeroSection from "@/components/HeroSection";
-import QuickAccess from "@/components/QuickAccess";
 import CategoryCards from "@/components/CategoryCards";
 import InstitutesShowcase from "@/components/InstitutesShowcase";
 import CoursesShowcase from "@/components/CoursesShowcase";
@@ -14,6 +13,10 @@ import PlatformFeatures from "@/components/PlatformFeatures";
 import UserRolesSection from "@/components/UserRolesSection";
 import AITechSection from "@/components/AITechSection";
 import PremiumCTA from "@/components/PremiumCTA";
+import ProblemSolution from "@/components/ProblemSolution";
+import HowItWorks from "@/components/HowItWorks";
+import TrustBar from "@/components/TrustBar";
+import TestimonialsSection from "@/components/TestimonialsSection";
 import { db } from "@/db";
 import { categories, institutes, regions, courses, siteSettings } from "@/db/schema";
 import { eq, count, sql, inArray, and } from "drizzle-orm";
@@ -142,20 +145,23 @@ export default async function HomePage() {
       <Navbar />
       <StoriesBar />
       <HeroSection />
-      <StatsSection />
+      <TrustBar />
+      <ProblemSolution />
       <PlatformFeatures />
+      <HowItWorks />
       <UserRolesSection />
-      <QuickAccess />
-      <CategoryCards categories={cats} />
-      <InstitutesShowcase institutes={institutesWithCourseCount} />
       <AITechSection />
-      <ShopShowcase />
-      <VerifyLicenseBanner />
+      <CategoryCards categories={cats} />
       <CoursesShowcase
         courses={latestCourses}
         categories={rawCats.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
         institutes={instituteListForFilter}
       />
+      <ShopShowcase />
+      <InstitutesShowcase institutes={institutesWithCourseCount} />
+      <TestimonialsSection />
+      <StatsSection />
+      <VerifyLicenseBanner />
       <FaqSection />
       <PremiumCTA />
       <Footer />
