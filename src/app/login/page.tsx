@@ -1,178 +1,233 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { ArrowLeft, Eye, EyeOff, Loader2, Phone, Lock, ShieldCheck, User } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Loader2, Phone, Lock, GraduationCap, Building2, ShieldCheck, Sparkles } from "lucide-react";
 import { normalizePhone } from "@/lib/phone";
 import { signIn } from "next-auth/react";
+import { motion } from "framer-motion";
 
-export default function LoginPage() {
+type Role = "student" | "manager";
+
+function LoginPageContent() {
+  const router = useRouter();
+  const search = useSearchParams();
+  const [step, setStep] = useState<"role" | "credentials">("role");
+  const [role, setRole] = useState<Role>("student");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const callback = search.get("callbackUrl") || "/my";
+
+  const selectRole = (r: Role) => { setRole(r); setStep("credentials"); setError(""); };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-
     const cleanPhone = normalizePhone(phone);
-
-    if (!cleanPhone) {
-      setError("لطفاً شماره موبایل معتبر وارد کنید");
+    if (!/^09\d{9}$/.test(cleanPhone)) {
+      setError("لطفاً شماره موبایل معتبر وارد کنید (مثال: 09123456789)");
       setLoading(false);
       return;
     }
-
-    try {
-      const res = await signIn("credentials", {
-        redirect: false,
-        phone: cleanPhone,
-        password,
-      });
-
-      if (res?.ok && !res?.error) {
-        if (cleanPhone === "09159513179" || cleanPhone === "09150000000") {
-          window.location.href = "/admin";
-        } else {
-          window.location.href = `/dashboard?phone=${encodeURIComponent(cleanPhone)}`;
-        }
-      } else {
-        setError("شماره موبایل یا رمز عبور اشتباه است");
-      }
-    } catch {
-      setError("خطا در ارتباط با سرور");
-    } finally {
+    if (!password) {
+      setError("رمز عبور را وارد کنید");
       setLoading(false);
+      return;
     }
-  };
-
-  const fillDemoAdmin = () => {
-    setPhone("09159513179");
-    setPassword("123456");
+    const res = await signIn("credentials", {
+      phone: cleanPhone, password,
+      redirect: false,
+      callbackUrl: callback,
+    });
+    if (res?.error) {
+      setError("شماره موبایل یا رمز عبور اشتباه است");
+      setLoading(false);
+      return;
+    }
+    // Successful login → route intelligently via /my
+    router.push(callback);
+    router.refresh();
   };
 
   return (
-    <main className="min-h-screen bg-bg-secondary">
+    <>
       <Navbar />
-      <div className="pt-28 pb-20">
-        <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-text-secondary hover:text-primary-600 mb-6 transition-colors font-medium text-sm"
+      <main className="pt-20 min-h-screen bg-gradient-to-br from-[#04152A] via-[#0B4F8B]/40 to-[#04152A] relative overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-primary-500/15 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+
+        <div className="relative max-w-md mx-auto px-4 py-10 lg:py-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-[#082D53]/85 backdrop-blur-xl rounded-[24px] border border-white/10 shadow-2xl overflow-hidden"
           >
-            <ArrowLeft className="w-4 h-4" />
-            بازگشت به صفحه اصلی
-          </Link>
-
-          <div className="bg-surface rounded-[28px] border border-border-default overflow-hidden shadow-xl shadow-black/5">
-            <div className="p-8 border-b border-border-default">
-              <span className="text-xs font-bold text-primary-600 tracking-[0.2em] uppercase mb-2 block">
-                AUTHENTICATION
-              </span>
-              <h1 className="text-2xl font-black text-text-primary mb-2">
-                ورود به حساب کاربری
-              </h1>
-              <p className="text-text-secondary text-sm">
-                با شماره همراه و رمز عبور وارد شوید
+            {/* Header */}
+            <div className="p-6 bg-gradient-to-b from-primary-600/20 to-transparent text-center border-b border-white/5">
+              <div className="w-16 h-16 rounded-[20px] bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-primary-500/40">
+                <ShieldCheck className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="text-xl font-black text-white mb-1">ورود به سامانه زبرخان</h1>
+              <p className="text-[11px] text-slate-300">
+                {step === "role" ? "نوع حساب کاربری خود را انتخاب کنید" : role === "student" ? "ورود به حساب هنرجو" : "ورود به حساب مدیر آموزشگاه"}
               </p>
             </div>
 
-            {/* Info Banner */}
-            <div className="p-5 bg-primary-50/50 border-b border-border-light">
-              <p className="text-xs text-text-secondary leading-relaxed">
-                💡 هنرجوی گرامی: با همان <b>شماره موبایل و رمز عبوری</b> که هنگام ثبت‌نام دوره انتخاب کردید وارد شوید.
-              </p>
-              <button
-                type="button"
-                onClick={fillDemoAdmin}
-                className="mt-3 w-full p-2.5 rounded-[12px] bg-white border border-primary-200 text-primary-700 text-xs font-bold hover:bg-primary-100 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                ورود مدیر پلتفرم
-              </button>
-            </div>
+            {step === "role" && (
+              <div className="p-6 space-y-3">
+                <button
+                  onClick={() => selectRole("student")}
+                  className="w-full p-5 rounded-[16px] bg-gradient-to-br from-primary-500/20 to-primary-500/5 border-2 border-primary-500/40 hover:border-primary-500 hover:shadow-lg hover:shadow-primary-500/30 transition-all group text-right"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-[14px] bg-primary-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                      <GraduationCap className="w-7 h-7 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-lg font-black text-white mb-1">🎓 هنرجو</div>
+                      <div className="text-[11px] text-slate-300 leading-relaxed">ورود به پنل هنرجو — مشاهده دوره‌ها، نمرات، پرداخت‌ها و پیام‌ها</div>
+                    </div>
+                    <ArrowLeft className="w-5 h-5 text-primary-400 group-hover:-translate-x-1 transition-transform" />
+                  </div>
+                </button>
 
-            <form onSubmit={handleSubmit} className="p-8 space-y-6">
-              {error && (
-                <div className="p-4 rounded-[14px] bg-error-50 text-error-600 text-sm font-bold">
-                  {error}
-                </div>
-              )}
+                <button
+                  onClick={() => selectRole("manager")}
+                  className="w-full p-5 rounded-[16px] bg-gradient-to-br from-amber-500/20 to-amber-500/5 border-2 border-amber-500/40 hover:border-amber-500 hover:shadow-lg hover:shadow-amber-500/30 transition-all group text-right"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-[14px] bg-amber-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                      <Building2 className="w-7 h-7 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-lg font-black text-white mb-1">🏢 مدیر آموزشگاه</div>
+                      <div className="text-[11px] text-slate-300 leading-relaxed">ورود به پنل مدیریت آموزشگاه — دوره‌ها، هنرجویان، نمرات و گزارش‌ها</div>
+                    </div>
+                    <ArrowLeft className="w-5 h-5 text-amber-400 group-hover:-translate-x-1 transition-transform" />
+                  </div>
+                </button>
 
-              <div>
-                <label className="block text-sm font-bold text-text-primary mb-2">
-                  شماره موبایل
-                </label>
-                <div className="relative">
-                  <input
-                    type="tel"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-4 py-3.5 pr-11 rounded-[16px] border border-border-default bg-bg-secondary text-text-primary outline-none focus:border-primary-400 focus:ring-[3px] focus:ring-primary-100 transition-all font-semibold"
-                    placeholder="۰۹۱۵۹۵۱۳۱۷۹"
-                    dir="ltr"
-                  />
-                  <Phone className="w-5 h-5 text-text-tertiary absolute right-3.5 top-1/2 -translate-y-1/2" />
+                <div className="pt-4 border-t border-white/5 text-center">
+                  <p className="text-[11px] text-slate-400 mb-2">حساب ندارید؟</p>
+                  <Link href="/register" className="inline-flex items-center gap-1 text-primary-300 text-sm font-black hover:text-primary-200">
+                    <Sparkles className="w-4 h-4" /> ثبت‌نام رایگان
+                  </Link>
                 </div>
               </div>
+            )}
 
-              <div>
-                <label className="block text-sm font-bold text-text-primary mb-2">
-                  رمز عبور
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3.5 pr-11 rounded-[16px] border border-border-default bg-bg-secondary text-text-primary outline-none focus:border-primary-400 focus:ring-[3px] focus:ring-primary-100 transition-all font-semibold"
-                    placeholder="••••••••"
-                    dir="ltr"
-                  />
-                  <Lock className="w-5 h-5 text-text-tertiary absolute right-3.5 top-1/2 -translate-y-1/2" />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary"
+            {step === "credentials" && (
+              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <div className={`flex items-center gap-3 p-3 rounded-[12px] ${role === "student" ? "bg-primary-500/15 border border-primary-500/30" : "bg-amber-500/15 border border-amber-500/30"}`}>
+                  <div className={`w-10 h-10 rounded-[10px] flex items-center justify-center ${role === "student" ? "bg-primary-500" : "bg-amber-500"}`}>
+                    {role === "student" ? <GraduationCap className="w-5 h-5 text-white" /> : <Building2 className="w-5 h-5 text-white" />}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-xs font-black text-white">
+                      {role === "student" ? "ورود به عنوان هنرجو" : "ورود به عنوان مدیر آموزشگاه"}
+                    </div>
+                    <button type="button" onClick={() => setStep("role")} className="text-[10px] text-primary-300 hover:underline">
+                      تغییر نقش
+                    </button>
+                  </div>
+                </div>
+
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-3 rounded-[10px] bg-error-500/15 text-error-400 text-xs font-bold"
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-4 rounded-[16px] text-lg font-black text-white gradient-button hover:gradient-button-hover shadow-xl shadow-primary-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    در حال ورود...
-                  </>
-                ) : (
-                  "ورود به سیستم"
+                    ⚠ {error}
+                  </motion.div>
                 )}
-              </button>
 
-              <div className="text-center pt-2 border-t border-border-light text-sm text-text-secondary">
-                هنوز در دوره‌ای ثبت‌نام نکرده‌اید؟{" "}
-                <Link href="/register" className="font-bold text-primary-600 hover:underline">
-                  ثبت‌نام آنلاین
-                </Link>
-              </div>
-            </form>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 block mb-1.5">شماره موبایل</label>
+                  <div className="relative">
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="09123456789"
+                      dir="ltr"
+                      autoFocus
+                      autoComplete="tel"
+                      maxLength={11}
+                      className="w-full px-4 py-3.5 pr-11 rounded-[14px] bg-white/95 text-slate-900 text-sm font-black outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                    <Phone className="w-5 h-5 text-slate-500 absolute right-3.5 top-1/2 -translate-y-1/2" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 block mb-1.5">رمز عبور</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••"
+                      dir="ltr"
+                      autoComplete="current-password"
+                      className="w-full px-4 py-3.5 pr-11 pl-11 rounded-[14px] bg-white/95 text-slate-900 text-sm font-black outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                    <Lock className="w-5 h-5 text-slate-500 absolute right-3.5 top-1/2 -translate-y-1/2" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`w-full py-3.5 rounded-[14px] text-sm font-black text-white flex items-center justify-center gap-2 shadow-lg transition-all ${
+                    role === "student"
+                      ? "gradient-button hover:gradient-button-hover shadow-primary-500/30"
+                      : "bg-gradient-to-l from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-amber-500/30"
+                  } disabled:opacity-60`}
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (role === "student" ? <GraduationCap className="w-5 h-5" /> : <Building2 className="w-5 h-5" />)}
+                  {loading ? "در حال ورود..." : "ورود به پنل"}
+                </button>
+
+                <div className="pt-3 border-t border-white/5 flex items-center justify-between text-[11px]">
+                  <button type="button" onClick={() => setStep("role")} className="text-slate-400 hover:text-white flex items-center gap-1">
+                    <ArrowLeft className="w-3.5 h-3.5 rotate-180" /> بازگشت
+                  </button>
+                  <Link href="/register" className="text-primary-300 hover:text-primary-200 font-black">
+                    حساب ندارید؟ ثبت‌نام →
+                  </Link>
+                </div>
+              </form>
+            )}
+          </motion.div>
+
+          <div className="mt-6 text-center">
+            <Link href="/" className="text-slate-400 text-xs hover:text-white flex items-center justify-center gap-1">
+              <ArrowLeft className="w-3.5 h-3.5 rotate-180" /> بازگشت به صفحه اصلی
+            </Link>
           </div>
         </div>
-      </div>
+      </main>
       <Footer />
-    </main>
+    </>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500" /></div>}>
+      <LoginPageContent />
+    </Suspense>
   );
 }
