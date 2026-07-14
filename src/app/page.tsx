@@ -7,6 +7,7 @@ import InstitutesShowcase from "@/components/InstitutesShowcase";
 import CoursesShowcase from "@/components/CoursesShowcase";
 import ShopShowcase from "@/components/ShopShowcase";
 import AITechSection from "@/components/AITechSection";
+import PremiumCTA from "@/components/PremiumCTA";
 import StatsSection from "@/components/StatsSection";
 import FaqSection from "@/components/FaqSection";
 import VerifyLicenseBanner from "@/components/VerifyLicenseBanner";
@@ -150,6 +151,7 @@ export default async function HomePage() {
       <VerifyLicenseBanner />
       <StatsSection />
       <FaqSection />
+      <PremiumCTA />
       <Footer />
     </main>
   );
