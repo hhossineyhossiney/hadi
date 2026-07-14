@@ -10,6 +10,10 @@ import StatsSection from "@/components/StatsSection";
 import FaqSection from "@/components/FaqSection";
 import VerifyLicenseBanner from "@/components/VerifyLicenseBanner";
 import ShopShowcase from "@/components/ShopShowcase";
+import PlatformFeatures from "@/components/PlatformFeatures";
+import UserRolesSection from "@/components/UserRolesSection";
+import AITechSection from "@/components/AITechSection";
+import PremiumCTA from "@/components/PremiumCTA";
 import { db } from "@/db";
 import { categories, institutes, regions, courses, siteSettings } from "@/db/schema";
 import { eq, count, sql, inArray, and } from "drizzle-orm";
@@ -138,52 +142,22 @@ export default async function HomePage() {
       <Navbar />
       <StoriesBar />
       <HeroSection />
+      <StatsSection />
+      <PlatformFeatures />
+      <UserRolesSection />
       <QuickAccess />
       <CategoryCards categories={cats} />
-
       <InstitutesShowcase institutes={institutesWithCourseCount} />
-
-      <VerifyLicenseBanner />
-
+      <AITechSection />
       <ShopShowcase />
-
+      <VerifyLicenseBanner />
       <CoursesShowcase
         courses={latestCourses}
         categories={rawCats.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
         institutes={instituteListForFilter}
       />
-
-      <section className="py-10 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="gradient-dark rounded-[24px] p-8 lg:p-12 flex flex-col lg:flex-row items-center justify-between gap-5 relative overflow-hidden border border-white/5">
-            <div
-              className="absolute inset-0 opacity-[0.06]"
-              style={{
-                backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
-                backgroundSize: "32px 32px",
-              }}
-            />
-            <div className="relative text-center lg:text-right">
-              <h2 className="text-2xl lg:text-3xl font-black text-white mb-2">
-                آموزشگاه دارید؟ 🎓
-              </h2>
-              <p className="text-white/60 text-sm max-w-lg">
-                آموزشگاه خود را در سامانه مرکز شماره ۱۲ ثبت کنید و هنرجویان بیشتری در سراسر شهرستان زبرخان جذب نمایید
-              </p>
-            </div>
-            <a
-              href="tel:09159513179"
-              className="relative shrink-0 px-8 py-4 rounded-[14px] text-sm font-black text-navy-900 bg-white hover:bg-primary-50 shadow-2xl transition-all"
-            >
-              ثبت آموزشگاه رایگان — ۰۹۱۵۹۵۱۳۱۷۹
-            </a>
-          </div>
-        </div>
-      </section>
-
       <FaqSection />
-
-      <StatsSection />
+      <PremiumCTA />
       <Footer />
     </main>
   );
