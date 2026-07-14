@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
+import AIToolPanel from "@/components/AIToolPanel";
 import { useMobilePanelDrawer } from "@/components/panel/useMobilePanelDrawer";
 import { normalizePhone } from "@/lib/phone";
 import PersianDatePicker from "@/components/PersianDatePicker";
@@ -69,10 +70,11 @@ interface DashboardData {
   upcomingSessions: any[];
 }
 
-type TabKey = "dashboard" | "courses" | "shop" | "live" | "assignments" | "quizzes" | "grades" | "attendance" | "progress" | "schedule" | "tickets" | "chat" | "groups" | "notifications" | "certificates" | "wallet" | "fees" | "favorites" | "portfolio" | "profile" | "security" | "activity";
+type TabKey = "dashboard" | "ai_tutor" | "courses" | "shop" | "live" | "assignments" | "quizzes" | "grades" | "attendance" | "progress" | "schedule" | "tickets" | "chat" | "groups" | "notifications" | "certificates" | "wallet" | "fees" | "favorites" | "portfolio" | "profile" | "security" | "activity";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
+  { key: "ai_tutor", label: "🤖 معلم هوشمند AI", icon: Sparkles },
   { key: "courses", label: "دوره‌های حضوری من", icon: BookOpen },
   { key: "shop", label: "دوره‌های آنلاین خریداری‌شده", icon: PlayCircle },
   { key: "live", label: "کلاس‌های آنلاین (Live)", icon: Video },
@@ -253,6 +255,7 @@ function StudentDashboardContent() {
           </div>
 
           {tab === "dashboard" && <DashboardOverview data={data} stats={stats} regs={regs} setTab={setTab} />}
+          {tab === "ai_tutor" && <AITutorTab />}
           {tab === "courses" && <MyCoursesTab regs={regs} />}
           {tab === "progress" && <ProgressTab regs={regs} />}
           {tab === "schedule" && <ScheduleTab sessions={data?.upcomingSessions || []} regs={regs} />}
@@ -3042,5 +3045,39 @@ export default function StudentDashboardPage() {
         <StudentDashboardContent />
       </Suspense>
     </main>
+  );
+}
+
+function AITutorTab() {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-fuchsia-500 via-purple-500 to-blue-500 flex items-center justify-center shadow-lg shadow-fuchsia-500/30">
+          <Sparkles className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h2 className="text-lg font-black text-white">معلم شخصی هوشمند</h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            هر سوال درسی، تمرین یا مفهوم رو ازش بپرس — با صبر و دقت پاسخ می‌ده.
+          </p>
+        </div>
+      </div>
+      <AIToolPanel
+        mode="tutor"
+        title="AI Tutor"
+        subtitle="معلم خصوصی ۲۴/۷"
+        gradient="from-fuchsia-500 via-purple-500 to-blue-500"
+        placeholder="سوال درسی، تمرین یا هر چیز آموزشی رو بپرس..."
+        welcome="سلام! 👋 من معلم شخصی هوشمند تو هستم. هر سوال درسی، تمرین یا مفهومی که بلد نیستی رو بپرس، مرحله‌به‌مرحله توضیح می‌دم. آماده‌ای شروع کنیم؟"
+        quickPrompts={[
+          "این مسئله ریاضی رو توضیح بده",
+          "تفاوت CSS Grid و Flexbox چیه؟",
+          "چطور در فتوشاپ لایه ماسک بسازم؟",
+          "قانون سه در حسابداری چیه؟",
+        ]}
+        useStream={true}
+        height="640px"
+      />
+    </div>
   );
 }
