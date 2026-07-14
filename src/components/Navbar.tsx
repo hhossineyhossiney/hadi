@@ -23,7 +23,7 @@ export default function Navbar() {
     { href: "/courses", label: "دوره‌ها" },
     { href: "/shop", label: "فروشگاه" },
     { href: "/institutes", label: "آموزشگاه‌ها" },
-    { href: "/ai", label: "هوش مصنوعی" },
+    { href: "/ai/tools", label: "🤖 ابزارهای AI" },
     { href: "/for-institutes", label: "برای مدیران آموزشگاه" },
     { href: "/pricing", label: "پلن‌ها" },
   ];
