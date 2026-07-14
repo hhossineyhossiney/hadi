@@ -31,15 +31,16 @@ export async function POST(req: NextRequest) {
 
     let sys = SYSTEM_PROMPTS.general;
     let temperature = 0.8;
-    let maxTokens = 800;
+    let maxTokens = 1500;
     if (type === "course") {
       sys = SYSTEM_PROMPTS.content_course;
+      maxTokens = 2000;
     } else if (type === "sms") {
       sys = SYSTEM_PROMPTS.content_sms;
-      maxTokens = 200;
+      maxTokens = 800;
     } else if (type === "insta") {
       sys = SYSTEM_PROMPTS.content_insta;
-      maxTokens = 600;
+      maxTokens = 1500;
     }
 
     const result = await aiComplete({
