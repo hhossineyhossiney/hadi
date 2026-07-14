@@ -32,9 +32,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
   const key = String(body.key || "").trim();
-  if (!key.startsWith("sk-") || key.length < 30) {
+  if ((!key.startsWith("sk-") && !key.startsWith("sk-or-")) || key.length < 30) {
     return NextResponse.json({ error: "invalid key format" }, { status: 400 });
   }
   await saveOpenAIKey(key);
-  return NextResponse.json({ ok: true, masked: `${key.slice(0, 7)}...${key.slice(-4)}` });
+  return NextResponse.json({ ok: true, masked: `${key.slice(0, 10)}...${key.slice(-4)}` });
 }
