@@ -8,9 +8,10 @@ import {
   LayoutDashboard, Image as ImageIcon, Award, Plus, LogOut, ShieldCheck, Eye, EyeOff,
   UserCircle2, FolderOpen, Menu, Bell, TrendingUp, CalendarDays,
   MessageCircle, Video, Link as LinkIcon, Calendar, ShoppingBag, PlayCircle,
-  ChevronLeft,
+  ChevronLeft, Sparkles,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import AIToolPanel from "@/components/AIToolPanel";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useMobilePanelDrawer } from "@/components/panel/useMobilePanelDrawer";
 import { normalizePhone } from "@/lib/phone";
@@ -22,10 +23,11 @@ import MoneyInput from "@/components/MoneyInput";
 import WeekdayPicker from "@/components/WeekdayPicker";
 import { calculateCourseSchedule, formatScheduleDays } from "@/lib/schedule";
 
-type TabKey = "dashboard" | "courses" | "shop" | "students" | "sessions" | "progress" | "live" | "assignments" | "quizzes" | "grades" | "instructors" | "attendance" | "groups" | "reports" | "subscription" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
+type TabKey = "dashboard" | "ai_studio" | "courses" | "shop" | "students" | "sessions" | "progress" | "live" | "assignments" | "quizzes" | "grades" | "instructors" | "attendance" | "groups" | "reports" | "subscription" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
+  { key: "ai_studio", label: "🤖 استودیوی AI", icon: Sparkles },
   { key: "subscription", label: "پلن اشتراک من", icon: Award },
   { key: "courses", label: "مدیریت دوره‌ها", icon: BookOpen },
   { key: "shop", label: "فروش آنلاین دوره", icon: Wallet },
@@ -216,6 +218,7 @@ export default function ManagerPanelPage() {
         {/* Content Area (dark) */}
         <div className="flex-1 bg-[#0B1120] text-white p-4 lg:p-8">
           {tab === "dashboard" && <DashboardTab data={data} />}
+          {tab === "ai_studio" && <AIStudioTab />}
           {tab === "courses" && <CoursesTab data={data} refresh={fetchData} />}
           {tab === "students" && <StudentsTab data={data} refresh={fetchData} />}
           {tab === "gallery" && <GalleryTab data={data} refresh={fetchData} />}
@@ -3972,3 +3975,120 @@ function ManagerSubscriptionTab() {
     </div>
   );
 }
+
+
+function AIStudioTab() {
+  const [active, setActive] = useState<"course" | "sms" | "insta" | "chat">("course");
+  const TOOLS: { key: any; label: string; icon: string; color: string }[] = [
+    { key: "course", label: "توضیح دوره", icon: "📚", color: "from-blue-500 to-indigo-600" },
+    { key: "sms", label: "پیامک تبلیغاتی", icon: "💬", color: "from-emerald-500 to-teal-600" },
+    { key: "insta", label: "پست اینستاگرام", icon: "📸", color: "from-fuchsia-500 to-pink-600" },
+    { key: "chat", label: "گفتگو با AI", icon: "🤖", color: "from-amber-500 to-orange-600" },
+  ];
+  const configs: any = {
+    course: {
+      mode: "content_course",
+      title: "تولید توضیح دوره",
+      subtitle: "توضیح جذاب و SEO دار",
+      gradient: "from-blue-500 to-indigo-600",
+      placeholder: "عنوان دوره + سطح + مخاطب رو بنویس (مثلا: فتوشاپ حرفه‌ای، پیشرفته، طراحان)",
+      welcome: "سلام مدیر عزیز! 👋 عنوان دوره‌ات رو بنویس تا برات توضیح حرفه‌ای SEO دار بنویسم — شامل هوک، مزایا، مخاطب هدف و CTA.",
+      quickPrompts: [
+        "دوره فتوشاپ حرفه‌ای برای طراحان مبتدی",
+        "دوره حسابداری کاربردی با نرم‌افزار هلو",
+        "دوره خیاطی مجلسی زنانه",
+      ],
+      useStream: false,
+    },
+    sms: {
+      mode: "content_sms",
+      title: "تولید پیامک تبلیغاتی",
+      subtitle: "۱۶۰ کاراکتری با CTA قوی",
+      gradient: "from-emerald-500 to-teal-600",
+      placeholder: "هدف پیامک رو بنویس (مثلا: دعوت به ثبت‌نام دوره فتوشاپ با ۳۰٪ تخفیف)",
+      welcome: "چه پیامکی می‌خوای بسازم؟ هدف + پیشنهاد + مخاطب رو بگو، من ۳ نسخه جذاب می‌سازم.",
+      quickPrompts: [
+        "دعوت به دوره جدید کامپیوتر با ۲۵٪ تخفیف",
+        "یادآوری قسط شهریه هنرجویان",
+        "اعلام کلاس فوق‌العاده روز جمعه",
+      ],
+      useStream: false,
+    },
+    insta: {
+      mode: "content_insta",
+      title: "تولید پست اینستاگرام",
+      subtitle: "کپشن + هشتگ + CTA",
+      gradient: "from-fuchsia-500 to-pink-600",
+      placeholder: "موضوع پست رو بنویس (مثلا: معرفی دوره جدید آرایشگری با گواهی)",
+      welcome: "موضوع پست چیه؟ عنوان + توضیح کوتاه + هدفت (فروش/آگاهی/تعامل) رو بگو، پست کامل با کپشن و هشتگ می‌سازم.",
+      quickPrompts: [
+        "معرفی دوره جدید آرایشگری با گواهی رسمی",
+        "معرفی استاد جدید آموزشگاه",
+        "اعلام تخفیف ویژه ثبت‌نام تابستان",
+      ],
+      useStream: false,
+    },
+    chat: {
+      mode: "general",
+      title: "دستیار مدیر",
+      subtitle: "پاسخ به هر سوال",
+      gradient: "from-amber-500 to-orange-600",
+      placeholder: "هر سوال یا مشاوره‌ای درباره مدیریت آموزشگاه ازم بپرس...",
+      welcome: "سلام مدیر عزیز! هر سوالی درباره مدیریت آموزشگاه، جذب هنرجو، بازاریابی، فرآیندها و ... داری بپرس.",
+      quickPrompts: [
+        "چطور نرخ ثبت‌نامم رو افزایش بدم؟",
+        "برای جذب هنرجو تازه چه کنم؟",
+        "ایده تخفیف پاییز برای دوره‌ها بده",
+      ],
+      useStream: true,
+    },
+  };
+  const cfg = configs[active];
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-fuchsia-500 via-purple-500 to-blue-500 flex items-center justify-center shadow-lg shadow-fuchsia-500/30">
+          <Sparkles className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h2 className="text-lg font-black text-white">استودیوی هوش مصنوعی</h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            محتوای تبلیغاتی، توضیح دوره و پاسخ سوالات — همه با AI
+          </p>
+        </div>
+      </div>
+
+      {/* Tool selector */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {TOOLS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setActive(t.key)}
+            className={`p-4 rounded-2xl border transition-all text-right ${
+              active === t.key
+                ? `bg-gradient-to-br ${t.color} border-white/20 shadow-lg`
+                : "bg-white/[0.03] border-white/10 hover:border-white/20"
+            }`}
+          >
+            <div className="text-2xl mb-1">{t.icon}</div>
+            <div className="text-xs font-black text-white">{t.label}</div>
+          </button>
+        ))}
+      </div>
+
+      <AIToolPanel
+        key={active}
+        mode={cfg.mode}
+        title={cfg.title}
+        subtitle={cfg.subtitle}
+        gradient={cfg.gradient}
+        placeholder={cfg.placeholder}
+        welcome={cfg.welcome}
+        quickPrompts={cfg.quickPrompts}
+        useStream={cfg.useStream}
+        height="620px"
+      />
+    </div>
+  );
+}
+
