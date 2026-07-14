@@ -491,6 +491,69 @@ const MIGRATIONS: { name: string; sql: string }[] = [
         created_at TIMESTAMP DEFAULT NOW()
       );
       CREATE INDEX IF NOT EXISTS idx_activities_time ON activities(created_at DESC);
+    `,
+  },
+  // 14) V4: Instructors, Grades, Attendance
+  {
+    name: "v4_tables",
+    sql: `
+      CREATE TABLE IF NOT EXISTS instructors (
+        id SERIAL PRIMARY KEY,
+        institute_id INTEGER NOT NULL REFERENCES institutes(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        title VARCHAR(255),
+        bio TEXT,
+        avatar TEXT,
+        phone VARCHAR(20),
+        email VARCHAR(255),
+        specialties JSONB DEFAULT '[]'::jsonb,
+        years_experience INTEGER DEFAULT 0,
+        rating DECIMAL(3,2) DEFAULT 0,
+        review_count INTEGER DEFAULT 0,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_instructors_inst ON instructors(institute_id);
+
+      CREATE TABLE IF NOT EXISTS grades (
+        id SERIAL PRIMARY KEY,
+        registration_id INTEGER NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL,
+        course_id INTEGER NOT NULL,
+        institute_id INTEGER NOT NULL,
+        instructor_id INTEGER,
+        subject VARCHAR(255),
+        theoretical_score DECIMAL(5,2),
+        practical_score DECIMAL(5,2),
+        final_score DECIMAL(5,2),
+        max_score INTEGER DEFAULT 20,
+        passing_score DECIMAL(5,2) DEFAULT 10,
+        status VARCHAR(20) DEFAULT 'pending',
+        description TEXT,
+        graded_by INTEGER,
+        graded_at TIMESTAMP DEFAULT NOW(),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_grades_user ON grades(user_id);
+      CREATE INDEX IF NOT EXISTS idx_grades_registration ON grades(registration_id);
+      CREATE INDEX IF NOT EXISTS idx_grades_course ON grades(course_id);
+
+      CREATE TABLE IF NOT EXISTS attendance (
+        id SERIAL PRIMARY KEY,
+        registration_id INTEGER NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL,
+        course_id INTEGER NOT NULL,
+        session_id INTEGER,
+        session_date VARCHAR(30),
+        status VARCHAR(20) NOT NULL,
+        notes TEXT,
+        marked_by INTEGER,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_att_user ON attendance(user_id);
+      CREATE INDEX IF NOT EXISTS idx_att_course ON attendance(course_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_att_user_session ON attendance(user_id, session_id) WHERE session_id IS NOT NULL;
 
       CREATE TABLE IF NOT EXISTS sellable_purchases (
         id SERIAL PRIMARY KEY,
