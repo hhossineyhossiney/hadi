@@ -24,6 +24,7 @@ export default function Navbar() {
     { href: "/fields", label: "رشته‌ها" },
     { href: "/institutes", label: "آموزشگاه‌ها" },
     { href: "/courses", label: "دوره‌ها" },
+    { href: "/pricing", label: "پلن‌های اشتراک" },
   ];
 
   const user = session?.user as any;
