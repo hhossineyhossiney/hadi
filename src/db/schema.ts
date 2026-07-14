@@ -639,3 +639,61 @@ export const activities = pgTable("activities", {
   amount: decimal("amount", { precision: 12, scale: 0 }),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+/* ═══════════════════════════════════════════════════════════════
+   V4 — نمرات و کارنامه، اساتید، حضور و غیاب
+   ═══════════════════════════════════════════════════════════════ */
+
+// اساتید
+export const instructors = pgTable("instructors", {
+  id: serial("id").primaryKey(),
+  instituteId: integer("institute_id").references(() => institutes.id, { onDelete: "cascade" }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  title: varchar("title", { length: 255 }),               // تخصص
+  bio: text("bio"),                                        // رزومه
+  avatar: text("avatar"),                                  // تصویر
+  phone: varchar("phone", { length: 20 }),
+  email: varchar("email", { length: 255 }),
+  specialties: jsonb("specialties").default([]),           // تخصص‌ها [string]
+  yearsExperience: integer("years_experience").default(0),
+  rating: decimal("rating", { precision: 3, scale: 2 }).default("0"),
+  reviewCount: integer("review_count").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// نمرات هنرجویان
+export const grades = pgTable("grades", {
+  id: serial("id").primaryKey(),
+  registrationId: integer("registration_id").references(() => registrations.id, { onDelete: "cascade" }).notNull(),
+  userId: integer("user_id").notNull(),
+  courseId: integer("course_id").notNull(),
+  instituteId: integer("institute_id").notNull(),
+  instructorId: integer("instructor_id"),                  // اختیاری
+  subject: varchar("subject", { length: 255 }),            // موضوع (اختیاری برای نمرات درسی داخل دوره)
+  theoreticalScore: decimal("theoretical_score", { precision: 5, scale: 2 }),   // نمره تئوری
+  practicalScore: decimal("practical_score", { precision: 5, scale: 2 }),       // نمره عملی
+  finalScore: decimal("final_score", { precision: 5, scale: 2 }),               // نمره نهایی
+  maxScore: integer("max_score").default(20),
+  passingScore: decimal("passing_score", { precision: 5, scale: 2 }).default("10"),
+  status: varchar("status", { length: 20 }).default("pending"),  // pending | passed | failed
+  description: text("description"),
+  gradedBy: integer("graded_by"),                          // مدیر یا استاد
+  gradedAt: timestamp("graded_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// حضور و غیاب
+export const attendance = pgTable("attendance", {
+  id: serial("id").primaryKey(),
+  registrationId: integer("registration_id").references(() => registrations.id, { onDelete: "cascade" }).notNull(),
+  userId: integer("user_id").notNull(),
+  courseId: integer("course_id").notNull(),
+  sessionId: integer("session_id"),                        // ref to course_sessions
+  sessionDate: varchar("session_date", { length: 30 }),    // Persian date
+  status: varchar("status", { length: 20 }).notNull(),     // present | absent | late | excused
+  notes: text("notes"),
+  markedBy: integer("marked_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
