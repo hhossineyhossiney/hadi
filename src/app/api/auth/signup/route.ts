@@ -27,36 +27,42 @@ export async function POST(request: Request) {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Check if phone already registered
-    let user = await db
+    // Check if phone already registered — reject duplicates (any role)
+    const existing = await db
       .select()
       .from(users)
       .where(eq(users.phone, cleanPhone))
       .then((res) => res[0]);
 
-    if (user) {
-      // Update password for existing user so they can log in
-      const [updated] = await db
-        .update(users)
-        .set({ password: hashedPassword, name, email: email ? email.trim() : user.email })
-        .where(eq(users.id, user.id))
-        .returning();
-      user = updated;
-    } else {
-      const [newUser] = await db
-        .insert(users)
-        .values({
-          name,
-          phone: cleanPhone,
-          email: email ? email.trim() : null,
-          password: hashedPassword,
-          role: "student",
-        })
-        .returning();
-      user = newUser;
+    if (existing) {
+      const roleLabel =
+        existing.role === "admin"
+          ? "مدیر کل"
+          : existing.role === "institute"
+          ? "مدیر آموزشگاه"
+          : "هنرجو";
+      return NextResponse.json(
+        {
+          error: `این شماره موبایل قبلاً به عنوان «${roleLabel}» ثبت‌نام شده است. لطفاً وارد حساب کاربری خود شوید یا از شماره دیگری استفاده کنید.`,
+          code: "PHONE_ALREADY_EXISTS",
+        },
+        { status: 409 }
+      );
     }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const [newUser] = await db
+      .insert(users)
+      .values({
+        name,
+        phone: cleanPhone,
+        email: email ? email.trim() : null,
+        password: hashedPassword,
+        role: "student",
+      })
+      .returning();
+    const user = newUser;
 
     return NextResponse.json(
       {
