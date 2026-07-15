@@ -97,7 +97,7 @@ export default function InstitutesFilter({ institutes }: { institutes: Institute
               key={inst.id}
               institute={{
                 ...inst,
-                licenseNumber: inst.licenseNumber || inst.accessCode || null,
+                licenseNumber: inst.licenseNumber || null,
                 managerName: inst.managerName
                   ? (inst.managerTitle ? `${inst.managerTitle} ${inst.managerName}` : inst.managerName)
                   : null,

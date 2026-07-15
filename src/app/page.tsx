@@ -55,7 +55,6 @@ export default async function HomePage() {
       logo: institutes.logo,
       profilePhoto: institutes.profilePhoto,
       bannerImages: institutes.bannerImages,
-      accessCode: institutes.accessCode,
       licenseNumber: institutes.licenseNumber,
       managerName: institutes.managerName,
       managerTitle: institutes.managerTitle,

@@ -44,7 +44,6 @@ export async function GET(request: Request) {
       logo: institutes.logo,
       profilePhoto: institutes.profilePhoto,
       bannerImages: institutes.bannerImages,
-      accessCode: institutes.accessCode,
       licenseNumber: institutes.licenseNumber,
       managerName: institutes.managerName,
       managerTitle: institutes.managerTitle,
