@@ -11,7 +11,6 @@ import {
   GraduationCap,
   Sparkles,
 } from "lucide-react";
-import { getTheme } from "@/lib/cardTheme";
 
 export interface CourseCardData {
   id: number;
@@ -107,8 +106,6 @@ export default function CourseCard({
   course: CourseCardData;
   index?: number;
 }) {
-  // legacy theme retained but not used by new design
-  void getTheme;
   const pal = getPalette(course.categoryName, index);
   const cap = course.capacity || 0;
   const filled = course.enrolledCount || 0;
