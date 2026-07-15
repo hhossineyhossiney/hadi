@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  Star, MapPin, Phone, BadgeCheck, GraduationCap, Award, ArrowLeft, CheckCircle2,
+  Star, MapPin, Phone, BadgeCheck, Award, ArrowLeft, Building2,
+  CheckCircle2, Bookmark, Sparkles,
 } from "lucide-react";
-import { getInstituteTheme } from "@/lib/cardTheme";
+import { pickCategoryVisual } from "@/lib/category-visuals";
 
 interface Institute {
   id: number;
@@ -48,13 +49,19 @@ function deriveHighlights(desc: string | null | undefined): string[] {
 }
 
 export default function InstituteCard({ institute, index = 0 }: { institute: Institute; index?: number }) {
-  const theme = getInstituteTheme(institute.name, index);
   const numericRating = institute.rating ? parseFloat(institute.rating) : 0;
   const isTop = institute.isYearAward === true || numericRating >= 4.8;
   const primaryPhone = institute.mobile || institute.phone;
   const img = pickImage(institute);
+
+  // Smart visual fallback based on institute name (e.g., "آموزشگاه کامپیوتر هدف" → computer)
+  const visual = pickCategoryVisual(institute.name, institute.description);
+  const pal = visual.palette;
+  const fallbackImage = visual.image;
+  const finalImage = img || fallbackImage;
+
   const highlights = (Array.isArray(institute.features) && institute.features.length > 0)
-    ? institute.features.slice(0, 2)
+    ? (institute.features as string[]).slice(0, 2)
     : deriveHighlights(institute.description);
 
   return (
@@ -62,120 +69,216 @@ export default function InstituteCard({ institute, index = 0 }: { institute: Ins
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ delay: index * 0.05, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ delay: (index % 8) * 0.05, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
       className="h-full"
     >
-      <div className="group h-full flex flex-col bg-surface rounded-[20px] border border-border-default hover:border-primary-300 hover-lift transition-all duration-500 overflow-hidden">
-        <div className="relative h-52 overflow-hidden">
-          {img ? (
-            <>
-              <img src={img} alt={institute.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" decoding="async" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10" />
-            </>
-          ) : (
-            <div className={`w-full h-full bg-gradient-to-br ${theme.gradient} relative`}>
-              <div className="absolute inset-0 opacity-[0.12]" style={{ backgroundImage: `radial-gradient(circle at 2px 2px, white 1.5px, transparent 0)`, backgroundSize: "22px 22px" }} />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-16 h-16 rounded-[16px] bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center">
-                  <GraduationCap className="w-8 h-8 text-white" />
+      <div className="relative h-full group">
+        {/* Ambient glow */}
+        <div
+          className="absolute -inset-1 rounded-[42px] opacity-70 blur-2xl group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+          style={{
+            background: `radial-gradient(60% 50% at 30% 20%, ${pal.glowFrom} 0%, transparent 60%), radial-gradient(50% 50% at 70% 90%, ${pal.glowTo} 0%, transparent 60%)`,
+          }}
+        />
+        {/* Card body */}
+        <div
+          className="relative h-full flex flex-col overflow-hidden bg-gradient-to-br from-[#0e1226]/95 via-[#111632]/95 to-[#0a0d1e]/95 backdrop-blur-xl border border-white/10 group-hover:border-white/25 transition-all duration-500"
+          style={{
+            borderRadius: "48px 28px 48px 28px / 32px 48px 32px 48px",
+          }}
+        >
+          {/* inner glows */}
+          <div
+            className="absolute -top-24 -right-24 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-70"
+            style={{ background: pal.glowFrom }}
+          />
+          <div
+            className="absolute -bottom-24 -left-24 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-60"
+            style={{ background: pal.glowTo }}
+          />
+          <div
+            className="absolute inset-0 opacity-[0.04] pointer-events-none"
+            style={{
+              backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+              backgroundSize: "22px 22px",
+            }}
+          />
+
+          {/* Top row: organic image + institute info */}
+          <div className="relative flex items-start gap-3 p-5 pb-3">
+            {/* Organic image */}
+            <div className="relative shrink-0 w-[130px] sm:w-[150px] h-[130px] sm:h-[150px] -mt-1 -mr-1">
+              <div
+                className="absolute inset-0 rounded-full opacity-80 blur-2xl"
+                style={{ background: pal.glowFrom }}
+              />
+              <div
+                className="relative w-full h-full overflow-hidden ring-1 ring-white/15"
+                style={{ borderRadius: "62% 38% 55% 45% / 50% 60% 40% 50%" }}
+              >
+                <img
+                  src={finalImage}
+                  alt={institute.name}
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => {
+                    const t = e.currentTarget;
+                    if (t.src !== fallbackImage) t.src = fallbackImage;
+                  }}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/40 mix-blend-overlay pointer-events-none" />
+                {/* Emoji badge */}
+                <div className="absolute -bottom-1 -left-1 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-lg z-10">
+                  {visual.icon}
                 </div>
               </div>
             </div>
-          )}
 
-          <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start z-10">
-            {isTop && (
-              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-accent-500 to-orange-500 shadow-lg">
-                <Award className="w-3.5 h-3.5 text-white" />
-                <span className="text-[10px] font-black text-white">برگزیده سال</span>
+            {/* Right-side info */}
+            <div className="flex-1 min-w-0 flex flex-col">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <span
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-black backdrop-blur ${pal.badge}`}
+                >
+                  <Sparkles className="w-2.5 h-2.5" />
+                  آموزشگاه معتبر
+                </span>
+                <button
+                  className={`w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center opacity-70 hover:opacity-100 hover:bg-white/10 transition ${pal.bookmark}`}
+                  title="ذخیره"
+                  aria-label="ذخیره"
+                >
+                  <Bookmark className="w-3.5 h-3.5" />
+                </button>
               </div>
-            )}
-          </div>
 
-          {institute.regionName && (
-            <div className="absolute top-3 right-3 z-10">
-              <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-md text-white text-[10px] font-black border border-white/20">
-                <MapPin className="w-3 h-3" /> {institute.regionName}
-              </span>
-            </div>
-          )}
-
-          <div className="absolute inset-x-0 bottom-0 p-3 z-10">
-            <div className="flex items-end justify-between gap-2">
-              {numericRating > 0 && (
-                <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-md">
-                  <Star className="w-3.5 h-3.5 text-accent-400 fill-accent-400" />
-                  <span className="text-xs font-black text-white">{numericRating.toFixed(1)}</span>
-                  <span className="text-[9px] text-white/70 font-bold">({institute.reviewCount || 0})</span>
-                </div>
-              )}
-              <h3 className="text-white font-black text-sm leading-snug line-clamp-2 text-right flex-1">
+              <h3 className="text-lg sm:text-xl font-black text-white leading-tight mb-1.5 line-clamp-2">
                 {institute.name}
               </h3>
+
+              {institute.regionName && (
+                <div className="flex items-center gap-1 text-[11px] text-slate-400 mb-1">
+                  <MapPin className={`w-3 h-3 ${pal.accent}`} />
+                  <span className="line-clamp-1">{institute.regionName}</span>
+                </div>
+              )}
+
+              {numericRating > 0 && (
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-1">
+                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                    <span className="text-xs font-black text-white">
+                      {numericRating.toFixed(1)}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-500">
+                    ({institute.reviewCount || 0} نظر)
+                  </span>
+                </div>
+              )}
             </div>
-            {institute.licenseNumber && (
-              <div className="mt-1.5 flex items-center gap-1 justify-end">
-                {institute.isVerified && (<BadgeCheck className="w-3 h-3 text-secondary-400" />)}
-                <span className="text-[10px] font-bold text-white/80" dir="ltr">مجوز: {institute.licenseNumber}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="p-5 flex-1 flex flex-col">
-          <div className="flex items-center justify-between mb-3 pb-3 border-b border-border-light">
-            {institute.managerName ? (
-              <div className="flex items-center gap-1 text-[11px] text-text-secondary">
-                <span className="font-medium">مدیریت:</span>
-                <span className="font-black text-text-primary">{institute.managerName}</span>
-              </div>
-            ) : (
-              <span className="text-[11px] text-text-tertiary">مدیریت آموزشگاه</span>
-            )}
-            {institute.courseCount !== undefined && (
-              <div className="flex items-center gap-1 text-primary-600 text-[11px] font-black">
-                <GraduationCap className="w-3.5 h-3.5" />
-                {institute.courseCount} دوره فعال
-              </div>
-            )}
           </div>
 
-          {institute.description && (
-            <p className="text-[12px] text-text-secondary leading-relaxed line-clamp-2 mb-3">{institute.description}</p>
+          {/* Manager row */}
+          {institute.managerName && (
+            <div className="relative px-5 py-2 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <div
+                  className={`w-7 h-7 rounded-full bg-gradient-to-br ${pal.button} flex items-center justify-center shrink-0 text-white text-[10px] font-black`}
+                >
+                  {institute.managerName.trim().charAt(0)}
+                </div>
+                <div className="flex items-baseline gap-1 min-w-0">
+                  <span className="text-[10px] text-slate-500">مدیریت:</span>
+                  <span className="text-[11.5px] font-black text-white truncate">
+                    {institute.managerName}
+                  </span>
+                </div>
+              </div>
+              {isTop && (
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 shadow text-[9px] font-black text-white">
+                  <Award className="w-2.5 h-2.5" />
+                  برگزیده
+                </span>
+              )}
+            </div>
           )}
 
-          {highlights.length > 0 && (
-            <ul className="space-y-1.5 mb-4">
+          {/* Stats bar */}
+          <div className="relative mx-5 mt-2 mb-3 grid grid-cols-2 gap-2">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/[0.04] border border-white/10">
+              <Building2 className={`w-4 h-4 ${pal.accent} shrink-0`} />
+              <div className="flex flex-col min-w-0">
+                <span className="text-[9px] text-slate-500 leading-none">دوره فعال</span>
+                <span className="text-sm font-black text-white leading-tight mt-0.5">
+                  {institute.courseCount ?? 0}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/[0.04] border border-white/10">
+              <BadgeCheck className={`w-4 h-4 ${pal.accent} shrink-0`} />
+              <div className="flex flex-col min-w-0">
+                <span className="text-[9px] text-slate-500 leading-none">مجوز</span>
+                <span className="text-xs font-black text-white leading-tight mt-0.5 truncate" dir="ltr">
+                  {institute.licenseNumber || "دارد"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Highlights / description */}
+          {highlights.length > 0 ? (
+            <ul className="relative px-5 space-y-1.5 mb-3">
               {highlights.map((h, i) => (
-                <li key={i} className="flex items-start gap-1.5 text-[11px] text-text-secondary leading-relaxed">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-secondary-500 shrink-0 mt-0.5" />
+                <li
+                  key={i}
+                  className="flex items-start gap-1.5 text-[11px] text-slate-300 leading-relaxed"
+                >
+                  <CheckCircle2 className={`w-3.5 h-3.5 ${pal.accent} shrink-0 mt-0.5`} />
                   <span className="line-clamp-2">{h}</span>
                 </li>
               ))}
             </ul>
-          )}
-
-          {institute.address && !highlights.length && (
-            <div className="flex items-start gap-1.5 text-text-tertiary text-[11px] mb-4">
-              <MapPin className="w-3.5 h-3.5 shrink-0 text-primary-400 mt-0.5" />
+          ) : institute.address ? (
+            <div className="relative px-5 mb-3 flex items-start gap-1.5 text-[11px] text-slate-400">
+              <MapPin className={`w-3.5 h-3.5 ${pal.accent} shrink-0 mt-0.5`} />
               <span className="line-clamp-2 leading-relaxed">{institute.address}</span>
             </div>
-          )}
+          ) : null}
 
-          <div className="mt-auto flex items-center gap-2 pt-3">
-            {primaryPhone && (
-              <a href={`tel:${primaryPhone}`} title={`تماس با ${primaryPhone}`}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-[10px] border border-border-default text-text-secondary hover:border-primary-300 hover:text-primary-600 text-[11px] font-black transition-colors shrink-0">
+          {/* Bottom row: phone + CTA */}
+          <div className="relative mt-auto p-4 sm:p-5 pt-3 flex items-center justify-between gap-3">
+            {primaryPhone ? (
+              <a
+                href={`tel:${primaryPhone}`}
+                title={`تماس ${primaryPhone}`}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/5 border border-white/10 text-white text-[11px] font-black hover:bg-white/10 transition"
+              >
                 <Phone className="w-3.5 h-3.5" />
                 تماس
               </a>
+            ) : (
+              <span />
             )}
-            <Link href={`/institutes/${institute.slug}`}
-              className="flex-1 flex items-center justify-center gap-1.5 text-[11px] font-black text-white gradient-button px-3.5 py-2.5 rounded-[10px] hover:gradient-button-hover transition-all">
-              مشاهده دوره‌ها و جزئیات
-              <ArrowLeft className="w-3.5 h-3.5" />
+            <Link
+              href={`/institutes/${institute.slug}`}
+              className={`group/btn shrink-0 flex items-center gap-1.5 px-4 sm:px-5 py-2.5 rounded-full text-white text-xs font-black bg-gradient-to-l ${pal.button} shadow-lg hover:shadow-2xl hover:scale-[1.03] transition-all`}
+            >
+              مشاهده آموزشگاه
+              <ArrowLeft className="w-3.5 h-3.5 group-hover/btn:-translate-x-0.5 transition-transform" />
             </Link>
           </div>
+
+          {/* Badge برگزیده top-left corner */}
+          {isTop && !institute.managerName && (
+            <div className="absolute top-4 left-4 z-10">
+              <div className="px-2.5 py-1 rounded-full text-[10px] font-black text-white shadow-lg bg-gradient-to-r from-amber-500 to-orange-500 flex items-center gap-1">
+                <Award className="w-3 h-3" />
+                برگزیده سال
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
