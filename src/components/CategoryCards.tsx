@@ -147,10 +147,11 @@ function CategoryBlob({ cat, index }: { cat: Category; index: number }) {
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
               />
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/30 mix-blend-overlay pointer-events-none" />
-              {/* Emoji badge */}
-              <div className="absolute -bottom-1 -left-1 w-11 h-11 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-xl">
-                {visual.icon}
-              </div>
+            </div>
+
+            {/* Emoji badge — outside the clipped image so it always stays visible */}
+            <div className="absolute bottom-1 left-1 z-20 w-11 h-11 rounded-full bg-black/70 backdrop-blur-md border border-white/25 shadow-xl flex items-center justify-center text-xl pointer-events-none">
+              {visual.icon}
             </div>
           </div>
 
