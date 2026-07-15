@@ -8,9 +8,9 @@ import {
   Bookmark,
   Calendar,
   ArrowLeft,
-  GraduationCap,
   Sparkles,
 } from "lucide-react";
+import { pickCategoryVisual } from "@/lib/category-visuals";
 
 export interface CourseCardData {
   id: number;
@@ -106,7 +106,12 @@ export default function CourseCard({
   course: CourseCardData;
   index?: number;
 }) {
-  const pal = getPalette(course.categoryName, index);
+  // Smart visual: pick a curated image + palette based on title/category
+  const visual = pickCategoryVisual(course.title, course.categoryName, course.description);
+  const pal = visual.palette;
+  const fallbackImage = visual.image;
+  // legacy palette (kept but unused for compatibility)
+  void getPalette;
   const cap = course.capacity || 0;
   const filled = course.enrolledCount || 0;
   const pct = cap > 0 ? Math.min(100, Math.round((filled / cap) * 100)) : 0;
@@ -176,21 +181,21 @@ export default function CourseCard({
                     "62% 38% 55% 45% / 50% 60% 40% 50%",
                 }}
               >
-                {course.image ? (
-                  <img
-                    src={course.image}
-                    alt={course.title}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  />
-                ) : (
-                  <div
-                    className={`w-full h-full bg-gradient-to-br ${pal.button} flex items-center justify-center`}
-                  >
-                    <GraduationCap className="w-12 h-12 text-white/90" />
-                  </div>
-                )}
+                <img
+                  src={course.image || fallbackImage}
+                  alt={course.title}
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => {
+                    const t = e.currentTarget;
+                    if (t.src !== fallbackImage) t.src = fallbackImage;
+                  }}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                />
+                {/* Emoji badge (bottom-left of blob) */}
+                <div className="absolute -bottom-1 -left-1 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-lg z-10">
+                  {visual.icon}
+                </div>
                 {/* Subtle sparkle overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/30 mix-blend-overlay pointer-events-none" />
               </div>
