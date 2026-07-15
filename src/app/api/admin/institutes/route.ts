@@ -2,8 +2,27 @@ import { db } from "@/db";
 import { institutes, courses, registrations, regions } from "@/db/schema";
 import { eq, count } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+
+const ADMIN_PHONES = new Set(["09159513179", "09150000000"]);
+
+async function getAdminUser() {
+  const session = await getServerSession(authOptions);
+  const user = session?.user as any;
+  if (!user?.id) return null;
+  if (user.role === "admin" || ADMIN_PHONES.has(String(user.phone || ""))) return user;
+  return null;
+}
+
+function unauthorized() {
+  return NextResponse.json(
+    { error: "دسترسی غیرمجاز؛ فقط مدیر کل می‌تواند این عملیات را انجام دهد" },
+    { status: 401 }
+  );
+}
 
 function slugify(text: string) {
   return (
@@ -18,6 +37,9 @@ function slugify(text: string) {
 
 /** GET: full list of institutes with course/student counts + revenue */
 export async function GET() {
+  const admin = await getAdminUser();
+  if (!admin) return unauthorized();
+
   const list = await db
     .select({
       id: institutes.id,
@@ -69,6 +91,9 @@ export async function GET() {
 /** POST: create a new institute */
 export async function POST(request: Request) {
   try {
+    const admin = await getAdminUser();
+    if (!admin) return unauthorized();
+
     const body = await request.json();
     const { name, address, mobile, phone, description, regionId } = body;
 
@@ -105,6 +130,9 @@ export async function POST(request: Request) {
 /** PATCH: update / suspend / activate an institute */
 export async function PATCH(request: Request) {
   try {
+    const admin = await getAdminUser();
+    if (!admin) return unauthorized();
+
     const body = await request.json();
     const { id, action, ...fields } = body;
 
@@ -141,12 +169,30 @@ export async function PATCH(request: Request) {
 /** DELETE: permanently remove an institute (and its courses/registrations) */
 export async function DELETE(request: Request) {
   try {
+    const admin = await getAdminUser();
+    if (!admin) return unauthorized();
+
     const { id } = await request.json();
     if (!id) return NextResponse.json({ error: "شناسه آموزشگاه الزامی است" }, { status: 400 });
 
-    await db.delete(registrations).where(eq(registrations.instituteId, id));
-    await db.delete(courses).where(eq(courses.instituteId, id));
-    await db.delete(institutes).where(eq(institutes.id, id));
+    const target = await db
+      .select({ id: institutes.id, name: institutes.name, slug: institutes.slug })
+      .from(institutes)
+      .where(eq(institutes.id, Number(id)))
+      .then((rows) => rows[0]);
+    if (!target) return NextResponse.json({ error: "آموزشگاه یافت نشد" }, { status: 404 });
+
+    console.warn("[ADMIN_AUDIT] institute_delete", {
+      instituteId: target.id,
+      instituteName: target.name,
+      adminId: admin.id,
+      adminPhone: admin.phone,
+      timestamp: new Date().toISOString(),
+    });
+
+    await db.delete(registrations).where(eq(registrations.instituteId, target.id));
+    await db.delete(courses).where(eq(courses.instituteId, target.id));
+    await db.delete(institutes).where(eq(institutes.id, target.id));
 
     return NextResponse.json({ ok: true });
   } catch (e) {
