@@ -4,11 +4,33 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { normalizePhone } from "@/lib/phone";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
+const ADMIN_PHONES = new Set(["09159513179", "09150000000"]);
+
+async function getAdminUser() {
+  const session = await getServerSession(authOptions);
+  const user = session?.user as any;
+  if (!user?.id) return null;
+  if (user.role === "admin" || ADMIN_PHONES.has(String(user.phone || ""))) return user;
+  return null;
+}
+
+function unauthorized() {
+  return NextResponse.json(
+    { error: "دسترسی غیرمجاز؛ فقط مدیر کل می‌تواند حساب مدیر آموزشگاه را تغییر دهد" },
+    { status: 401 },
+  );
+}
+
 /** GET: list institutes with manager info + telegram access code */
 export async function GET() {
+  const admin = await getAdminUser();
+  if (!admin) return unauthorized();
+
   const list = await db
     .select({
       id: institutes.id,
@@ -29,6 +51,9 @@ export async function GET() {
 /** POST: create or reset an institute manager account */
 export async function POST(request: Request) {
   try {
+    const admin = await getAdminUser();
+    if (!admin) return unauthorized();
+
     const { instituteId, phone, password, name } = await request.json();
     const cleanPhone = normalizePhone(phone || "");
 
