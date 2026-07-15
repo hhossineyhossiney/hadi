@@ -4,7 +4,8 @@ import { db } from "@/db";
 import { categories, courses, institutes, regions } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import Link from "next/link";
-import { ArrowLeft, Clock, Users, MapPin } from "lucide-react";
+import { ArrowLeft, MapPin } from "lucide-react";
+import CourseCard from "@/components/CourseCard";
 
 export const dynamic = "force-dynamic";
 
@@ -40,11 +41,15 @@ export default async function FieldDetailPage({
       title: courses.title,
       slug: courses.slug,
       description: courses.description,
+      fullDescription: courses.fullDescription,
       duration: courses.duration,
       price: courses.price,
+      originalPrice: courses.originalPrice,
       capacity: courses.capacity,
       enrolledCount: courses.enrolledCount,
       instructor: courses.instructor,
+      startDate: courses.startDate,
+      image: courses.image,
       instituteName: institutes.name,
       instituteSlug: institutes.slug,
       regionName: regions.name,
@@ -132,64 +137,13 @@ export default async function FieldDetailPage({
                 <p className="text-text-secondary">هنوز دوره‌ای در این رشته ثبت نشده است</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {courseList.map((course) => (
-                  <Link
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-7">
+                {courseList.map((course, index) => (
+                  <CourseCard
                     key={course.id}
-                    href={`/courses/${course.slug}`}
-                    className="group block bg-surface rounded-[24px] border border-border-default hover:border-primary-200 hover-lift transition-all duration-500 overflow-hidden"
-                  >
-                    <div
-                      className="h-32 relative overflow-hidden"
-                      style={{ background: `linear-gradient(135deg, ${category.color || "#2563EB"}, ${category.color || "#2563EB"}99)` }}
-                    >
-                      <div
-                        className="absolute inset-0 opacity-[0.12]"
-                        style={{
-                          backgroundImage: `radial-gradient(circle at 2px 2px, white 1.5px, transparent 0)`,
-                          backgroundSize: "20px 20px",
-                        }}
-                      />
-                      <div className="relative h-full flex flex-col items-center justify-center px-3 text-center">
-                        <span className="text-white text-sm font-black leading-tight line-clamp-1">
-                          {course.title}
-                        </span>
-                        <span className="text-white/80 text-[10px] font-bold mt-1.5 px-2.5 py-0.5 rounded-full bg-black/20 border border-white/20">
-                          دوره فنی و حرفه‌ای
-                        </span>
-                      </div>
-                    </div>
-                    <div className="p-5">
-                      <h3 className="font-bold text-text-primary group-hover:text-primary-600 transition-colors mb-2">
-                        {course.title}
-                      </h3>
-                      <p className="text-sm text-text-tertiary mb-3 line-clamp-2">
-                        {course.description}
-                      </p>
-                      <div className="flex items-center gap-3 text-xs text-text-secondary mb-3">
-                        {course.duration && (
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5" />
-                            <span>{course.duration}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1">
-                          <Users className="w-3.5 h-3.5" />
-                          <span>
-                            {course.enrolledCount || 0}/{course.capacity || 0}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between pt-3 border-t border-border-light">
-                        <span className="text-xs text-text-secondary">{course.instituteName}</span>
-                        <span className="text-sm font-black text-primary-600">
-                          {course.price
-                            ? Number(course.price).toLocaleString("fa-IR") + " تومان"
-                            : "رایگان"}
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
+                    course={{ ...course, categoryName: category.name }}
+                    index={index}
+                  />
                 ))}
               </div>
             )}

@@ -1,186 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Search, Star, Users, Clock, PlayCircle, BookOpen, Award, TrendingUp, ShoppingBag, Sparkles } from "lucide-react";
+import { Search, Users, PlayCircle, BookOpen, Award, TrendingUp, ShoppingBag, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
+import OnlineCourseCard, { OnlineCourseCardData } from "@/components/OnlineCourseCard";
 
-type ShopCourse = {
-  id: number;
-  slug: string;
-  title: string;
-  subtitle: string | null;
-  cover_image: string | null;
-  instructor: string | null;
-  instructor_title: string | null;
-  level: string | null;
-  price: string;
-  original_price: string | null;
-  discount_percent: number;
-  total_lessons: number;
-  total_chapters: number;
-  total_duration: number;
-  students_count: number;
-  rating: string;
-  rating_count: number;
-  is_featured: boolean;
-  has_certificate: boolean;
-  institute_id: number;
-  institute_name: string;
-  institute_slug: string;
-  category_name: string | null;
-  features: string[];
-};
+type ShopCourse = OnlineCourseCardData;
 
-const gradientPalette = [
-  "from-rose-500 via-pink-500 to-orange-400",
-  "from-violet-600 via-purple-500 to-indigo-500",
-  "from-emerald-500 via-teal-500 to-cyan-500",
-  "from-amber-500 via-orange-500 to-rose-500",
-  "from-blue-500 via-indigo-500 to-purple-500",
-  "from-fuchsia-600 via-pink-500 to-rose-500",
-  "from-sky-500 via-blue-500 to-indigo-500",
-  "from-lime-500 via-emerald-500 to-teal-500",
-];
 
-const LEVELS: Record<string, string> = {
-  beginner: "مقدماتی",
-  intermediate: "متوسط",
-  advanced: "پیشرفته",
-};
+
+
 
 function fmt(n: number | string) {
   const v = Number(n) || 0;
   return v.toLocaleString("fa-IR");
-}
-
-function ShopCourseCard({ course, index }: { course: ShopCourse; index: number }) {
-  const gradient = gradientPalette[index % gradientPalette.length];
-  const price = Number(course.price);
-  const original = course.original_price ? Number(course.original_price) : null;
-  const durationH = Math.floor(course.total_duration / 60);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: (index % 8) * 0.05 }}
-      className="group relative bg-[var(--panel-surface,#0A3D6E)] rounded-[24px] overflow-hidden border border-[var(--border-default)] hover:border-primary-500/50 transition-all duration-300 hover-lift"
-      style={{ boxShadow: "0 10px 40px rgba(0,0,0,0.18)" }}
-    >
-      {/* Cover with gradient overlay */}
-      <div className={`relative aspect-[16/10] bg-gradient-to-br ${gradient} overflow-hidden`}>
-        {course.cover_image ? (
-          <img src={course.cover_image} alt={course.title} className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-90" loading="lazy" decoding="async" />
-        ) : null}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-
-        {/* Badges top */}
-        <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
-          {course.is_featured && (
-            <span className="px-3 py-1.5 rounded-full bg-gradient-to-l from-amber-400 to-yellow-500 text-black text-[10px] font-black shadow-lg flex items-center gap-1">
-              <Sparkles className="w-3 h-3" /> ویژه
-            </span>
-          )}
-          {course.discount_percent > 0 && (
-            <span className="px-3 py-1.5 rounded-full bg-error-500 text-white text-[10px] font-black shadow-lg">
-              {course.discount_percent}٪ تخفیف
-            </span>
-          )}
-        </div>
-
-        {/* Level badge bottom-left */}
-        {course.level && (
-          <div className="absolute bottom-3 left-3">
-            <span className="px-2.5 py-1 rounded-full bg-white/95 text-slate-900 text-[10px] font-black">
-              {LEVELS[course.level] || course.level}
-            </span>
-          </div>
-        )}
-
-        {/* Category badge */}
-        {course.category_name && (
-          <div className="absolute bottom-3 right-3">
-            <span className="px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-sm text-white text-[10px] font-bold">
-              {course.category_name}
-            </span>
-          </div>
-        )}
-
-        {/* Play icon on hover */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="w-16 h-16 rounded-full bg-white/95 flex items-center justify-center shadow-2xl">
-            <PlayCircle className="w-8 h-8 text-primary-600" />
-          </div>
-        </div>
-      </div>
-
-      {/* Body */}
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="flex items-center gap-1">
-            <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-            <span className="text-xs font-black text-white">{Number(course.rating).toFixed(1)}</span>
-            <span className="text-[10px] text-slate-400">({fmt(course.rating_count)})</span>
-          </div>
-          <span className="text-[10px] text-slate-400 font-bold truncate max-w-[120px]">{course.institute_name}</span>
-        </div>
-
-        <h3 className="text-base font-black text-white mb-1 line-clamp-2 min-h-[48px] group-hover:text-primary-300 transition-colors">
-          {course.title}
-        </h3>
-
-        {course.subtitle && (
-          <p className="text-[11px] text-slate-400 line-clamp-2 mb-3 leading-relaxed">{course.subtitle}</p>
-        )}
-
-        {/* Instructor */}
-        {course.instructor && (
-          <div className="flex items-center gap-2 mb-3 pb-3 border-b border-white/5">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white text-[11px] font-black">
-              {course.instructor.charAt(0)}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[11px] font-black text-white truncate">{course.instructor}</div>
-              {course.instructor_title && (
-                <div className="text-[9px] text-slate-500 truncate">{course.instructor_title}</div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Stats row */}
-        <div className="flex items-center justify-between gap-2 mb-4 text-[10px] text-slate-400">
-          <div className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> {fmt(course.total_lessons)} درس</div>
-          <div className="flex items-center gap-1"><Clock className="w-3 h-3" /> {durationH > 0 ? `${fmt(durationH)}س` : `${fmt(course.total_duration)}د`}</div>
-          <div className="flex items-center gap-1"><Users className="w-3 h-3" /> {fmt(course.students_count)}</div>
-        </div>
-
-        {/* Price + CTA */}
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            {original && original > price && (
-              <div className="text-[10px] text-slate-500 line-through font-bold" dir="ltr">
-                {fmt(original)}
-              </div>
-            )}
-            <div className="text-lg font-black gradient-text" dir="ltr">
-              {fmt(price)}
-              <span className="text-[10px] text-slate-400 mr-1">تومان</span>
-            </div>
-          </div>
-          <Link
-            href={`/shop/${course.slug}`}
-            className="px-4 py-2 rounded-[10px] gradient-button hover:gradient-button-hover text-white text-xs font-black shadow-lg shadow-primary-500/25 transition-all"
-          >
-            جزئیات
-          </Link>
-        </div>
-      </div>
-    </motion.div>
-  );
 }
 
 function ShopHero({ total }: { total: number }) {
@@ -308,7 +143,7 @@ export default function ShopPage() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-7">
               {[...Array(8)].map((_, i) => (
                 <div key={i} className="aspect-[4/5] rounded-[24px] skeleton" />
               ))}
@@ -327,8 +162,8 @@ export default function ShopPage() {
                     <Sparkles className="w-6 h-6 text-amber-400" />
                     <h2 className="text-xl md:text-2xl font-black text-text-primary">دوره‌های ویژه و پرفروش</h2>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {featured.map((c, i) => <ShopCourseCard key={c.id} course={c} index={i} />)}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-7">
+                    {featured.map((c, i) => <OnlineCourseCard key={c.id} course={c} index={i} />)}
                   </div>
                 </div>
               )}
@@ -340,8 +175,8 @@ export default function ShopPage() {
                     <h2 className="text-xl md:text-2xl font-black text-text-primary">همه دوره‌های آنلاین</h2>
                     <span className="text-xs text-text-tertiary font-bold">({fmt(others.length)} دوره)</span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {others.map((c, i) => <ShopCourseCard key={c.id} course={c} index={i} />)}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-7">
+                    {others.map((c, i) => <OnlineCourseCard key={c.id} course={c} index={i} />)}
                   </div>
                 </div>
               )}

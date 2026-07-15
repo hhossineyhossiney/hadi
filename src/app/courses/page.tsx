@@ -1,11 +1,9 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import CourseCard from "@/components/CourseCard";
 import { db } from "@/db";
 import { courses, institutes, categories, regions } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
-import Link from "next/link";
-import { Clock, Users, Building2, MapPin } from "lucide-react";
-import { getTheme } from "@/lib/cardTheme";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +14,7 @@ export default async function CoursesPage() {
       title: courses.title,
       slug: courses.slug,
       description: courses.description,
+      fullDescription: courses.fullDescription,
       duration: courses.duration,
       price: courses.price,
       originalPrice: courses.originalPrice,
@@ -24,6 +23,7 @@ export default async function CoursesPage() {
       enrolledCount: courses.enrolledCount,
       instructor: courses.instructor,
       startDate: courses.startDate,
+      image: courses.image,
       categoryName: categories.name,
       instituteName: institutes.name,
       instituteSlug: institutes.slug,
@@ -46,111 +46,40 @@ export default async function CoursesPage() {
   let data: any[];
   try {
     data = await runQuery(true);
-  } catch (e: any) {
-    console.error("Falling back to legacy courses query:", e?.message);
+  } catch (error: any) {
+    console.error("Falling back to legacy courses query:", error?.message);
     const rows = await runQuery(false);
-    data = rows.map((r: any) => ({ ...r, registrationClosed: false, registrationEnded: false }));
+    data = rows.map((row: any) => ({ ...row, registrationClosed: false, registrationEnded: false }));
   }
 
   return (
     <main className="min-h-screen bg-bg-secondary">
       <Navbar />
-      <div className="pt-28 pb-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="pt-28 pb-20 relative overflow-hidden">
+        <div className="absolute top-20 right-[10%] w-96 h-96 bg-fuchsia-500/10 rounded-full blur-[130px] pointer-events-none" />
+        <div className="absolute bottom-20 left-[8%] w-96 h-96 bg-cyan-500/10 rounded-full blur-[130px] pointer-events-none" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-12">
-            <span className="text-xs font-bold text-primary-600 tracking-[0.2em] uppercase mb-3 block">
-              COURSES
-            </span>
-            <h1 className="text-3xl lg:text-4xl font-black text-text-primary mb-2">دوره‌های مهارتی</h1>
+            <span className="text-xs font-bold text-primary-600 tracking-[0.2em] uppercase mb-3 block">COURSES</span>
+            <h1 className="text-3xl lg:text-5xl font-black text-text-primary mb-3">
+              دوره‌های <span className="gradient-text">مهارتی حرفه‌ای</span>
+            </h1>
             <p className="text-text-secondary">
-              {data.length} دوره فعال با مدرک رسمی فنی و حرفه‌ای در شهرستان زبرخان
+              {data.length.toLocaleString("fa-IR")} دوره فعال با مدرک رسمی فنی و حرفه‌ای در شهرستان زبرخان
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {data.map((course, i) => {
-              const theme = getTheme(course.categoryName, i);
-              const cap = course.capacity || 0;
-              const filled = course.enrolledCount || 0;
-              const pct = cap > 0 ? Math.min(100, Math.round((filled / cap) * 100)) : 0;
-              return (
-                <Link
-                  key={course.id}
-                  href={`/courses/${course.slug}`}
-                  className="group block bg-surface rounded-[20px] border border-border-default hover:border-primary-200 hover-lift transition-all duration-500 overflow-hidden"
-                >
-                  <div className={`relative h-32 bg-gradient-to-br ${theme.gradient} overflow-hidden`}>
-                    <div
-                      className="absolute inset-0 opacity-[0.12]"
-                      style={{
-                        backgroundImage: `radial-gradient(circle at 2px 2px, white 1.5px, transparent 0)`,
-                        backgroundSize: "20px 20px",
-                      }}
-                    />
-                    <div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-white/10 blur-xl" />
-                    <div className="relative h-full flex flex-col items-center justify-center px-3 text-center">
-                      <span className="text-white text-sm font-black leading-tight line-clamp-1">{course.title}</span>
-                      <span className="text-white/75 text-[10px] font-bold mt-1.5 px-2.5 py-0.5 rounded-full bg-black/20 border border-white/20">
-                        {course.categoryName}
-                      </span>
-                    </div>
-                    {course.startDate && (
-                      <span className="absolute top-2.5 right-2.5 text-[9px] font-black text-white bg-black/30 backdrop-blur-sm px-2 py-0.5 rounded-full border border-white/20">
-                        شروع: {course.startDate}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="p-4">
-                    <div className="flex items-center gap-1.5 text-[11px] text-text-tertiary font-bold mb-1.5">
-                      <Building2 className="w-3.5 h-3.5 text-primary-400" />
-                      <span className="line-clamp-1">{course.instituteName}</span>
-                    </div>
-                    {course.regionName && (
-                      <div className="flex items-center gap-1.5 text-[10px] text-text-tertiary mb-2.5">
-                        <MapPin className="w-3 h-3" /> {course.regionName}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-3 text-[11px] text-text-secondary mb-3">
-                      {course.duration && (
-                        <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{course.duration}</span>
-                      )}
-                      <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{filled}/{cap}</span>
-                    </div>
-                    {/* capacity bar */}
-                    <div className="h-1.5 rounded-full bg-bg-secondary overflow-hidden mb-3">
-                      <div
-                        className={`h-full rounded-full ${pct >= 80 ? "bg-error-500" : "gradient-button"}`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between pt-3 border-t border-border-light">
-                      <span className="text-sm font-black text-primary-600">
-                        {course.price ? Number(course.price).toLocaleString("fa-IR") + " تومان" : "رایگان"}
-                      </span>
-                      {course.registrationClosed ? (
-                        <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-error-500/20 text-error-600">
-                          ثبت‌نام متوقف
-                        </span>
-                      ) : course.registrationEnded ? (
-                        <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-700">
-                          زمان تمام شده
-                        </span>
-                      ) : filled >= cap && cap > 0 ? (
-                        <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-700">
-                          تکمیل ظرفیت
-                        </span>
-                      ) : (
-                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${theme.badge}`}>
-                          ثبت‌نام سریع
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+          {data.length === 0 ? (
+            <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-16 text-center text-text-secondary">
+              هنوز دوره‌ای منتشر نشده است.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-7">
+              {data.map((course, index) => (
+                <CourseCard key={course.id} course={course} index={index} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
       <Footer />

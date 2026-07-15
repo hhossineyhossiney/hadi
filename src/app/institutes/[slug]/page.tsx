@@ -6,13 +6,12 @@ import { institutes, regions, courses, categories, reviews, users } from "@/db/s
 import { eq } from "drizzle-orm";
 import { pruneInstitute } from "@/lib/media-url";
 import Link from "next/link";
+import CourseCard from "@/components/CourseCard";
 import {
   MapPin,
   Phone,
   Star,
   BadgeCheck,
-  Clock,
-  Users,
   ArrowLeft,
   MessageCircle,
   ShieldCheck,
@@ -80,12 +79,15 @@ export default async function InstituteDetailPage({
       title: courses.title,
       slug: courses.slug,
       description: courses.description,
+      fullDescription: courses.fullDescription,
       duration: courses.duration,
       price: courses.price,
+      originalPrice: courses.originalPrice,
       capacity: courses.capacity,
       enrolledCount: courses.enrolledCount,
       instructor: courses.instructor,
       startDate: courses.startDate,
+      image: courses.image,
       categoryName: categories.name,
     })
     .from(courses)
@@ -226,57 +228,18 @@ export default async function InstituteDetailPage({
               <p className="text-text-secondary">هنوز دوره‌ای ثبت نشده است</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {courseList.map((course) => {
-                const cap = course.capacity || 0;
-                const filled = course.enrolledCount || 0;
-                const pct = cap > 0 ? Math.min(100, Math.round((filled / cap) * 100)) : 0;
-                return (
-                  <Link
-                    key={course.id}
-                    href={`/courses/${course.slug}`}
-                    className="group block bg-surface rounded-[20px] border border-border-default hover:border-primary-200 hover-lift transition-all duration-500 overflow-hidden"
-                  >
-                    <div className="p-6">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-[11px] font-bold text-primary-600 bg-primary-50 px-2.5 py-1 rounded-full">
-                          {course.categoryName}
-                        </span>
-                        <span className="text-[11px] font-black text-text-primary">
-                          {course.price ? Number(course.price).toLocaleString("fa-IR") + " تومان" : "رایگان"}
-                        </span>
-                      </div>
-                      <h3 className="font-black text-text-primary group-hover:text-primary-600 transition-colors mb-2">
-                        {course.title}
-                      </h3>
-                      <div className="flex items-center gap-3 text-[11px] text-text-tertiary mb-4">
-                        {course.duration && (
-                          <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{course.duration}</span>
-                        )}
-                        {course.startDate && (
-                          <span className="flex items-center gap-1">📅 {course.startDate}</span>
-                        )}
-                      </div>
-                      {/* Capacity tracker */}
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between text-[10px] font-bold mb-1.5">
-                          <span className="text-text-tertiary flex items-center gap-1"><Users className="w-3 h-3" /> ظرفیت تکمیل‌شده</span>
-                          <span className={pct >= 80 ? "text-error-500" : "text-primary-600"}>{filled} / {cap}</span>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-bg-secondary overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${pct >= 80 ? "bg-error-500" : "gradient-button"}`}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                      </div>
-                      <div className="w-full text-center py-2.5 rounded-[12px] text-xs font-black text-white gradient-button group-hover:gradient-button-hover transition-all">
-                        ثبت‌نام سریع
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-7">
+              {courseList.map((course, index) => (
+                <CourseCard
+                  key={course.id}
+                  course={{
+                    ...course,
+                    instituteName: institute.name,
+                    instituteSlug: institute.slug,
+                  }}
+                  index={index}
+                />
+              ))}
             </div>
           )}
         </div>

@@ -2,14 +2,12 @@
 
 import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import InstituteCard from "@/components/InstituteCard";
+import CourseCard from "@/components/CourseCard";
 import {
   Search,
-  Clock,
-  Users,
   MapPin,
   BookOpen,
   ArrowUpDown,
@@ -46,11 +44,15 @@ interface Course {
   title: string;
   slug: string;
   description: string | null;
+  fullDescription?: string | null;
   duration: string | null;
   price: string | null;
+  originalPrice?: string | null;
   capacity: number | null;
   enrolledCount: number | null;
   instructor: string | null;
+  startDate?: string | null;
+  image?: string | null;
   categoryName: string | null;
   categorySlug?: string | null;
   instituteName: string | null;
@@ -251,68 +253,9 @@ function SearchContent() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {filteredSortedCourses.map((course) => (
-                    <Link
-                      key={course.id}
-                      href={`/courses/${course.slug}`}
-                      className="group block bg-surface rounded-[24px] border border-border-default hover:border-primary-300 hover-lift transition-all duration-500 overflow-hidden flex flex-col"
-                    >
-                      <div className="h-28 relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-500 to-sky-400">
-                        <div
-                          className="absolute inset-0 opacity-[0.12]"
-                          style={{
-                            backgroundImage: `radial-gradient(circle at 2px 2px, white 1.5px, transparent 0)`,
-                            backgroundSize: "20px 20px",
-                          }}
-                        />
-                        <div className="relative h-full flex flex-col items-center justify-center px-3 text-center">
-                          <span className="text-white/85 text-[10px] font-bold mb-1 px-2.5 py-0.5 rounded-full bg-black/25 border border-white/20">
-                            {course.categoryName || "دوره فنی و حرفه‌ای"}
-                          </span>
-                          <span className="text-white text-[13px] font-black leading-tight line-clamp-2">
-                            {course.title}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="p-4 flex-1 flex flex-col">
-                        {course.description && (
-                          <p className="text-[11px] text-text-secondary leading-relaxed mb-3 line-clamp-2">
-                            {course.description}
-                          </p>
-                        )}
-                        {course.instructor && (
-                          <div className="flex items-center gap-1 text-[10px] text-primary-700 font-bold mb-3 bg-primary-50 px-2 py-1 rounded-md">
-                            <GraduationCap className="w-3 h-3" />
-                            <span className="line-clamp-1">مدرس: {course.instructor}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-3 text-[11px] text-text-secondary mb-3">
-                          {course.duration && (
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5" />
-                              <span>{course.duration}</span>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-1">
-                            <Users className="w-3.5 h-3.5" />
-                            <span>
-                              {course.enrolledCount || 0}/{course.capacity || 0}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between pt-3 border-t border-border-light mt-auto">
-                          <span className="text-[10px] text-text-tertiary line-clamp-1 flex-1">
-                            {course.instituteName}
-                          </span>
-                          <span className="text-sm font-black text-primary-600 shrink-0">
-                            {course.price
-                              ? Number(course.price).toLocaleString("fa-IR") + " ت"
-                              : "رایگان"}
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-7">
+                  {filteredSortedCourses.map((course, index) => (
+                    <CourseCard key={course.id} course={course} index={index} />
                   ))}
                 </div>
               </div>
