@@ -93,8 +93,9 @@ export const CATEGORY_VISUALS: CategoryVisual[] = [
   // ─── BEAUTY / آرایشگری / زیبایی ─────────────────
   {
     key: "hair_braid",
-    keywords: /(بافت\s*مو|بافت)/i,
-    image: IMG("1595475207225-428b62bda831"),
+    keywords: /(بافت\s*مو|بافت|شینیون|مو\s*زنانه)/i,
+    // Image: braided hair from behind
+    image: IMG("1519699047748-de8e457a634e"),
     icon: "🎀",
     palette: PAL.fuchsia,
   },
@@ -188,9 +189,10 @@ export const CATEGORY_VISUALS: CategoryVisual[] = [
   // ─── SEWING / خیاطی ─────────────────
   {
     key: "sewing",
-    keywords: /(خیاطی|طراحی\s*لباس|دوخت|sewing|خیاط)/i,
+    keywords: /(خیاطی|طراحی\s*لباس|دوخت|sewing|خیاط|لباس|پوشاک)/i,
+    // Sewing machine / fabric
     image: IMG("1594736797933-d0501ba2fe65"),
-    icon: "✂️",
+    icon: "🧵",
     palette: PAL.fuchsia,
   },
   {
@@ -198,7 +200,7 @@ export const CATEGORY_VISUALS: CategoryVisual[] = [
     keywords: /(طراحی\s*مد|fashion|مد)/i,
     image: IMG("1558769132-cb1aea458c5e"),
     icon: "👗",
-    palette: PAL.fuchsia,
+    palette: PAL.pink,
   },
 
   // ─── COOKING / آشپزی ─────────────────
