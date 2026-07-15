@@ -5,11 +5,11 @@ import { motion } from "framer-motion";
 import {
   Clock,
   Users,
-  Building2,
-  GraduationCap,
-  BadgeCheck,
+  Bookmark,
+  Calendar,
   ArrowLeft,
-  BookOpenCheck,
+  GraduationCap,
+  Sparkles,
 } from "lucide-react";
 import { getTheme } from "@/lib/cardTheme";
 
@@ -33,24 +33,71 @@ export interface CourseCardData {
   regionName?: string | null;
 }
 
-function detectLevel(title: string, desc?: string | null): {
-  label: string;
-  color: string;
-} | null {
-  const text = `${title} ${desc || ""}`.toLowerCase();
-  if (/جامع|از\s*صفر|صفر\s*تا\s*صد/i.test(text)) {
-    return { label: "جامع از صفر تا صد", color: "bg-primary-600" };
-  }
-  if (/پیشرفته|advanced|expert/i.test(text)) {
-    return { label: "پیشرفته", color: "bg-error-500" };
-  }
-  if (/متوسط|intermediate/i.test(text)) {
-    return { label: "متوسط", color: "bg-accent-500" };
-  }
-  if (/مقدماتی|پایه|basic|beginner|شروع/i.test(text)) {
-    return { label: "مقدماتی", color: "bg-secondary-600" };
-  }
-  return null;
+// Per-category color palette (glow + accent + button)
+function getPalette(category: string | null, index: number) {
+  const palettes = [
+    // Purple / Magenta (default / زیبایی)
+    {
+      glowFrom: "rgba(168, 85, 247, 0.55)",
+      glowTo: "rgba(236, 72, 153, 0.35)",
+      accent: "text-fuchsia-300",
+      badge: "bg-fuchsia-500/20 border-fuchsia-400/40 text-fuchsia-200",
+      button: "from-fuchsia-500 via-purple-500 to-pink-500",
+      bookmark: "text-fuchsia-300",
+    },
+    // Blue / Cyan (کامپیوتر / ICDL)
+    {
+      glowFrom: "rgba(59, 130, 246, 0.55)",
+      glowTo: "rgba(14, 165, 233, 0.35)",
+      accent: "text-cyan-300",
+      badge: "bg-cyan-500/20 border-cyan-400/40 text-cyan-200",
+      button: "from-blue-500 via-cyan-500 to-sky-500",
+      bookmark: "text-cyan-300",
+    },
+    // Pink / Rose (مراقبت زیبایی)
+    {
+      glowFrom: "rgba(236, 72, 153, 0.55)",
+      glowTo: "rgba(244, 63, 94, 0.35)",
+      accent: "text-pink-300",
+      badge: "bg-pink-500/20 border-pink-400/40 text-pink-200",
+      button: "from-pink-500 via-rose-500 to-red-500",
+      bookmark: "text-pink-300",
+    },
+    // Gold / Amber (کاشت ناخن / لوکس)
+    {
+      glowFrom: "rgba(245, 158, 11, 0.55)",
+      glowTo: "rgba(217, 119, 6, 0.35)",
+      accent: "text-amber-300",
+      badge: "bg-amber-500/20 border-amber-400/40 text-amber-200",
+      button: "from-amber-500 via-yellow-500 to-orange-500",
+      bookmark: "text-amber-300",
+    },
+    // Emerald / Teal (تغذیه / سلامت)
+    {
+      glowFrom: "rgba(16, 185, 129, 0.55)",
+      glowTo: "rgba(20, 184, 166, 0.35)",
+      accent: "text-emerald-300",
+      badge: "bg-emerald-500/20 border-emerald-400/40 text-emerald-200",
+      button: "from-emerald-500 via-teal-500 to-cyan-500",
+      bookmark: "text-emerald-300",
+    },
+    // Indigo (طراحی / آموزش)
+    {
+      glowFrom: "rgba(99, 102, 241, 0.55)",
+      glowTo: "rgba(139, 92, 246, 0.35)",
+      accent: "text-indigo-300",
+      badge: "bg-indigo-500/20 border-indigo-400/40 text-indigo-200",
+      button: "from-indigo-500 via-violet-500 to-purple-500",
+      bookmark: "text-indigo-300",
+    },
+  ];
+  const cat = (category || "").toLowerCase();
+  if (/(کامپیوتر|icdl|فناوری|it)/i.test(cat)) return palettes[1];
+  if (/(زیبایی|مراقبت|آرایش)/i.test(cat)) return palettes[2];
+  if (/(ناخن|کاشت|طلا|لوکس)/i.test(cat)) return palettes[3];
+  if (/(تغذیه|آشپز|سلامت)/i.test(cat)) return palettes[4];
+  if (/(خیاطی|طراحی|لباس)/i.test(cat)) return palettes[5];
+  return palettes[index % palettes.length];
 }
 
 export default function CourseCard({
@@ -60,182 +107,242 @@ export default function CourseCard({
   course: CourseCardData;
   index?: number;
 }) {
-  const theme = getTheme(course.categoryName, index);
-  const levelFromField: { label: string; color: string } | null = course.regionName === "__never" ? null : (() => {
-    const l = (course as any).level as string | undefined;
-    if (!l) return null;
-    const map: Record<string, { label: string; color: string }> = {
-      beginner: { label: "مقدماتی", color: "bg-secondary-600" },
-      intermediate: { label: "متوسط", color: "bg-accent-500" },
-      advanced: { label: "پیشرفته", color: "bg-error-500" },
-      comprehensive: { label: "جامع از صفر تا صد", color: "bg-primary-600" },
-    };
-    return map[l] || null;
-  })();
-  const level = levelFromField || detectLevel(course.title, course.description);
+  // legacy theme retained but not used by new design
+  void getTheme;
+  const pal = getPalette(course.categoryName, index);
   const cap = course.capacity || 0;
   const filled = course.enrolledCount || 0;
   const pct = cap > 0 ? Math.min(100, Math.round((filled / cap) * 100)) : 0;
+
+  const priceNum = Number(course.price || 0);
+  const originalNum = Number(course.originalPrice || 0);
+  const hasDiscount = originalNum > priceNum && priceNum > 0;
+  const discountPct = hasDiscount
+    ? Math.round(((originalNum - priceNum) / originalNum) * 100)
+    : 0;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ delay: index * 0.05, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ delay: (index % 8) * 0.05, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
       className="h-full"
     >
-      <div className="group h-full flex flex-col bg-surface rounded-[20px] border border-border-default hover:border-primary-300 hover-lift transition-all duration-500 overflow-hidden">
-        <div className="relative h-44 overflow-hidden">
-          {course.image ? (
-            <>
-              <img
-                src={course.image}
-                alt={course.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-            </>
-          ) : (
-            <div className={`w-full h-full bg-gradient-to-br ${theme.gradient} relative`}>
+      <div className="relative h-full group">
+        {/* Ambient glow behind card */}
+        <div
+          className="absolute -inset-1 rounded-[42px] opacity-70 blur-2xl group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+          style={{
+            background: `radial-gradient(60% 50% at 30% 20%, ${pal.glowFrom} 0%, transparent 60%), radial-gradient(50% 50% at 70% 90%, ${pal.glowTo} 0%, transparent 60%)`,
+          }}
+        />
+
+        {/* Main card body (organic shape via border-radius asymmetry) */}
+        <div
+          className="relative h-full flex flex-col rounded-[36px] overflow-hidden bg-gradient-to-br from-[#0e1226]/95 via-[#111632]/95 to-[#0a0d1e]/95 backdrop-blur-xl border border-white/10 group-hover:border-white/25 transition-all duration-500"
+          style={{
+            borderRadius: "48px 28px 48px 28px / 32px 48px 32px 48px",
+          }}
+        >
+          {/* Inner glow accents */}
+          <div
+            className="absolute -top-24 -right-24 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-60"
+            style={{ background: pal.glowFrom }}
+          />
+          <div
+            className="absolute -bottom-24 -left-24 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-50"
+            style={{ background: pal.glowTo }}
+          />
+          {/* Subtle grid */}
+          <div
+            className="absolute inset-0 opacity-[0.04] pointer-events-none"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+              backgroundSize: "22px 22px",
+            }}
+          />
+
+          {/* Top row: organic image + right side info */}
+          <div className="relative flex items-start gap-3 p-5 pb-3">
+            {/* Organic blob image on the right (RTL) */}
+            <div className="relative shrink-0 w-[130px] sm:w-[150px] h-[130px] sm:h-[150px] -mt-1 -mr-1">
               <div
-                className="absolute inset-0 opacity-[0.12]"
-                style={{
-                  backgroundImage: `radial-gradient(circle at 2px 2px, white 1.5px, transparent 0)`,
-                  backgroundSize: "20px 20px",
-                }}
+                className="absolute inset-0 rounded-full opacity-70 blur-2xl"
+                style={{ background: pal.glowFrom }}
               />
-              <div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-white/10 blur-xl" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-14 h-14 rounded-[14px] bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center">
-                  <BookOpenCheck className="w-7 h-7 text-white" />
+              <div
+                className="relative w-full h-full overflow-hidden ring-1 ring-white/15"
+                style={{
+                  borderRadius:
+                    "62% 38% 55% 45% / 50% 60% 40% 50%",
+                }}
+              >
+                {course.image ? (
+                  <img
+                    src={course.image}
+                    alt={course.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  />
+                ) : (
+                  <div
+                    className={`w-full h-full bg-gradient-to-br ${pal.button} flex items-center justify-center`}
+                  >
+                    <GraduationCap className="w-12 h-12 text-white/90" />
+                  </div>
+                )}
+                {/* Subtle sparkle overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/30 mix-blend-overlay pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Right-side content */}
+            <div className="flex-1 min-w-0 flex flex-col">
+              {/* badge + bookmark */}
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <span
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-black backdrop-blur ${pal.badge}`}
+                >
+                  <Sparkles className="w-2.5 h-2.5" />
+                  دوره آموزشی
+                </span>
+                <button
+                  className={`w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center opacity-70 hover:opacity-100 hover:bg-white/10 transition ${pal.bookmark}`}
+                  title="ذخیره"
+                  aria-label="ذخیره"
+                >
+                  <Bookmark className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <h3 className="text-lg sm:text-xl font-black text-white leading-tight mb-1.5 line-clamp-2 group-hover:text-white transition-colors">
+                {course.title}
+              </h3>
+              {course.description && (
+                <p className="text-[11.5px] text-slate-400 leading-relaxed line-clamp-2">
+                  {course.description}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Instructor row */}
+          {course.instructor && (
+            <div className="relative px-5 py-2 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <div
+                  className={`w-7 h-7 rounded-full bg-gradient-to-br ${pal.button} flex items-center justify-center shrink-0 text-white text-[10px] font-black`}
+                >
+                  {course.instructor?.trim().charAt(0) || "م"}
+                </div>
+                <div className="flex items-baseline gap-1 min-w-0">
+                  <span className="text-[10px] text-slate-500">مدرس:</span>
+                  <span className="text-[11.5px] font-black text-white truncate">
+                    {course.instructor}
+                  </span>
                 </div>
               </div>
+              {course.categoryName && (
+                <span className="text-[10px] font-bold text-slate-500 truncate max-w-[45%]">
+                  {course.categoryName}
+                </span>
+              )}
             </div>
           )}
 
-          {course.duration && (
-            <div className="absolute bottom-3 left-3 z-10">
-              <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md text-white text-[10px] font-black border border-white/15">
-                <Clock className="w-3 h-3" />
-                {course.duration}
-              </span>
-            </div>
-          )}
-
-          <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5 items-end">
-            {course.categoryName && (
-              <span
-                className={`px-2.5 py-1 rounded-full text-[10px] font-black text-white shadow-md ${theme.badgeSolid || "bg-primary-600"}`}
-              >
-                {course.categoryName}
-              </span>
-            )}
-            {level && (
-              <span
-                className={`px-2.5 py-1 rounded-full text-[10px] font-black text-white shadow-md ${level.color}`}
-              >
-                {level.label}
-              </span>
-            )}
-          </div>
-
-          <div className="absolute bottom-3 right-3 z-10">
-            <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/95 backdrop-blur-md text-primary-700 text-[10px] font-black shadow-md max-w-[180px]">
-              <Building2 className="w-3 h-3 shrink-0" />
-              <span className="line-clamp-1">{course.instituteName}</span>
-            </span>
-          </div>
-
-          {course.startDate && (
-            <div className="absolute top-3 left-3 z-10">
-              <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-black/60 backdrop-blur-sm text-white text-[9px] font-black border border-white/15">
-                شروع: {course.startDate}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="p-5 flex-1 flex flex-col">
-          <h3 className="text-[15px] font-black text-text-primary group-hover:text-primary-600 transition-colors leading-snug mb-2 line-clamp-2">
-            {course.title}
-          </h3>
-
-          {course.description && (
-            <p className="text-[12px] text-text-secondary leading-relaxed line-clamp-2 mb-3">
-              {course.description}
-            </p>
-          )}
-
-          {course.instructor && (
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center shrink-0">
-                <GraduationCap className="w-3 h-3 text-primary-600" />
-              </div>
-              <div className="text-[11px] flex items-baseline gap-1 flex-1 min-w-0">
-                <span className="text-text-tertiary font-medium">مدرس:</span>
-                <span className="font-black text-text-primary line-clamp-1">
-                  {course.instructor}
+          {/* Stats bar */}
+          <div className="relative mx-5 mt-2 mb-3 grid grid-cols-2 gap-2">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/[0.04] border border-white/10">
+              <Calendar className={`w-4 h-4 ${pal.accent} shrink-0`} />
+              <div className="flex flex-col min-w-0">
+                <span className="text-[9px] text-slate-500 leading-none">
+                  جلسه آموزشی
+                </span>
+                <span className="text-sm font-black text-white leading-tight mt-0.5">
+                  {cap > 0 ? cap : filled || "—"}
                 </span>
               </div>
-              <span className="flex items-center gap-1 text-[9px] font-black text-secondary-700 bg-secondary-50 border border-secondary-200 px-2 py-0.5 rounded-full shrink-0">
-                <BadgeCheck className="w-2.5 h-2.5" />
-                مدرک فنی‌وحرفه‌ای
-              </span>
             </div>
-          )}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/[0.04] border border-white/10">
+              <Clock className={`w-4 h-4 ${pal.accent} shrink-0`} />
+              <div className="flex flex-col min-w-0">
+                <span className="text-[9px] text-slate-500 leading-none">
+                  ساعت محتوا
+                </span>
+                <span className="text-sm font-black text-white leading-tight mt-0.5 truncate">
+                  {course.duration || "—"}
+                </span>
+              </div>
+            </div>
+          </div>
 
+          {/* Progress */}
           {cap > 0 && (
-            <div className="mb-3">
-              <div className="flex items-center justify-between text-[10px] text-text-tertiary mb-1">
-                <span className="flex items-center gap-1">
+            <div className="relative px-5 pb-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="flex items-center gap-1 text-[10px] text-slate-400 font-bold">
                   <Users className="w-3 h-3" />
-                  ظرفیت: {filled}/{cap}
+                  پیشرفت دوره
                 </span>
-                <span className="font-bold">{pct}%</span>
+                <span className={`text-xs font-black ${pal.accent}`}>{pct}%</span>
               </div>
-              <div className="h-1 rounded-full bg-bg-secondary overflow-hidden">
+              <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
                 <div
-                  className={`h-full rounded-full ${pct >= 85 ? "bg-error-500" : "gradient-button"}`}
+                  className={`h-full rounded-full bg-gradient-to-l ${pal.button}`}
                   style={{ width: `${pct}%` }}
                 />
               </div>
             </div>
           )}
 
-          <div className="mt-auto pt-3 border-t border-border-light flex items-end justify-between gap-2">
-            <div className="flex flex-col">
-              <span className="text-[10px] text-text-tertiary font-bold">شهریه مصوب دوره:</span>
-              <div className="flex flex-col">
-                {course.originalPrice && Number(course.originalPrice) > Number(course.price || 0) && (
-                  <span className="text-[10px] text-text-tertiary line-through leading-none">
-                    {Number(course.originalPrice).toLocaleString("fa-IR")} تومان
-                  </span>
-                )}
-                <span className="text-base font-black text-primary-600 leading-tight">
-                  {course.price
-                    ? Number(course.price).toLocaleString("fa-IR") + " تومان"
+          {/* Bottom row: price + CTA */}
+          <div className="relative mt-auto p-4 sm:p-5 pt-3 flex items-end justify-between gap-3">
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] text-slate-500 font-bold">
+                شهریه دوره
+              </span>
+              {hasDiscount && (
+                <span className="text-[10px] text-slate-500 line-through leading-none">
+                  {originalNum.toLocaleString("fa-IR")}
+                </span>
+              )}
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span
+                  className={`text-lg sm:text-xl font-black bg-gradient-to-l ${pal.button} bg-clip-text text-transparent leading-none`}
+                >
+                  {priceNum > 0
+                    ? priceNum.toLocaleString("fa-IR")
                     : "رایگان"}
                 </span>
+                {priceNum > 0 && (
+                  <span className="text-[10px] text-slate-400 font-bold">
+                    تومان
+                  </span>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <Link
-                href={`/courses/${course.slug}`}
-                title="سرفصل‌ها و جزئیات"
-                className="px-2.5 py-2 rounded-[10px] border border-border-default text-text-secondary hover:text-primary-600 hover:border-primary-300 text-[10px] font-black transition-colors"
-              >
-                سرفصل‌ها
-              </Link>
-              <Link
-                href={`/courses/${course.slug}`}
-                className="flex items-center gap-1 gradient-button hover:gradient-button-hover text-white text-[10px] font-black px-3 py-2 rounded-[10px] transition-all"
-              >
-                ثبت‌نام سریع
-                <ArrowLeft className="w-3 h-3" />
-              </Link>
-            </div>
+            <Link
+              href={`/courses/${course.slug}`}
+              className={`group/btn shrink-0 flex items-center gap-1.5 px-4 sm:px-5 py-2.5 rounded-full text-white text-xs font-black bg-gradient-to-l ${pal.button} shadow-lg hover:shadow-2xl hover:scale-[1.03] transition-all`}
+            >
+              مشاهده دوره
+              <ArrowLeft className="w-3.5 h-3.5 group-hover/btn:-translate-x-0.5 transition-transform" />
+            </Link>
           </div>
+
+          {/* Discount pill top-left */}
+          {hasDiscount && (
+            <div className="absolute top-4 left-4 z-10">
+              <div
+                className={`px-2.5 py-1 rounded-full text-[10px] font-black text-white shadow-lg bg-gradient-to-l ${pal.button}`}
+              >
+                {discountPct}٪ تخفیف
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
