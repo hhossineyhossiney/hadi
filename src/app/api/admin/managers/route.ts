@@ -44,13 +44,44 @@ export async function POST(request: Request) {
 
     const hashed = await bcrypt.hash(password, 10);
 
-    // Find or create manager user
-    let manager = await db.select().from(users).where(eq(users.phone, cleanPhone)).then((r) => r[0]);
-    if (manager) {
+    // Check if phone already exists
+    const existing = await db
+      .select()
+      .from(users)
+      .where(eq(users.phone, cleanPhone))
+      .then((r) => r[0]);
+
+    let manager;
+    if (existing) {
+      // Existing user — allow only if they are unassigned student, or already
+      // the manager of THIS specific institute. Reject if admin or another institute.
+      if (existing.role === "admin") {
+        return NextResponse.json(
+          { error: "این شماره متعلق به مدیر کل سامانه است و نمی‌تواند مدیر آموزشگاه شود." },
+          { status: 409 }
+        );
+      }
+      if (existing.role === "institute") {
+        // Check if they're already linked to a DIFFERENT institute
+        const otherInst = await db
+          .select()
+          .from(institutes)
+          .where(eq(institutes.userId, existing.id))
+          .then((r) => r[0]);
+        if (otherInst && otherInst.id !== instituteId) {
+          return NextResponse.json(
+            {
+              error: `این شماره در حال حاضر مدیر آموزشگاه «${otherInst.name}» است. هر شماره تنها می‌تواند مدیر یک آموزشگاه باشد.`,
+            },
+            { status: 409 }
+          );
+        }
+      }
+      // Existing student or unlinked institute → promote and update password
       [manager] = await db
         .update(users)
-        .set({ password: hashed, role: "institute", name: name || manager.name })
-        .where(eq(users.id, manager.id))
+        .set({ password: hashed, role: "institute", name: name || existing.name })
+        .where(eq(users.id, existing.id))
         .returning();
     } else {
       [manager] = await db
