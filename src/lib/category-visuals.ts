@@ -85,9 +85,9 @@ const PAL = {
 } as const;
 
 // Curated Unsplash images (permanent URLs, no attribution required)
-// Format: https://images.unsplash.com/photo-{ID}?w=400&q=80&auto=format&fit=crop
+// Wrapped through images.weserv.nl proxy so they load in Iran (Unsplash is blocked)
 const IMG = (id: string, size = 400) =>
-  `https://images.unsplash.com/photo-${id}?w=${size}&q=80&auto=format&fit=crop`;
+  `https://images.weserv.nl/?url=images.unsplash.com/photo-${id}%3Fw%3D${size}%26q%3D80%26auto%3Dformat%26fit%3Dcrop&w=${size}&h=${size}&fit=cover&output=webp&q=80`;
 
 export const CATEGORY_VISUALS: CategoryVisual[] = [
   // ─── BEAUTY / آرایشگری / زیبایی ─────────────────
