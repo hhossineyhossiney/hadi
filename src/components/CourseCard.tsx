@@ -192,12 +192,13 @@ export default function CourseCard({
                   }}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                 />
-                {/* Emoji badge (bottom-left of blob) */}
-                <div className="absolute -bottom-1 -left-1 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-lg z-10">
-                  {visual.icon}
-                </div>
                 {/* Subtle sparkle overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/30 mix-blend-overlay pointer-events-none" />
+              </div>
+
+              {/* Emoji badge — outside the clipped blob so it always stays on top */}
+              <div className="absolute bottom-1 left-1 z-20 w-10 h-10 rounded-full bg-black/70 backdrop-blur-md border border-white/25 shadow-xl flex items-center justify-center text-lg pointer-events-none">
+                {visual.icon}
               </div>
             </div>
 

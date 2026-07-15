@@ -229,9 +229,11 @@ export default function ShopShowcase() {
                                   <PlayCircle className="w-7 h-7 text-primary-600" />
                                 </div>
                               </div>
-                              <div className="absolute bottom-1 left-1 w-9 h-9 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-base">
-                                {visual.icon}
-                              </div>
+                            </div>
+
+                            {/* Category icon stays above the organic image instead of being clipped */}
+                            <div className="absolute bottom-1 left-1 z-20 w-9 h-9 rounded-full bg-black/70 backdrop-blur-md border border-white/25 shadow-xl flex items-center justify-center text-base pointer-events-none">
+                              {visual.icon}
                             </div>
                           </div>
 
