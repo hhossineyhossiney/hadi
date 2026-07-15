@@ -3907,33 +3907,149 @@ function ManagerSubscriptionTab() {
       )}
 
       {/* Available plans for upgrade */}
-      <h3 className="text-lg font-black text-white mb-3 flex items-center gap-2">
+      <h3 className="text-lg font-black text-white mb-4 flex items-center gap-2">
         <Wallet className="w-5 h-5 text-primary-400" /> پلن‌های قابل ارتقا
       </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {plans.filter((p: any) => Number(p.price) > 0 && p.id !== cur?.plan_id).map((p: any) => {
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {plans.filter((p: any) => Number(p.price) > 0 && p.id !== cur?.plan_id).map((p: any, idx: number) => {
           const c = p.color || "primary";
+          const gradient =
+            c === "amber" ? "from-amber-500 via-orange-500 to-yellow-500" :
+            c === "purple" ? "from-fuchsia-500 via-purple-500 to-pink-500" :
+            c === "slate" ? "from-slate-400 via-slate-500 to-slate-600" :
+            "from-blue-500 via-cyan-500 to-teal-500";
+          const glowFrom =
+            c === "amber" ? "rgba(245,158,11,0.55)" :
+            c === "purple" ? "rgba(168,85,247,0.55)" :
+            c === "slate" ? "rgba(148,163,184,0.4)" :
+            "rgba(59,130,246,0.55)";
+          const glowTo =
+            c === "amber" ? "rgba(217,119,6,0.35)" :
+            c === "purple" ? "rgba(236,72,153,0.35)" :
+            c === "slate" ? "rgba(100,116,139,0.25)" :
+            "rgba(14,165,233,0.35)";
+
           return (
-            <div key={p.id} className={`p-5 rounded-[16px] border relative overflow-hidden ${
-              c === "amber" ? "bg-gradient-to-br from-amber-500/15 to-amber-500/5 border-amber-500/40" :
-              c === "purple" ? "bg-gradient-to-br from-purple-500/15 to-purple-500/5 border-purple-500/40" :
-              c === "slate" ? "bg-gradient-to-br from-slate-500/15 to-slate-500/5 border-slate-500/40" :
-              "bg-gradient-to-br from-primary-500/15 to-primary-500/5 border-primary-500/40"
-            }`}>
-              {p.is_popular && <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-amber-400 text-slate-900 text-[9px] font-black">🏆 محبوب</div>}
-              <div className="text-base font-black text-white mb-1">{p.name}</div>
-              <div className="text-[10px] text-slate-400 mb-2 min-h-[30px]">{p.description}</div>
-              <div className="text-xl font-black text-white mb-2" dir="ltr">{Number(p.price).toLocaleString("fa-IR")}<span className="text-[10px] text-slate-400 mr-1">تومان</span></div>
-              <div className="text-[9px] text-slate-500 mb-3">/ {p.duration_days} روز</div>
-              <ul className="space-y-1 mb-4 min-h-[80px]">
-                {(p.features || []).slice(0, 4).map((f: string, i: number) => (
-                  <li key={i} className="text-[10px] text-slate-200 flex items-start gap-1"><Check className="w-3 h-3 text-emerald-400 mt-0.5 shrink-0" /> {f}</li>
-                ))}
-              </ul>
-              <a href="tel:09159513179" className="block text-center py-2 rounded-[8px] gradient-button text-white text-xs font-black">
-                📞 تماس برای فعال‌سازی
-              </a>
-            </div>
+            <motion.div
+              key={p.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.08 }}
+              className={`relative group ${p.is_popular ? "lg:scale-[1.03] z-10" : ""}`}
+            >
+              {/* Ambient glow */}
+              <div
+                className="absolute -inset-2 rounded-[32px] opacity-70 blur-2xl group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                style={{
+                  background: `radial-gradient(60% 50% at 30% 20%, ${glowFrom} 0%, transparent 60%), radial-gradient(50% 50% at 70% 90%, ${glowTo} 0%, transparent 60%)`,
+                }}
+              />
+              {/* Card */}
+              <div
+                className={`relative h-full flex flex-col rounded-[28px] overflow-hidden backdrop-blur-xl transition-all duration-500 group-hover:-translate-y-1 ${
+                  p.is_popular
+                    ? "bg-gradient-to-br from-[#131a35]/95 via-[#0f1428]/95 to-[#0a0d1e]/95 border-2 border-amber-400/60"
+                    : "bg-gradient-to-br from-[#0e1226]/95 via-[#111632]/95 to-[#0a0d1e]/95 border border-white/10 group-hover:border-white/25"
+                }`}
+              >
+                {/* Popular ribbon */}
+                {p.is_popular && (
+                  <div className="relative py-2 bg-gradient-to-l from-amber-400 via-yellow-400 to-amber-400 text-slate-900 text-center text-xs font-black tracking-wide shadow-lg">
+                    🏆 محبوب‌ترین انتخاب
+                  </div>
+                )}
+
+                {/* Inner glow blobs */}
+                <div
+                  className="absolute -top-24 -right-24 w-56 h-56 rounded-full blur-3xl pointer-events-none opacity-70"
+                  style={{ background: glowFrom }}
+                />
+                <div
+                  className="absolute -bottom-24 -left-24 w-56 h-56 rounded-full blur-3xl pointer-events-none opacity-60"
+                  style={{ background: glowTo }}
+                />
+                <div
+                  className="absolute inset-0 opacity-[0.04] pointer-events-none"
+                  style={{
+                    backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+                    backgroundSize: "24px 24px",
+                  }}
+                />
+
+                <div className="relative p-7 flex-1 flex flex-col">
+                  {/* Plan name + icon */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg text-xl`}>
+                      {c === "amber" ? "🏆" : c === "purple" ? "💎" : c === "slate" ? "⚙️" : "🚀"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-2xl font-black text-white leading-tight">{p.name}</div>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div className="text-sm text-slate-400 mb-6 leading-relaxed min-h-[40px]">
+                    {p.description}
+                  </div>
+
+                  {/* Price */}
+                  <div className="mb-6 pb-6 border-b border-white/10">
+                    <div className="flex items-baseline gap-2" dir="ltr">
+                      <span className={`text-4xl md:text-5xl font-black bg-gradient-to-l ${gradient} bg-clip-text text-transparent leading-none`}>
+                        {Number(p.price).toLocaleString("fa-IR")}
+                      </span>
+                      <span className="text-sm text-slate-400 font-bold">تومان</span>
+                    </div>
+                    <div className="text-xs text-slate-500 font-bold mt-1">
+                      برای {p.duration_days} روز
+                    </div>
+                  </div>
+
+                  {/* Features */}
+                  <ul className="space-y-2.5 mb-6 flex-1">
+                    {(p.features || []).map((f: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-slate-200 leading-relaxed">
+                        <Check className={`w-4 h-4 mt-0.5 shrink-0 ${
+                          c === "amber" ? "text-amber-300" :
+                          c === "purple" ? "text-fuchsia-300" :
+                          c === "slate" ? "text-slate-300" :
+                          "text-cyan-300"
+                        }`} />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* Limits box */}
+                  <div className="mb-6 p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1.5">
+                    <div className="flex items-center gap-2 text-xs text-slate-300">
+                      <span>📚</span>
+                      <span>{p.max_courses === 0 ? "دوره نامحدود" : `تا ${p.max_courses} دوره`}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-300">
+                      <span>👥</span>
+                      <span>{p.max_students === 0 ? "هنرجو نامحدود" : `تا ${p.max_students} هنرجو`}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-300">
+                      <span>🎬</span>
+                      <span>{p.max_shop_courses === 0 ? "بدون فروش آنلاین" : `${p.max_shop_courses} دوره فروش آنلاین`}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-300">
+                      <span>💰</span>
+                      <span>کمیسیون سامانه: {p.commission_percent}٪</span>
+                    </div>
+                  </div>
+
+                  {/* CTA */}
+                  <a
+                    href="tel:09159513179"
+                    className={`block text-center py-3.5 rounded-2xl text-sm font-black shadow-lg hover:scale-[1.02] transition-transform text-white bg-gradient-to-l ${gradient}`}
+                  >
+                    📞 تماس برای فعال‌سازی
+                  </a>
+                </div>
+              </div>
+            </motion.div>
           );
         })}
       </div>
