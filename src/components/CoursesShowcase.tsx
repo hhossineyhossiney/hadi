@@ -9,6 +9,7 @@ import {
   ArrowUpDown,
   ChevronDown,
   GraduationCap,
+  SlidersHorizontal,
 } from "lucide-react";
 import CourseCard, { CourseCardData } from "@/components/CourseCard";
 import AutoLoopCarousel from "@/components/AutoLoopCarousel";
@@ -71,6 +72,7 @@ export default function CoursesShowcase({
   const [selectedLevel, setSelectedLevel] = useState<LevelKey>("all");
   const [sortBy, setSortBy] = useState<SortKey>("popular");
   const [sortOpen, setSortOpen] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const displayCategories = categories.slice(0, 6);
 
@@ -111,21 +113,21 @@ export default function CoursesShowcase({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-8">
           <div>
-            <span className="text-xs font-bold text-primary-600 tracking-[0.2em] uppercase mb-3 block">
+            <span className="hidden sm:block text-xs font-bold text-primary-600 tracking-[0.2em] uppercase mb-3">
               {eyebrow}
             </span>
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="mobile-one-line-title text-3xl lg:text-4xl font-black text-text-primary mb-2"
+              className="mobile-one-line-title text-3xl lg:text-4xl font-black text-text-primary mb-1 sm:mb-2"
             >
               {title}
             </motion.h2>
-            <p className="text-text-secondary text-sm">{subtitle}</p>
+            <p className="hidden sm:block text-text-secondary text-sm">{subtitle}</p>
           </div>
 
-          <div className="relative shrink-0">
+          <div className="relative shrink-0 hidden md:block">
             <button
               onClick={() => setSortOpen(!sortOpen)}
               className="flex items-center gap-2 bg-surface hover:bg-primary-50 border border-border-default hover:border-primary-300 rounded-[14px] px-4 py-3 text-sm font-black text-text-primary transition-all"
@@ -190,40 +192,124 @@ export default function CoursesShowcase({
           </div>
         )}
 
-        <div className="bg-surface border border-border-default rounded-[18px] p-3 flex flex-col sm:flex-row gap-2.5 mb-8 shadow-sm">
-          <div className="flex-1 flex items-center gap-2.5 px-4 py-2.5 rounded-[12px] bg-bg-secondary">
-            <Search className="w-4 h-4 text-primary-400 shrink-0" />
-            <input
-              type="text"
-              placeholder="جستجو در عنوان دوره، مدرس یا سرفصل..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="w-full bg-transparent text-sm outline-none placeholder:text-text-tertiary text-text-primary"
-            />
+        {/* Compact mobile search; advanced controls stay collapsed until requested. */}
+        <div className="mb-5 sm:mb-8">
+          <div className="md:hidden">
+            <div className="flex items-center gap-2 rounded-[16px] border border-border-default bg-surface p-2 shadow-sm">
+              <div className="flex-1 min-w-0 flex items-center gap-2 px-3 py-2.5 rounded-[11px] bg-bg-secondary">
+                <Search className="w-4 h-4 text-primary-400 shrink-0" />
+                <input
+                  type="search"
+                  placeholder="جستجوی دوره یا مدرس..."
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="w-full min-w-0 bg-transparent text-base outline-none placeholder:text-text-tertiary text-text-primary"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
+                className={`relative shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-[11px] text-[11px] font-black border transition-colors ${
+                  mobileFiltersOpen || selectedInst || selectedLevel !== "all" || sortBy !== "popular"
+                    ? "bg-primary-600 border-primary-500 text-white"
+                    : "bg-bg-secondary border-border-default text-text-secondary"
+                }`}
+                aria-expanded={mobileFiltersOpen}
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                فیلتر
+                {(selectedInst || selectedLevel !== "all" || sortBy !== "popular") && (
+                  <span className="absolute -top-1 -left-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-[var(--bg-canvas)]" />
+                )}
+              </button>
+            </div>
+
+            {mobileFiltersOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, y: -6 }}
+                animate={{ opacity: 1, height: "auto", y: 0 }}
+                className="mt-2 grid grid-cols-1 gap-2 rounded-[16px] border border-border-default bg-surface p-2.5 shadow-lg overflow-hidden"
+              >
+                <select
+                  value={selectedInst}
+                  onChange={(e) => setSelectedInst(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-[11px] bg-bg-secondary text-sm outline-none text-text-secondary font-medium"
+                >
+                  <option value="">همه آموزشگاه‌ها</option>
+                  {institutes.map((institute) => (
+                    <option key={institute.id} value={institute.slug}>{institute.name}</option>
+                  ))}
+                </select>
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={selectedLevel}
+                    onChange={(e) => setSelectedLevel(e.target.value as LevelKey)}
+                    className="w-full px-3 py-2.5 rounded-[11px] bg-bg-secondary text-xs outline-none text-text-secondary font-medium"
+                  >
+                    <option value="all">همه سطوح</option>
+                    <option value="beginner">مقدماتی</option>
+                    <option value="intermediate">متوسط</option>
+                    <option value="advanced">پیشرفته</option>
+                    <option value="comprehensive">جامع</option>
+                  </select>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as SortKey)}
+                    className="w-full px-3 py-2.5 rounded-[11px] bg-bg-secondary text-xs outline-none text-text-secondary font-medium"
+                  >
+                    <option value="popular">محبوب‌ترین</option>
+                    <option value="cheap">ارزان‌ترین</option>
+                    <option value="expensive">گران‌ترین</option>
+                  </select>
+                </div>
+                {(selectedInst || selectedLevel !== "all" || sortBy !== "popular") && (
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedInst(""); setSelectedLevel("all"); setSortBy("popular"); }}
+                    className="py-2 text-[11px] font-black text-error-500 bg-error-500/10 rounded-[10px]"
+                  >
+                    پاک‌کردن فیلترها
+                  </button>
+                )}
+              </motion.div>
+            )}
           </div>
-          <select
-            value={selectedInst}
-            onChange={(e) => setSelectedInst(e.target.value)}
-            className="px-4 py-2.5 rounded-[12px] bg-bg-secondary text-sm outline-none text-text-secondary cursor-pointer min-w-[200px] font-medium"
-          >
-            <option value="">همه آموزشگاه‌های زبرخان</option>
-            {institutes.map((i) => (
-              <option key={i.id} value={i.slug}>
-                {i.name} {i.regionName ? `(${i.regionName})` : ""}
-              </option>
-            ))}
-          </select>
-          <select
-            value={selectedLevel}
-            onChange={(e) => setSelectedLevel(e.target.value as LevelKey)}
-            className="px-4 py-2.5 rounded-[12px] bg-bg-secondary text-sm outline-none text-text-secondary cursor-pointer min-w-[150px] font-medium"
-          >
-            <option value="all">همه سطوح آموزشی</option>
-            <option value="beginner">مقدماتی</option>
-            <option value="intermediate">متوسط</option>
-            <option value="advanced">پیشرفته</option>
-            <option value="comprehensive">جامع از صفر تا صد</option>
-          </select>
+
+          <div className="hidden md:flex bg-surface border border-border-default rounded-[18px] p-3 gap-2.5 shadow-sm">
+            <div className="flex-1 flex items-center gap-2.5 px-4 py-2.5 rounded-[12px] bg-bg-secondary">
+              <Search className="w-4 h-4 text-primary-400 shrink-0" />
+              <input
+                type="text"
+                placeholder="جستجو در عنوان دوره، مدرس یا سرفصل..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="w-full bg-transparent text-sm outline-none placeholder:text-text-tertiary text-text-primary"
+              />
+            </div>
+            <select
+              value={selectedInst}
+              onChange={(e) => setSelectedInst(e.target.value)}
+              className="px-4 py-2.5 rounded-[12px] bg-bg-secondary text-sm outline-none text-text-secondary cursor-pointer min-w-[200px] font-medium"
+            >
+              <option value="">همه آموزشگاه‌های زبرخان</option>
+              {institutes.map((institute) => (
+                <option key={institute.id} value={institute.slug}>
+                  {institute.name} {institute.regionName ? `(${institute.regionName})` : ""}
+                </option>
+              ))}
+            </select>
+            <select
+              value={selectedLevel}
+              onChange={(e) => setSelectedLevel(e.target.value as LevelKey)}
+              className="px-4 py-2.5 rounded-[12px] bg-bg-secondary text-sm outline-none text-text-secondary cursor-pointer min-w-[150px] font-medium"
+            >
+              <option value="all">همه سطوح آموزشی</option>
+              <option value="beginner">مقدماتی</option>
+              <option value="intermediate">متوسط</option>
+              <option value="advanced">پیشرفته</option>
+              <option value="comprehensive">جامع از صفر تا صد</option>
+            </select>
+          </div>
         </div>
 
         {filtered.length === 0 ? (
