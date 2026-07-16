@@ -97,25 +97,31 @@ function ChatContent() {
     const body = document.body;
     const previousRootOverflow = root.style.overflow;
     const previousBodyOverflow = body.style.overflow;
+    const previousBodyOverscroll = body.style.overscrollBehavior;
 
-    const updateViewportHeight = () => {
-      const height = window.visualViewport?.height || window.innerHeight;
+    const updateVisualViewport = () => {
+      const viewport = window.visualViewport;
+      const height = viewport?.height || window.innerHeight;
+      const offsetTop = viewport?.offsetTop || 0;
       root.style.setProperty("--chat-viewport-height", `${Math.round(height)}px`);
+      root.style.setProperty("--chat-viewport-top", `${Math.round(offsetTop)}px`);
     };
 
-    updateViewportHeight();
+    updateVisualViewport();
     root.style.overflow = "hidden";
     body.style.overflow = "hidden";
-    window.scrollTo(0, 0);
-    window.visualViewport?.addEventListener("resize", updateViewportHeight);
-    window.visualViewport?.addEventListener("scroll", updateViewportHeight);
+    body.style.overscrollBehavior = "none";
+    window.visualViewport?.addEventListener("resize", updateVisualViewport);
+    window.visualViewport?.addEventListener("scroll", updateVisualViewport);
 
     return () => {
-      window.visualViewport?.removeEventListener("resize", updateViewportHeight);
-      window.visualViewport?.removeEventListener("scroll", updateViewportHeight);
+      window.visualViewport?.removeEventListener("resize", updateVisualViewport);
+      window.visualViewport?.removeEventListener("scroll", updateVisualViewport);
       root.style.removeProperty("--chat-viewport-height");
+      root.style.removeProperty("--chat-viewport-top");
       root.style.overflow = previousRootOverflow;
       body.style.overflow = previousBodyOverflow;
+      body.style.overscrollBehavior = previousBodyOverscroll;
     };
   }, []);
 
@@ -240,7 +246,7 @@ function ChatContent() {
 
   return (
     <div
-      className="fixed top-0 inset-x-0 z-40 h-[var(--chat-viewport-height,100dvh)] overflow-hidden bg-[#0B1120] pt-20 pb-16 lg:static lg:z-auto lg:h-auto lg:min-h-screen lg:overflow-visible lg:pb-4"
+      className="fixed top-[var(--chat-viewport-top,0px)] inset-x-0 z-40 h-[var(--chat-viewport-height,100dvh)] overflow-hidden bg-[#0B1120] pt-2 pb-16 lg:static lg:z-auto lg:h-auto lg:min-h-screen lg:overflow-visible lg:pt-20 lg:pb-4"
       dir="rtl"
     >
       <div className="h-full max-w-[1600px] mx-auto px-2 sm:px-4 lg:h-auto">
@@ -274,11 +280,12 @@ function ChatContent() {
                 </button>
                 <button
                   onClick={closeChatPage}
-                  className="p-2 rounded-lg bg-error-500/15 hover:bg-error-500/25 text-error-400"
+                  className="shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg bg-error-500/15 hover:bg-error-500/25 text-error-400 text-[10px] font-black"
                   aria-label="بستن چت و بازگشت به داشبورد"
                   title="بستن چت"
                 >
                   <X className="w-4 h-4" />
+                  <span>بستن</span>
                 </button>
                 {headerMenu && (
                   <div className="absolute left-3 top-14 z-30 bg-[#0B1120] border border-white/10 rounded-[12px] shadow-2xl overflow-hidden min-w-[180px]">
@@ -336,7 +343,6 @@ function ChatContent() {
                     requestAnimationFrame(() => {
                       const container = messagesContainerMobileRef.current;
                       if (container) container.scrollTop = container.scrollHeight;
-                      window.scrollTo(0, 0);
                     });
                   }}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
@@ -360,11 +366,12 @@ function ChatContent() {
                 </h3>
                 <button
                   onClick={closeChatPage}
-                  className="p-2 rounded-lg bg-error-500/15 hover:bg-error-500/25 text-error-400"
+                  className="shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg bg-error-500/15 hover:bg-error-500/25 text-error-400 text-[10px] font-black"
                   aria-label="بستن چت و بازگشت به داشبورد"
                   title="بستن چت"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
+                  <span>بستن</span>
                 </button>
                 <button onClick={() => setMobileMenuOpen(true)} className="p-2 rounded-lg hover:bg-white/5 text-slate-300 relative" aria-label="تنظیمات چت">
                   <MoreVertical className="w-5 h-5" />
