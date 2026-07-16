@@ -148,7 +148,7 @@ export default function AIChatWidget() {
               setOpen(true);
               setPulse(false);
             }}
-            className="fixed bottom-6 right-6 z-[70] group"
+            className="fixed right-3 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-[55] sm:bottom-6 sm:right-6 sm:z-[70] group"
             aria-label="گفتگو با دستیار هوشمند"
           >
             {pulse && (
