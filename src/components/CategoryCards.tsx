@@ -17,6 +17,29 @@ interface Category {
   instituteCount?: number;
 }
 
+const CATEGORY_IMAGE_BY_SLUG: Record<string, string> = {
+  computer: "/images/cat-computer.jpg",
+  beauty: "/images/cat-beauty.jpg",
+  sewing: "/images/cat-tailoring.jpg",
+  tailoring: "/images/cat-tailoring.jpg",
+  food: "/images/cat-culinary.jpg",
+  culinary: "/images/cat-culinary.jpg",
+  language: "/images/cat-education.jpg",
+  education: "/images/cat-education.jpg",
+};
+
+function getCategoryImage(category: Category, fallback: string) {
+  const bySlug = CATEGORY_IMAGE_BY_SLUG[category.slug.toLowerCase()];
+  if (bySlug) return bySlug;
+  const text = `${category.name} ${category.description || ""}`;
+  if (/کامپیوتر|فناوری|رایانه|برنامه.?نویسی/i.test(text)) return "/images/cat-computer.jpg";
+  if (/زیبایی|آرایش|مراقبت|پوست|مو/i.test(text)) return "/images/cat-beauty.jpg";
+  if (/خیاط|دوخت|لباس|پوشاک/i.test(text)) return "/images/cat-tailoring.jpg";
+  if (/آشپز|تغذیه|غذا|قنادی|شیرینی/i.test(text)) return "/images/cat-culinary.jpg";
+  if (/آموزش|زبان|تدریس/i.test(text)) return "/images/cat-education.jpg";
+  return fallback;
+}
+
 export default function CategoryCards({ categories }: { categories: Category[] }) {
   return (
     <section className="relative py-12 lg:py-16 overflow-hidden">
@@ -81,6 +104,7 @@ export default function CategoryCards({ categories }: { categories: Category[] }
 function CategoryCompactCard({ category, index }: { category: Category; index: number }) {
   const visual = pickCategoryVisual(category.name, category.description);
   const palette = visual.palette;
+  const categoryImage = getCategoryImage(category, visual.image);
   const activeCount = category.activeCourseCount ?? category.courseCount ?? 0;
   const instituteCount = category.instituteCount ?? 0;
 
@@ -134,7 +158,7 @@ function CategoryCompactCard({ category, index }: { category: Category; index: n
               style={{ borderRadius: "62% 38% 55% 45% / 50% 60% 40% 50%" }}
             >
               <img
-                src={visual.image}
+                src={categoryImage}
                 alt={category.name}
                 loading="lazy"
                 decoding="async"
