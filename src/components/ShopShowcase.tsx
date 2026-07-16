@@ -37,9 +37,9 @@ export default function ShopShowcase() {
       </div>
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-5 mb-8">
+        <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-3 md:gap-5 mb-4 md:mb-8">
           <div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="hidden md:flex items-center gap-2 mb-2">
               <div className="w-9 h-9 rounded-[12px] bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
                 <ShoppingBag className="w-4 h-4 text-white" />
               </div>
@@ -48,7 +48,7 @@ export default function ShopShowcase() {
             <h2 className="mobile-one-line-title text-2xl md:text-4xl font-black text-text-primary mb-2">
               دوره‌های <span className="gradient-text">آنلاین حرفه‌ای</span> با گواهینامه معتبر
             </h2>
-            <p className="text-sm md:text-base text-text-secondary max-w-2xl leading-relaxed">
+            <p className="hidden md:block text-sm md:text-base text-text-secondary max-w-2xl leading-relaxed">
               آموزش تخصصی از آموزشگاه‌های معتبر؛ با پشتیبانی مدرس، دسترسی مادام‌العمر و تجربه یادگیری باکیفیت
             </p>
           </div>
@@ -61,7 +61,7 @@ export default function ShopShowcase() {
           </Link>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-9">
+        <div className="hidden md:flex flex-wrap gap-2 mb-9">
           {[
             { icon: Award, label: "گواهینامه رسمی" },
             { icon: TrendingUp, label: "بروزرسانی رایگان" },
@@ -93,14 +93,7 @@ export default function ShopShowcase() {
                 <OnlineCourseCard course={course} index={index} />
               )}
             />
-            <div className="mt-9 flex md:hidden justify-center">
-              <Link
-                href="/shop"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-l from-primary-500 to-secondary-500 text-white text-sm font-black shadow-lg shadow-primary-500/25"
-              >
-                مشاهده همه دوره‌های آنلاین <ArrowLeft className="w-4 h-4" />
-              </Link>
-            </div>
+            {/* Mobile intentionally stays focused on title + carousel cards. */}
           </>
         )}
       </div>
