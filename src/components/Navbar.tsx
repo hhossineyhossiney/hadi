@@ -330,8 +330,8 @@ function UserMenuMobile({ user, isAdmin }: { user: any; isAdmin: boolean }) {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={() => setOpen(false)}>
-          <div className="w-full sm:max-w-md bg-[var(--bg-glass-card)] border-t sm:border border-[var(--border-default)] rounded-t-[24px] sm:rounded-[24px] animate-slide-in-right overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-start sm:items-center justify-center pt-20 sm:pt-0" onClick={() => setOpen(false)}>
+          <div className="w-full sm:max-w-md max-h-[calc(100dvh-5rem)] overflow-y-auto bg-[var(--bg-glass-card)] border-b sm:border border-[var(--border-default)] rounded-b-[24px] sm:rounded-[24px] animate-fade-in-scale shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className={`p-5 bg-gradient-to-br ${roleColor} text-white relative`}>
               <button onClick={() => setOpen(false)} className="absolute left-3 top-3 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                 <X className="w-4 h-4" />
