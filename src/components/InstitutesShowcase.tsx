@@ -53,16 +53,16 @@ export default function InstitutesShowcase({ institutes }: Props) {
   }, [institutes, activeRegion]);
 
   return (
-    <section className="py-12 bg-bg-secondary relative overflow-hidden">
+    <section className="py-8 md:py-12 bg-bg-secondary relative overflow-hidden">
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary-100/30 rounded-full blur-[100px]" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-        <div className="text-center mb-10">
+        <div className="text-center mb-4 md:mb-10">
           <motion.span
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-secondary-700 bg-secondary-50 border border-secondary-200 tracking-[0.15em] uppercase mb-4 px-3 py-1 rounded-full"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-secondary-700 bg-secondary-50 border border-secondary-200 tracking-[0.15em] uppercase mb-3 md:mb-4 px-3 py-1 rounded-full"
           >
             <Building2 className="w-3.5 h-3.5" />
             TOP INSTITUTES IN ZEBERKHAN
@@ -71,7 +71,7 @@ export default function InstitutesShowcase({ institutes }: Props) {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="mobile-one-line-title text-3xl lg:text-4xl font-black text-text-primary mb-3"
+            className="mobile-one-line-title text-3xl lg:text-4xl font-black text-text-primary mb-0 md:mb-3"
           >
             آموزشگاه‌های برتر دارای مجوز رسمی
           </motion.h2>
@@ -80,7 +80,7 @@ export default function InstitutesShowcase({ institutes }: Props) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-text-secondary max-w-3xl mx-auto leading-relaxed"
+            className="hidden md:block text-text-secondary max-w-3xl mx-auto leading-relaxed"
           >
             تمامی آموزشگاه‌های زیر دارای پروانه رسمی از مرکز فنی و حرفه‌ای شماره ۱۲ شهرستان
             زبرخان بوده و مدارک بین‌المللی صادر می‌کنند.
@@ -88,7 +88,7 @@ export default function InstitutesShowcase({ institutes }: Props) {
         </div>
 
         {regions.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-2 mb-10">
+          <div className="hidden md:flex flex-wrap justify-center gap-2 mb-10">
             <button
               onClick={() => setActiveRegion("all")}
               className={`flex items-center gap-1.5 px-5 py-2.5 rounded-[14px] text-sm font-black transition-all ${
@@ -144,7 +144,7 @@ export default function InstitutesShowcase({ institutes }: Props) {
           />
         )}
 
-        <div className="mt-10 flex justify-center">
+        <div className="mt-10 hidden md:flex justify-center">
           <Link
             href="/institutes"
             className="flex items-center gap-2 px-6 py-3 rounded-[14px] bg-surface hover:bg-primary-600 hover:text-white border border-border-default hover:border-primary-600 text-text-primary font-black text-sm transition-all shadow-sm hover:shadow-lg group"
