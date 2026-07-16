@@ -162,7 +162,7 @@ export default function CoursesShowcase({
         </div>
 
         {displayCategories.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="hidden md:flex flex-wrap gap-2 mb-4">
             <button
               onClick={() => setSelectedCat("")}
               className={`px-4 py-2 rounded-[12px] text-xs font-black transition-all ${
