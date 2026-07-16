@@ -952,3 +952,35 @@ html[data-theme="light"] .bg-\[\#082D53\] tbody tr:hover {
     rotate: none !important;
   }
 }
+
+/* Layered animated waves separating the footer from page content. */
+@keyframes footer-wave-back-flow {
+  0%, 100% { translate: -2% 0; scale: 1 1; }
+  50% { translate: 2% -5px; scale: 1.025 1.04; }
+}
+
+@keyframes footer-wave-middle-flow {
+  0%, 100% { translate: 2% 2px; scale: 1.02 1; }
+  50% { translate: -2.5% -3px; scale: 1 1.05; }
+}
+
+@keyframes footer-wave-front-flow {
+  0%, 100% { translate: -1% 1px; }
+  50% { translate: 1.5% -2px; }
+}
+
+.footer-wave {
+  will-change: translate, scale;
+  transform-origin: center bottom;
+}
+.footer-wave-back { animation: footer-wave-back-flow 10s ease-in-out infinite; }
+.footer-wave-middle { animation: footer-wave-middle-flow 8s ease-in-out infinite reverse; }
+.footer-wave-front { animation: footer-wave-front-flow 6.5s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .footer-wave-back,
+  .footer-wave-middle,
+  .footer-wave-front {
+    animation: none !important;
+  }
+}
