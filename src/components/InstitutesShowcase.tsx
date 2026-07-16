@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, Building2, MapPin } from "lucide-react";
 import InstituteCard from "@/components/InstituteCard";
+import AutoLoopCarousel from "@/components/AutoLoopCarousel";
 
 interface Institute {
   id: number;
@@ -123,21 +124,24 @@ export default function InstitutesShowcase({ institutes }: Props) {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filtered.slice(0, 6).map((inst, i) => (
+          <AutoLoopCarousel
+            items={filtered.slice(0, 6)}
+            getKey={(institute) => institute.id}
+            ariaLabel="آموزشگاه‌های برتر دارای مجوز رسمی"
+            intervalMs={6000}
+            renderItem={(institute, index) => (
               <InstituteCard
-                key={inst.id}
                 institute={{
-                  ...inst,
-                  licenseNumber: inst.licenseNumber || null,
-                  managerName: inst.managerName
-                    ? (inst.managerTitle ? `${inst.managerTitle} ${inst.managerName}` : inst.managerName)
+                  ...institute,
+                  licenseNumber: institute.licenseNumber || null,
+                  managerName: institute.managerName
+                    ? (institute.managerTitle ? `${institute.managerTitle} ${institute.managerName}` : institute.managerName)
                     : null,
                 }}
-                index={i}
+                index={index}
               />
-            ))}
-          </div>
+            )}
+          />
         )}
 
         <div className="mt-10 flex justify-center">

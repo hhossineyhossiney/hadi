@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Award, ShoppingBag, Sparkles, TrendingUp, Users } from "lucide-react";
 import OnlineCourseCard, { OnlineCourseCardData } from "@/components/OnlineCourseCard";
+import AutoLoopCarousel from "@/components/AutoLoopCarousel";
 
 export default function ShopShowcase() {
   const [courses, setCourses] = useState<OnlineCourseCardData[]>([]);
@@ -83,11 +84,15 @@ export default function ShopShowcase() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-7">
-              {courses.slice(0, 6).map((course, index) => (
-                <OnlineCourseCard key={course.id} course={course} index={index} />
-              ))}
-            </div>
+            <AutoLoopCarousel
+              items={courses.slice(0, 6)}
+              getKey={(course) => course.id}
+              ariaLabel="دوره‌های آنلاین حرفه‌ای"
+              intervalMs={5600}
+              renderItem={(course, index) => (
+                <OnlineCourseCard course={course} index={index} />
+              )}
+            />
             <div className="mt-9 flex md:hidden justify-center">
               <Link
                 href="/shop"

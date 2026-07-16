@@ -11,6 +11,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import CourseCard, { CourseCardData } from "@/components/CourseCard";
+import AutoLoopCarousel from "@/components/AutoLoopCarousel";
 
 interface Institute {
   id: number;
@@ -233,11 +234,15 @@ export default function CoursesShowcase({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {(limit && limit > 0 ? filtered.slice(0, limit) : filtered).map((course, i) => (
-              <CourseCard key={course.id} course={course} index={i} />
-            ))}
-          </div>
+          <AutoLoopCarousel
+            items={limit && limit > 0 ? filtered.slice(0, limit) : filtered}
+            getKey={(course) => course.id}
+            ariaLabel="جدیدترین دوره‌های مهارتی"
+            intervalMs={5200}
+            renderItem={(course, index) => (
+              <CourseCard course={course} index={index} />
+            )}
+          />
         )}
 
         {showViewAll && (
