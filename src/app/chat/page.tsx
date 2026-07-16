@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   MessageCircle, Send, Loader2, User, Lock, ArrowRight, Search,
@@ -57,6 +57,7 @@ function relativeTime(iso: string): string {
 function ChatContent() {
   const { data: session, status } = useSession();
   const user = session?.user as any;
+  const router = useRouter();
   const searchParams = useSearchParams();
   const withUserId = searchParams.get("with");
   const otherRoleParam = searchParams.get("role") || "institute";
@@ -78,6 +79,45 @@ function ChatContent() {
   const endRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesContainerMobileRef = useRef<HTMLDivElement>(null);
+
+  const closeChatPage = () => {
+    const destination = user?.role === "admin"
+      ? "/admin"
+      : user?.role === "institute"
+        ? "/panel"
+        : "/dashboard";
+    router.replace(destination);
+  };
+
+  // Keep the mobile chat inside the visual viewport when the keyboard opens.
+  // This prevents the browser from scrolling the entire document upward.
+  useEffect(() => {
+    if (typeof window === "undefined" || window.matchMedia("(min-width: 1024px)").matches) return;
+    const root = document.documentElement;
+    const body = document.body;
+    const previousRootOverflow = root.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+
+    const updateViewportHeight = () => {
+      const height = window.visualViewport?.height || window.innerHeight;
+      root.style.setProperty("--chat-viewport-height", `${Math.round(height)}px`);
+    };
+
+    updateViewportHeight();
+    root.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    window.scrollTo(0, 0);
+    window.visualViewport?.addEventListener("resize", updateViewportHeight);
+    window.visualViewport?.addEventListener("scroll", updateViewportHeight);
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", updateViewportHeight);
+      window.visualViewport?.removeEventListener("scroll", updateViewportHeight);
+      root.style.removeProperty("--chat-viewport-height");
+      root.style.overflow = previousRootOverflow;
+      body.style.overflow = previousBodyOverflow;
+    };
+  }, []);
 
   const loadThreads = () => {
     const params = new URLSearchParams({ filter });
@@ -199,14 +239,17 @@ function ChatContent() {
   const teamThreads = threads.filter(t => t.otherRole === "admin");
 
   return (
-    <div className="min-h-screen bg-[#0B1120] pt-20 pb-16 lg:pb-4" dir="rtl">
-      <div className="max-w-[1600px] mx-auto px-2 sm:px-4">
+    <div
+      className="fixed top-0 inset-x-0 z-40 h-[var(--chat-viewport-height,100dvh)] overflow-hidden bg-[#0B1120] pt-20 pb-16 lg:static lg:z-auto lg:h-auto lg:min-h-screen lg:overflow-visible lg:pb-4"
+      dir="rtl"
+    >
+      <div className="h-full max-w-[1600px] mx-auto px-2 sm:px-4 lg:h-auto">
 
         {/* =================== MOBILE VIEW =================== */}
-        <div className="lg:hidden">
+        <div className="h-full lg:hidden">
           {activeThreadId && active ? (
             /* --- MOBILE: single conversation view --- */
-            <div className="bg-[#111a2e] border border-white/10 rounded-[20px] overflow-hidden flex flex-col" style={{ height: "calc(100dvh - 160px)" }}>
+            <div className="h-full min-h-0 bg-[#111a2e] border border-white/10 rounded-[20px] overflow-hidden flex flex-col">
               {/* Header */}
               <div className="shrink-0 p-3 border-b border-white/10 flex items-center gap-2.5 relative">
                 <button onClick={() => setActiveThreadId(null)} className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400">
@@ -226,8 +269,16 @@ function ChatContent() {
                     <span>{roleLabel(active.otherRole)}</span>
                   </div>
                 </div>
-                <button onClick={() => setHeaderMenu(!headerMenu)} className="p-2 rounded-lg hover:bg-white/5 text-slate-400">
+                <button onClick={() => setHeaderMenu(!headerMenu)} className="p-2 rounded-lg hover:bg-white/5 text-slate-400" aria-label="منوی گفتگو">
                   <MoreVertical className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={closeChatPage}
+                  className="p-2 rounded-lg bg-error-500/15 hover:bg-error-500/25 text-error-400"
+                  aria-label="بستن چت و بازگشت به داشبورد"
+                  title="بستن چت"
+                >
+                  <X className="w-4 h-4" />
                 </button>
                 {headerMenu && (
                   <div className="absolute left-3 top-14 z-30 bg-[#0B1120] border border-white/10 rounded-[12px] shadow-2xl overflow-hidden min-w-[180px]">
@@ -248,7 +299,7 @@ function ChatContent() {
               </div>
 
               {/* Messages */}
-              <div ref={messagesContainerMobileRef} className="flex-1 overflow-y-auto overscroll-contain p-3 space-y-2" style={{ backgroundImage: "radial-gradient(circle at 20% 30%, rgba(59,130,246,0.05), transparent 50%)" }}>
+              <div ref={messagesContainerMobileRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 space-y-2" style={{ backgroundImage: "radial-gradient(circle at 20% 30%, rgba(59,130,246,0.05), transparent 50%)" }}>
                 {messages.length === 0 && (
                   <div className="text-center py-16 text-slate-500 text-xs">
                     <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -281,9 +332,17 @@ function ChatContent() {
                 <button className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400"><Paperclip className="w-4 h-4" /></button>
                 <button className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400"><Smile className="w-4 h-4" /></button>
                 <input value={input} onChange={(e) => setInput(e.target.value)}
+                  onFocus={() => {
+                    requestAnimationFrame(() => {
+                      const container = messagesContainerMobileRef.current;
+                      if (container) container.scrollTop = container.scrollHeight;
+                      window.scrollTo(0, 0);
+                    });
+                  }}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+                  enterKeyHint="send"
                   placeholder="اینجا بنویسید..."
-                  className="flex-1 px-3 py-2 rounded-[12px] bg-[#111a2e] border border-white/10 text-sm text-white outline-none" />
+                  className="flex-1 px-3 py-2 rounded-[12px] bg-[#111a2e] border border-white/10 text-base sm:text-sm text-white outline-none" />
                 <button onClick={send} disabled={sending || !input.trim()}
                   className="p-2 rounded-[12px] bg-gradient-to-br from-cyan-500 to-primary-600 disabled:opacity-50 text-white">
                   {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -292,20 +351,28 @@ function ChatContent() {
             </div>
           ) : (
             /* --- MOBILE: ultra clean threads list --- */
-            <div className="bg-[#111a2e] border border-white/10 rounded-[20px] overflow-hidden flex flex-col relative" style={{ height: "calc(100dvh - 160px)" }}>
+            <div className="h-full min-h-0 bg-[#111a2e] border border-white/10 rounded-[20px] overflow-hidden flex flex-col relative">
               {/* Minimal header: just title + 3-dot */}
               <div className="p-4 border-b border-white/10 flex items-center gap-2">
                 <MessageCircle className="w-5 h-5 text-primary-400" />
                 <h3 className="font-black text-white flex-1">
                   {filter === "archived" ? "بایگانی چت‌ها" : "چت‌ها"}
                 </h3>
-                <button onClick={() => setMobileMenuOpen(true)} className="p-2 rounded-lg hover:bg-white/5 text-slate-300 relative">
+                <button
+                  onClick={closeChatPage}
+                  className="p-2 rounded-lg bg-error-500/15 hover:bg-error-500/25 text-error-400"
+                  aria-label="بستن چت و بازگشت به داشبورد"
+                  title="بستن چت"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                <button onClick={() => setMobileMenuOpen(true)} className="p-2 rounded-lg hover:bg-white/5 text-slate-300 relative" aria-label="تنظیمات چت">
                   <MoreVertical className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Threads list */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                 {threads.length === 0 ? (
                   <div className="text-center p-10 text-slate-500 text-xs">
                     <MessageCircle className="w-12 h-12 mx-auto mb-2 opacity-30" />
