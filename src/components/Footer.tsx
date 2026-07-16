@@ -1,6 +1,6 @@
 import Link from "next/link";
 import {
-  GraduationCap, Phone, MapPin, Mail, Globe, ShieldCheck, Building2, ArrowLeft, Heart,
+  Phone, MapPin, Mail, Globe, ShieldCheck, Building2, ArrowLeft, Heart,
 } from "lucide-react";
 
 export default function Footer() {
@@ -13,13 +13,13 @@ export default function Footer() {
           {/* Column 1: brand + CTA */}
           <div className="lg:col-span-1 space-y-5">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-[14px] gradient-button flex items-center justify-center shadow-lg shadow-primary-500/30">
-                <GraduationCap className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 rounded-[12px] overflow-hidden shrink-0 bg-[#071a33] border border-amber-400/20 shadow-lg shadow-primary-500/20">
+                <img src="/images/fanixo-logo.png" alt="لوگوی فَنی‌اکسو" className="w-full h-full object-contain" />
               </div>
-              <div className="flex flex-col">
-                <span className="text-base font-black leading-snug">شبکه آموزشگاه‌های آزاد زبرخان</span>
-                <span className="text-[11px] text-primary-300 font-bold mt-0.5">
-                  مرکز شماره ۱۲ آموزش فنی و حرفه‌ای شهرستان
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-black leading-snug whitespace-nowrap">آموزشگاه‌های آزاد فنی و حرفه‌ای زبرخان</span>
+                <span className="text-[10px] text-primary-300 font-bold mt-0.5 whitespace-nowrap">
+                  مرکز شماره ۱۲
                 </span>
               </div>
             </div>

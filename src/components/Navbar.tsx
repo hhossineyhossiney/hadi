@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { Menu, X, Search, GraduationCap, User, ShieldCheck, LogOut, Lock } from "lucide-react";
+import { Menu, X, Search, User, ShieldCheck, LogOut, Lock } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
@@ -41,17 +41,27 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="relative w-11 h-11 rounded-[14px] gradient-button flex items-center justify-center shadow-lg shadow-primary-500/30 group-hover:shadow-primary-500/50 group-hover:scale-105 transition-all duration-300">
-              <GraduationCap className="w-5 h-5 text-white" />
+          {/* Brand — compact single-line title on mobile */}
+          <Link href="/" className="flex items-center gap-1.5 sm:gap-2.5 group min-w-0 flex-1 lg:flex-none shrink">
+            <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-[10px] sm:rounded-[12px] overflow-hidden shrink-0 bg-[#071a33] border border-amber-400/20 shadow-lg shadow-primary-500/15 group-hover:scale-105 transition-transform duration-300">
+              <img
+                src="/images/fanixo-logo.png"
+                alt="لوگوی فَنی‌اکسو"
+                className="w-full h-full object-contain"
+              />
             </div>
-            <div className="flex flex-col">
-              <span className="text-base font-extrabold gradient-text leading-tight">
+            <div className="flex flex-col min-w-0 leading-none">
+              <span
+                className="font-extrabold gradient-text whitespace-nowrap leading-tight tracking-[-0.02em]"
+                style={{ fontSize: "clamp(8px, 2.25vw, 16px)" }}
+              >
                 آموزشگاه‌های آزاد فنی و حرفه‌ای زبرخان
               </span>
-              <span className="text-[10px] text-text-tertiary font-bold -mt-0.5">
-                مرکز شماره ۱۲ • ثبت‌نام آنلاین دوره‌های مهارتی
+              <span
+                className="text-text-tertiary font-bold whitespace-nowrap mt-0.5"
+                style={{ fontSize: "clamp(7px, 1.65vw, 10px)" }}
+              >
+                مرکز شماره ۱۲
               </span>
             </div>
           </Link>
