@@ -137,7 +137,7 @@ export const CATEGORY_VISUALS: CategoryVisual[] = [
   {
     key: "beauty_general",
     keywords: /(زیبایی|beauty|مراقبت)/i,
-    image: IMG("1487412720507-e7ab37603c6f"),
+    image: "/images/cat-beauty.jpg",
     icon: "💖",
     palette: PAL.pink,
   },
@@ -181,7 +181,7 @@ export const CATEGORY_VISUALS: CategoryVisual[] = [
   {
     key: "computer_general",
     keywords: /(کامپیوتر|فناوری|it|رایانه)/i,
-    image: IMG("1498050108023-c5249f4df085"),
+    image: "/images/cat-computer.jpg",
     icon: "💻",
     palette: PAL.blue,
   },
@@ -190,8 +190,7 @@ export const CATEGORY_VISUALS: CategoryVisual[] = [
   {
     key: "sewing",
     keywords: /(خیاطی|طراحی\s*لباس|دوخت|sewing|خیاط|لباس|پوشاک)/i,
-    // Sewing machine / fabric
-    image: IMG("1594736797933-d0501ba2fe65"),
+    image: "/images/cat-tailoring.jpg",
     icon: "🧵",
     palette: PAL.fuchsia,
   },
@@ -214,14 +213,14 @@ export const CATEGORY_VISUALS: CategoryVisual[] = [
   {
     key: "cooking",
     keywords: /(آشپزی|cook|طباخی|غذا)/i,
-    image: IMG("1556909114-f6e7ad7d3136"),
+    image: "/images/cat-culinary.jpg",
     icon: "🍳",
     palette: PAL.amber,
   },
   {
     key: "nutrition",
     keywords: /(تغذیه|nutrition|رژیم|diet)/i,
-    image: IMG("1490645935967-10de6ba17061"),
+    image: "/images/cat-culinary.jpg",
     icon: "🥗",
     palette: PAL.emerald,
   },
@@ -237,14 +236,14 @@ export const CATEGORY_VISUALS: CategoryVisual[] = [
   {
     key: "english",
     keywords: /(انگلیسی|english|ielts|toefl|آیلتس|تافل)/i,
-    image: IMG("1503676260728-1c00da094a0b"),
+    image: "/images/cat-education.jpg",
     icon: "🗣️",
     palette: PAL.emerald,
   },
   {
     key: "language",
     keywords: /(زبان|language|عربی|فرانسه|آلمانی|ترکی)/i,
-    image: IMG("1546410531-bb4caa6b424d"),
+    image: "/images/cat-education.jpg",
     icon: "🌍",
     palette: PAL.teal,
   },
@@ -325,7 +324,7 @@ export const CATEGORY_VISUALS: CategoryVisual[] = [
   {
     key: "education",
     keywords: /(آموزش|education|training|تدریس)/i,
-    image: IMG("1503676260728-1c00da094a0b"),
+    image: "/images/cat-education.jpg",
     icon: "🎓",
     palette: PAL.indigo,
   },
