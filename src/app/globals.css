@@ -904,3 +904,51 @@ html[data-theme="light"] .bg-\[\#082D53\] tbody tr:hover {
     transform-origin: center right;
   }
 }
+
+/* Premium card micro-interactions — subtle, GPU-friendly and accessible. */
+@keyframes card-neon-pulse {
+  0%, 100% { opacity: 0.88; filter: brightness(0.95); box-shadow: 0 0 8px rgba(250, 204, 21, 0.28); }
+  50% { opacity: 1; filter: brightness(1.12); box-shadow: 0 0 20px rgba(250, 204, 21, 0.72), 0 0 34px rgba(245, 158, 11, 0.28); }
+}
+
+@keyframes card-float-soft {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -4px; }
+}
+
+@keyframes card-icon-float {
+  0%, 100% { translate: 0 0; rotate: -2deg; }
+  50% { translate: 0 -5px; rotate: 3deg; }
+}
+
+@keyframes card-ribbon-shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes card-cta-breathe {
+  0%, 100% { filter: brightness(1); box-shadow: 0 8px 24px rgba(14, 165, 233, 0.18); }
+  50% { filter: brightness(1.08); box-shadow: 0 10px 30px rgba(168, 85, 247, 0.32); }
+}
+
+.card-neon-pulse { animation: card-neon-pulse 2.4s ease-in-out infinite; }
+.card-float-soft { animation: card-float-soft 3.8s ease-in-out infinite; }
+.card-icon-float { animation: card-icon-float 4.4s ease-in-out infinite; }
+.card-discount-ribbon {
+  background-size: 220% 220%;
+  animation: card-ribbon-shimmer 3.2s ease-in-out infinite;
+}
+.card-cta-breathe { animation: card-cta-breathe 3.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card-neon-pulse,
+  .card-float-soft,
+  .card-icon-float,
+  .card-discount-ribbon,
+  .card-cta-breathe {
+    animation: none !important;
+    translate: none !important;
+    rotate: none !important;
+  }
+}

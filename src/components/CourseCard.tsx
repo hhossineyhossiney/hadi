@@ -329,21 +329,19 @@ export default function CourseCard({
             </div>
             <Link
               href={`/courses/${course.slug}`}
-              className={`group/btn shrink-0 flex items-center gap-1.5 px-4 sm:px-5 py-2.5 rounded-full text-white text-xs font-black bg-gradient-to-l ${pal.button} shadow-lg hover:shadow-2xl hover:scale-[1.03] transition-all`}
+              className={`card-cta-breathe group/btn shrink-0 flex items-center gap-1.5 px-4 sm:px-5 py-2.5 rounded-full text-white text-xs font-black bg-gradient-to-l ${pal.button} shadow-lg hover:shadow-2xl hover:scale-[1.03] transition-all`}
             >
               مشاهده دوره
               <ArrowLeft className="w-3.5 h-3.5 group-hover/btn:-translate-x-0.5 transition-transform" />
             </Link>
           </div>
 
-          {/* Discount pill top-left */}
+          {/* Angled discount ribbon — isolated in the image corner */}
           {hasDiscount && (
-            <div className="absolute top-4 left-4 z-10">
-              <div
-                className={`px-2.5 py-1 rounded-full text-[10px] font-black text-white shadow-lg bg-gradient-to-l ${pal.button}`}
-              >
-                {discountPct}٪ تخفیف
-              </div>
+            <div
+              className={`card-discount-ribbon pointer-events-none absolute top-6 -right-12 z-30 w-44 rotate-45 py-1.5 text-center text-[10px] sm:text-[11px] font-black text-white shadow-[0_6px_20px_rgba(0,0,0,0.35)] border-y border-white/25 bg-gradient-to-l ${pal.button}`}
+            >
+              {discountPct}٪ تخفیف
             </div>
           )}
         </div>

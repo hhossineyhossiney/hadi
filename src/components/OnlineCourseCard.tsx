@@ -138,18 +138,18 @@ export default function OnlineCourseCard({
                   </div>
                 </div>
               </div>
-              <div className="absolute bottom-1 left-1 z-20 w-9 h-9 rounded-full bg-black/70 backdrop-blur-md border border-white/25 shadow-xl flex items-center justify-center text-base pointer-events-none">
+              <div className="card-icon-float absolute bottom-1 left-1 z-20 w-9 h-9 rounded-full bg-black/70 backdrop-blur-md border border-white/25 shadow-xl flex items-center justify-center text-base pointer-events-none">
                 {visual.icon}
               </div>
             </div>
 
             <div className="flex-1 min-w-0 flex flex-col">
               <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-black backdrop-blur ${palette.badge}`}>
+                <span className={`card-float-soft inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-black backdrop-blur ${palette.badge}`}>
                   <PlayCircle className="w-2.5 h-2.5" /> دوره آنلاین
                 </span>
                 {course.is_featured && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-400 text-slate-950 text-[9px] font-black shadow">
+                  <span className="card-neon-pulse inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-400 text-slate-950 text-[9px] font-black shadow">
                     <Sparkles className="w-2.5 h-2.5" /> ویژه
                   </span>
                 )}
@@ -225,14 +225,16 @@ export default function OnlineCourseCard({
                 {price > 0 && <span className="text-[9px] text-slate-400 font-bold">تومان</span>}
               </div>
             </div>
-            <span className={`shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-white text-xs font-black bg-gradient-to-l ${palette.button} shadow-lg group-hover:scale-[1.04] transition-transform`}>
+            <span className={`card-cta-breathe shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-white text-xs font-black bg-gradient-to-l ${palette.button} shadow-lg group-hover:scale-[1.04] transition-transform`}>
               مشاهده و خرید
               <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
             </span>
           </div>
 
           {discount > 0 && (
-            <div className={`absolute top-4 left-4 z-10 px-2.5 py-1 rounded-full text-[10px] font-black text-white shadow-lg bg-gradient-to-l ${palette.button}`}>
+            <div
+              className={`card-discount-ribbon pointer-events-none absolute top-6 -right-12 z-30 w-44 rotate-45 py-1.5 text-center text-[10px] sm:text-[11px] font-black text-white shadow-[0_6px_20px_rgba(0,0,0,0.35)] border-y border-white/25 bg-gradient-to-l ${palette.button}`}
+            >
               {fmt(discount)}٪ تخفیف
             </div>
           )}

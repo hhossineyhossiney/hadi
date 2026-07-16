@@ -128,10 +128,9 @@ export default function InstituteCard({ institute, index = 0 }: { institute: Ins
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/40 mix-blend-overlay pointer-events-none" />
-                {/* Emoji badge */}
-                <div className="absolute -bottom-1 -left-1 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-lg z-10">
-                  {visual.icon}
-                </div>
+              </div>
+              <div className="card-icon-float absolute bottom-1 left-1 z-20 w-10 h-10 rounded-full bg-black/70 backdrop-blur-md border border-white/25 shadow-xl flex items-center justify-center text-lg pointer-events-none">
+                {visual.icon}
               </div>
             </div>
 
@@ -197,7 +196,7 @@ export default function InstituteCard({ institute, index = 0 }: { institute: Ins
                 </div>
               </div>
               {isTop && (
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 shadow text-[9px] font-black text-white">
+                <span className="card-neon-pulse flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 shadow text-[9px] font-black text-white">
                   <Award className="w-2.5 h-2.5" />
                   برگزیده
                 </span>
@@ -273,7 +272,7 @@ export default function InstituteCard({ institute, index = 0 }: { institute: Ins
           {/* Badge برگزیده top-left corner */}
           {isTop && !institute.managerName && (
             <div className="absolute top-4 left-4 z-10">
-              <div className="px-2.5 py-1 rounded-full text-[10px] font-black text-white shadow-lg bg-gradient-to-r from-amber-500 to-orange-500 flex items-center gap-1">
+              <div className="card-neon-pulse px-2.5 py-1 rounded-full text-[10px] font-black text-white shadow-lg bg-gradient-to-r from-amber-500 to-orange-500 flex items-center gap-1">
                 <Award className="w-3 h-3" />
                 برگزیده سال
               </div>
