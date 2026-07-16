@@ -35,7 +35,7 @@ export default function VerifyLicenseBanner() {
               TRUST & VERIFICATION
             </span>
             <h3
-              className="text-xl lg:text-2xl font-black mb-2"
+              className="mobile-one-line-title text-xl lg:text-2xl font-black mb-2"
               style={{ color: "#04152A" }}
             >
               استعلام رسمی و تایید اعتبار آموزشگاه‌ها

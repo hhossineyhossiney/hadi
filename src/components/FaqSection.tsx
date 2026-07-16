@@ -54,7 +54,7 @@ export default function FaqSection() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-3xl lg:text-4xl font-black text-text-primary mb-3"
+            className="mobile-one-line-title text-3xl lg:text-4xl font-black text-text-primary mb-3"
           >
             پاسخ به سوالات متداول هنرجویان
           </motion.h2>

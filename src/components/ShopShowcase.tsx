@@ -44,7 +44,7 @@ export default function ShopShowcase() {
               </div>
               <span className="text-xs font-black text-primary-500 tracking-wider">ONLINE COURSES</span>
             </div>
-            <h2 className="text-2xl md:text-4xl font-black text-text-primary mb-2">
+            <h2 className="mobile-one-line-title text-2xl md:text-4xl font-black text-text-primary mb-2">
               دوره‌های <span className="gradient-text">آنلاین حرفه‌ای</span> با گواهینامه معتبر
             </h2>
             <p className="text-sm md:text-base text-text-secondary max-w-2xl leading-relaxed">

@@ -889,3 +889,15 @@ html[data-theme="light"] .bg-\[\#111a2e\] tbody tr:hover,
 html[data-theme="light"] .bg-\[\#082D53\] tbody tr:hover {
   background-color: rgba(11, 79, 139, 0.03) !important;
 }
+
+/* Mobile UX: keep homepage section titles on one visual line. */
+@media (max-width: 767px) {
+  .mobile-one-line-title {
+    width: 100%;
+    max-width: 100%;
+    white-space: nowrap !important;
+    font-size: clamp(12px, 3.7vw, 18px) !important;
+    line-height: 1.45 !important;
+    letter-spacing: -0.035em !important;
+  }
+}

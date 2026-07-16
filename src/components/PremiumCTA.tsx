@@ -87,11 +87,11 @@ export default function PremiumCTA() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-4xl md:text-6xl lg:text-7xl font-black text-white mb-6 leading-[1.05] tracking-tight"
+              className="mobile-one-line-title text-4xl md:text-6xl lg:text-7xl font-black text-white mb-6 leading-[1.05] tracking-tight"
               style={{ letterSpacing: "-0.03em" }}
             >
-              همین امروز آموزشگاه‌تان را
-              <br />
+              همین امروز آموزشگاه‌تان را{" "}
+              <br className="hidden md:block" />
               <span className="relative inline-block">
                 <span className="bg-gradient-to-l from-amber-200 via-yellow-300 to-amber-400 bg-clip-text text-transparent">
                   هوشمند

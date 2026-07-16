@@ -65,7 +65,7 @@ export default function CategoryCards({ categories }: { categories: Category[] }
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.08 }}
-              className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight"
+              className="mobile-one-line-title text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight"
             >
               رشته‌ای که <span className="bg-gradient-to-l from-fuchsia-300 to-blue-300 bg-clip-text text-transparent">عاشقشی</span> رو انتخاب کن
             </motion.h2>

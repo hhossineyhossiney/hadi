@@ -54,7 +54,7 @@ export default function AITechSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-3xl md:text-5xl font-black text-white leading-tight mb-5"
+              className="mobile-one-line-title text-3xl md:text-5xl font-black text-white leading-tight mb-5"
               style={{ letterSpacing: "-0.02em" }}
             >
               نسل جدید آموزش با{" "}
