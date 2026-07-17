@@ -7,7 +7,7 @@ import {
   MessageCircle, Send, Loader2, User, Lock, ArrowRight, Search,
   MoreVertical, Archive, Trash2, Pin, Ban, Settings2, Bell, BellOff,
   Users, Menu, X, Circle, Smile, Paperclip, Plus, Filter, Clock,
-  CheckCheck, Check, ShieldCheck,
+  CheckCheck, Check, ShieldCheck, Download, FileText, Image as ImageIcon,
 } from "lucide-react";
 
 interface Thread {
@@ -32,6 +32,42 @@ interface Message {
   body: string;
   createdAt: string;
   isRead: boolean;
+  attachmentUrl: string | null;
+}
+
+interface ChatAttachment {
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+}
+
+const CHAT_EMOJIS = ["😀", "😂", "😍", "😊", "🙏", "👍", "👏", "🎉", "❤️", "🔥", "✅", "🌹", "🤝", "📚", "🎓", "💡"];
+
+function parseAttachment(raw: string | null | undefined): ChatAttachment | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed?.url) {
+      return {
+        url: String(parsed.url),
+        name: String(parsed.name || "فایل پیوست"),
+        type: String(parsed.type || "application/octet-stream"),
+        size: Number(parsed.size) || 0,
+      };
+    }
+  } catch {
+    // Legacy attachment URLs are still supported.
+  }
+  const mime = /^data:([^;,]+)/i.exec(raw)?.[1] || "application/octet-stream";
+  return { url: raw, name: mime.startsWith("image/") ? "تصویر" : "فایل پیوست", type: mime, size: 0 };
+}
+
+function formatAttachmentSize(bytes: number) {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 type FilterKey = "active" | "archived";
@@ -52,6 +88,31 @@ function relativeTime(iso: string): string {
   if (diff < 86400) return `${Math.floor(diff / 3600)}س پیش`;
   if (diff < 604800) return `${Math.floor(diff / 86400)}ر پیش`;
   return d.toLocaleDateString("fa-IR");
+}
+
+function MessageAttachment({ raw, onPreview }: { raw: string | null; onPreview: (attachment: ChatAttachment) => void }) {
+  const attachment = parseAttachment(raw);
+  if (!attachment) return null;
+  if (attachment.type.startsWith("image/")) {
+    return (
+      <button type="button" onClick={() => onPreview(attachment)} className="block mt-2 overflow-hidden rounded-[12px] border border-white/15 bg-black/20">
+        <img src={attachment.url} alt={attachment.name} className="block w-full max-h-56 object-cover" loading="lazy" />
+        <span className="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] text-white/75">
+          <ImageIcon className="w-3 h-3" /> {attachment.name}
+        </span>
+      </button>
+    );
+  }
+  return (
+    <a href={attachment.url} download={attachment.name} className="mt-2 flex items-center gap-2 rounded-[12px] border border-white/15 bg-black/20 p-2.5 text-white hover:bg-black/30">
+      <div className="w-9 h-9 rounded-[9px] bg-primary-500/20 flex items-center justify-center shrink-0"><FileText className="w-4 h-4 text-primary-200" /></div>
+      <div className="min-w-0 flex-1 text-right">
+        <div className="text-[10px] font-black truncate">{attachment.name}</div>
+        <div className="text-[8px] text-white/55">{formatAttachmentSize(attachment.size) || "فایل قابل دانلود"}</div>
+      </div>
+      <Download className="w-4 h-4 text-white/70 shrink-0" />
+    </a>
+  );
 }
 
 function ChatContent() {
@@ -76,9 +137,14 @@ function ChatContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // 3-dot drawer
   const [notifSound, setNotifSound] = useState(true);
   const [muteAll, setMuteAll] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [attachment, setAttachment] = useState<ChatAttachment | null>(null);
+  const [attachmentError, setAttachmentError] = useState("");
+  const [previewAttachment, setPreviewAttachment] = useState<ChatAttachment | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesContainerMobileRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const closeChatPage = () => {
     const destination = user?.role === "admin"
@@ -182,19 +248,86 @@ function ChatContent() {
     scrollToBottom(messagesContainerMobileRef.current);
   }, [messages]);
 
-  const send = async () => {
-    if (!input.trim() || !activeThreadId || sending) return;
-    setSending(true);
-    const body = input;
-    setInput("");
-    await fetch("/api/chat/messages", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ threadId: activeThreadId, body }),
+  const readFileAsDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("خواندن فایل ناموفق بود"));
+    reader.readAsDataURL(file);
+  });
+
+  const compressImage = async (file: File): Promise<ChatAttachment> => {
+    const source = await readFileAsDataUrl(file);
+    if (file.type === "image/gif") {
+      if (file.size > 2 * 1024 * 1024) throw new Error("حجم GIF باید کمتر از ۲ مگابایت باشد");
+      return { url: source, name: file.name, type: file.type, size: file.size };
+    }
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const element = new Image();
+      element.onload = () => resolve(element);
+      element.onerror = () => reject(new Error("تصویر قابل پردازش نیست"));
+      element.src = source;
     });
-    const d = await fetch(`/api/chat/messages?threadId=${activeThreadId}`).then((r) => r.json());
-    setMessages(d);
-    loadThreads();
-    setSending(false);
+    const maxSide = 1600;
+    const ratio = Math.min(1, maxSide / Math.max(image.width, image.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.width * ratio));
+    canvas.height = Math.max(1, Math.round(image.height * ratio));
+    canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const url = canvas.toDataURL("image/jpeg", 0.82);
+    const size = Math.round((url.length - url.indexOf(",") - 1) * 0.75);
+    const baseName = file.name.replace(/\.[^.]+$/, "") || "تصویر";
+    return { url, name: `${baseName}.jpg`, type: "image/jpeg", size };
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setAttachmentError("");
+    try {
+      const extension = file.name.split(".").pop()?.toLowerCase() || "";
+      const inferredTypes: Record<string, string> = {
+        jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif",
+        pdf: "application/pdf", txt: "text/plain", doc: "application/msword",
+        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      };
+      const detectedType = file.type || inferredTypes[extension] || "";
+      if (detectedType.startsWith("image/")) {
+        setAttachment(await compressImage(file));
+      } else {
+        if (!detectedType) throw new Error("نوع فایل قابل تشخیص نیست");
+        if (file.size > 2 * 1024 * 1024) throw new Error("حجم فایل باید کمتر از ۲ مگابایت باشد");
+        setAttachment({ url: await readFileAsDataUrl(file), name: file.name, type: detectedType, size: file.size });
+      }
+    } catch (error: any) {
+      setAttachment(null);
+      setAttachmentError(error?.message || "بارگذاری فایل ناموفق بود");
+    }
+  };
+
+  const send = async () => {
+    if ((!input.trim() && !attachment) || !activeThreadId || sending) return;
+    setSending(true);
+    setAttachmentError("");
+    try {
+      const response = await fetch("/api/chat/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ threadId: activeThreadId, body: input, attachment }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result?.error || "ارسال پیام ناموفق بود");
+      setInput("");
+      setAttachment(null);
+      setEmojiOpen(false);
+      const data = await fetch(`/api/chat/messages?threadId=${activeThreadId}`).then((r) => r.json());
+      if (Array.isArray(data)) setMessages(data);
+      loadThreads();
+    } catch (error: any) {
+      setAttachmentError(error?.message || "ارسال پیام ناموفق بود");
+    } finally {
+      setSending(false);
+    }
   };
 
   const doThreadAction = async (threadId: number, action: string) => {
@@ -249,6 +382,13 @@ function ChatContent() {
       className="fixed top-[var(--chat-viewport-top,0px)] inset-x-0 z-40 h-[var(--chat-viewport-height,100dvh)] overflow-hidden bg-[#0B1120] pt-2 pb-16 lg:static lg:z-auto lg:h-auto lg:min-h-screen lg:overflow-visible lg:pt-20 lg:pb-4"
       dir="rtl"
     >
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,.doc,.docx"
+        onChange={handleFileChange}
+        className="hidden"
+      />
       <div className="h-full max-w-[1600px] mx-auto px-2 sm:px-4 lg:h-auto">
 
         {/* =================== MOBILE VIEW =================== */}
@@ -323,6 +463,7 @@ function ChatContent() {
                           : "bg-white/10 text-white rounded-br-md border border-white/5"
                       }`}>
                         <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                        <MessageAttachment raw={m.attachmentUrl} onPreview={setPreviewAttachment} />
                         <div className={`flex items-center gap-1 mt-1 text-[9px] ${isMe ? "text-white/70" : "text-slate-400"}`}>
                           <span>{new Date(m.createdAt).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })}</span>
                           {isMe && (m.isRead ? <CheckCheck className="w-3 h-3 text-cyan-300" /> : <Check className="w-3 h-3" />)}
@@ -334,25 +475,46 @@ function ChatContent() {
                 <div ref={endRef} />
               </div>
 
-              {/* Input */}
-              <div className="shrink-0 p-2.5 border-t border-white/10 bg-[#0B1120]/50 flex items-center gap-1.5">
-                <button className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400"><Paperclip className="w-4 h-4" /></button>
-                <button className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400"><Smile className="w-4 h-4" /></button>
-                <input value={input} onChange={(e) => setInput(e.target.value)}
-                  onFocus={() => {
-                    requestAnimationFrame(() => {
-                      const container = messagesContainerMobileRef.current;
-                      if (container) container.scrollTop = container.scrollHeight;
-                    });
-                  }}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-                  enterKeyHint="send"
-                  placeholder="اینجا بنویسید..."
-                  className="flex-1 px-3 py-2 rounded-[12px] bg-[#111a2e] border border-white/10 text-base sm:text-sm text-white outline-none" />
-                <button onClick={send} disabled={sending || !input.trim()}
-                  className="p-2 rounded-[12px] bg-gradient-to-br from-cyan-500 to-primary-600 disabled:opacity-50 text-white">
-                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                </button>
+              {/* Composer: real emoji, image and document attachments */}
+              <div className="relative shrink-0 p-2.5 border-t border-white/10 bg-[#0B1120]/75 flex flex-col gap-2">
+                {emojiOpen && (
+                  <div className="absolute bottom-full right-2 left-2 z-40 mb-2 grid grid-cols-8 gap-1.5 rounded-[16px] border border-white/15 bg-[#071426]/95 p-2.5 shadow-2xl backdrop-blur-xl">
+                    {CHAT_EMOJIS.map((emoji) => (
+                      <button key={emoji} type="button" onClick={() => { setInput((value) => value + emoji); setEmojiOpen(false); }} className="h-9 rounded-[9px] text-xl hover:bg-white/10 active:scale-90 transition">{emoji}</button>
+                    ))}
+                  </div>
+                )}
+                {attachment && (
+                  <div className="flex items-center gap-2 rounded-[12px] border border-primary-500/25 bg-primary-500/10 p-2">
+                    {attachment.type.startsWith("image/") ? (
+                      <img src={attachment.url} alt={attachment.name} className="w-11 h-11 rounded-[9px] object-cover" />
+                    ) : (
+                      <div className="w-11 h-11 rounded-[9px] bg-primary-500/15 flex items-center justify-center"><FileText className="w-5 h-5 text-primary-300" /></div>
+                    )}
+                    <div className="flex-1 min-w-0"><div className="text-[10px] font-black text-white truncate">{attachment.name}</div><div className="text-[8px] text-slate-400">{formatAttachmentSize(attachment.size)}</div></div>
+                    <button type="button" onClick={() => setAttachment(null)} className="p-1.5 rounded-full bg-error-500/15 text-error-400" aria-label="حذف پیوست"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                )}
+                {attachmentError && <div className="text-[10px] font-bold text-error-400 px-1">{attachmentError}</div>}
+                <div className="flex items-center gap-1.5">
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400" aria-label="افزودن عکس یا فایل"><Paperclip className="w-4 h-4" /></button>
+                  <button type="button" onClick={() => setEmojiOpen(!emojiOpen)} className={`p-1.5 rounded-lg hover:bg-white/5 ${emojiOpen ? "text-amber-300 bg-white/5" : "text-slate-400"}`} aria-label="افزودن ایموجی"><Smile className="w-4 h-4" /></button>
+                  <input value={input} onChange={(e) => setInput(e.target.value)}
+                    onFocus={() => {
+                      requestAnimationFrame(() => {
+                        const container = messagesContainerMobileRef.current;
+                        if (container) container.scrollTop = container.scrollHeight;
+                      });
+                    }}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+                    enterKeyHint="send"
+                    placeholder="اینجا بنویسید..."
+                    className="flex-1 min-w-0 px-3 py-2 rounded-[12px] bg-[#111a2e] border border-white/10 text-base sm:text-sm text-white outline-none" />
+                  <button onClick={send} disabled={sending || (!input.trim() && !attachment)}
+                    className="p-2 rounded-[12px] bg-gradient-to-br from-cyan-500 to-primary-600 disabled:opacity-50 text-white" aria-label="ارسال پیام">
+                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
@@ -689,6 +851,7 @@ function ChatContent() {
                             isMe ? "bg-gradient-to-br from-primary-600 to-primary-700 text-white rounded-bl-md" : "bg-white/10 text-white rounded-br-md border border-white/5"
                           }`}>
                             <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                            <MessageAttachment raw={m.attachmentUrl} onPreview={setPreviewAttachment} />
                             <div className={`flex items-center gap-1 mt-1 text-[9px] ${isMe ? "text-white/70" : "text-slate-400"}`}>
                               <span>{new Date(m.createdAt).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })}</span>
                               {isMe && (m.isRead ? <CheckCheck className="w-3 h-3 text-cyan-300" /> : <Check className="w-3 h-3" />)}
@@ -699,18 +862,35 @@ function ChatContent() {
                     })}
                     <div ref={endRef} />
                   </div>
-                  <div className="shrink-0 p-3 border-t border-white/10 bg-[#0B1120]/50 flex items-center gap-2">
-                    <button className="p-2 rounded-lg hover:bg-white/5 text-slate-400"><Paperclip className="w-4 h-4" /></button>
-                    <button className="p-2 rounded-lg hover:bg-white/5 text-slate-400"><Smile className="w-4 h-4" /></button>
-                    <input value={input} onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-                      placeholder="اینجا بنویسید..."
-                      className="flex-1 px-4 py-2.5 rounded-[14px] bg-[#111a2e] border border-white/10 text-sm text-white outline-none focus:border-primary-500/40" />
-                    <button onClick={send} disabled={sending || !input.trim()}
-                      className="flex items-center gap-1.5 px-4 py-2.5 rounded-[14px] bg-gradient-to-br from-cyan-500 to-primary-600 disabled:opacity-50 text-white text-xs font-black">
-                      {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                      ارسال
-                    </button>
+                  <div className="relative shrink-0 p-3 border-t border-white/10 bg-[#0B1120]/65 flex flex-col gap-2">
+                    {emojiOpen && (
+                      <div className="absolute bottom-full right-3 z-40 mb-2 grid grid-cols-8 gap-1.5 w-80 rounded-[16px] border border-white/15 bg-[#071426]/95 p-2.5 shadow-2xl backdrop-blur-xl">
+                        {CHAT_EMOJIS.map((emoji) => (
+                          <button key={emoji} type="button" onClick={() => { setInput((value) => value + emoji); setEmojiOpen(false); }} className="h-9 rounded-[9px] text-xl hover:bg-white/10 active:scale-90 transition">{emoji}</button>
+                        ))}
+                      </div>
+                    )}
+                    {attachment && (
+                      <div className="flex items-center gap-2 rounded-[12px] border border-primary-500/25 bg-primary-500/10 p-2 max-w-sm">
+                        {attachment.type.startsWith("image/") ? <img src={attachment.url} alt={attachment.name} className="w-11 h-11 rounded-[9px] object-cover" /> : <div className="w-11 h-11 rounded-[9px] bg-primary-500/15 flex items-center justify-center"><FileText className="w-5 h-5 text-primary-300" /></div>}
+                        <div className="flex-1 min-w-0"><div className="text-[10px] font-black text-white truncate">{attachment.name}</div><div className="text-[8px] text-slate-400">{formatAttachmentSize(attachment.size)}</div></div>
+                        <button type="button" onClick={() => setAttachment(null)} className="p-1.5 rounded-full bg-error-500/15 text-error-400"><X className="w-3.5 h-3.5" /></button>
+                      </div>
+                    )}
+                    {attachmentError && <div className="text-[10px] font-bold text-error-400">{attachmentError}</div>}
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 rounded-lg hover:bg-white/5 text-slate-400" aria-label="افزودن عکس یا فایل"><Paperclip className="w-4 h-4" /></button>
+                      <button type="button" onClick={() => setEmojiOpen(!emojiOpen)} className={`p-2 rounded-lg hover:bg-white/5 ${emojiOpen ? "text-amber-300 bg-white/5" : "text-slate-400"}`} aria-label="افزودن ایموجی"><Smile className="w-4 h-4" /></button>
+                      <input value={input} onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+                        placeholder="اینجا بنویسید..."
+                        className="flex-1 px-4 py-2.5 rounded-[14px] bg-[#111a2e] border border-white/10 text-sm text-white outline-none focus:border-primary-500/40" />
+                      <button onClick={send} disabled={sending || (!input.trim() && !attachment)}
+                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-[14px] bg-gradient-to-br from-cyan-500 to-primary-600 disabled:opacity-50 text-white text-xs font-black">
+                        {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        ارسال
+                      </button>
+                    </div>
                   </div>
                 </>
               ) : (
@@ -761,6 +941,19 @@ function ChatContent() {
           </div>
         </div>
       </div>
+
+      {previewAttachment && (
+        <div className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setPreviewAttachment(null)}>
+          <button type="button" onClick={() => setPreviewAttachment(null)} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center" aria-label="بستن تصویر"><X className="w-5 h-5" /></button>
+          <div className="max-w-4xl max-h-[88dvh]" onClick={(event) => event.stopPropagation()}>
+            <img src={previewAttachment.url} alt={previewAttachment.name} className="max-w-full max-h-[82dvh] object-contain rounded-[16px] shadow-2xl" />
+            <div className="mt-2 flex items-center justify-between gap-3 text-white text-xs">
+              <span className="truncate">{previewAttachment.name}</span>
+              <a href={previewAttachment.url} download={previewAttachment.name} className="flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-primary-600"><Download className="w-4 h-4" /> دانلود</a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
