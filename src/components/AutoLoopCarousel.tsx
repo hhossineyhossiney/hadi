@@ -29,7 +29,7 @@ export default function AutoLoopCarousel<T>({
   const shouldLoop = items.length > 1;
 
   const renderedItems = useMemo(
-    () => (shouldLoop ? [0, 1, 2].flatMap((copy) => items.map((item, index) => ({ item, index, copy }))) : items.map((item, index) => ({ item, index, copy: 0 }))),
+    () => (shouldLoop ? [0, 1, 2, 3, 4].flatMap((copy) => items.map((item, index) => ({ item, index, copy }))) : items.map((item, index) => ({ item, index, copy: 0 }))),
     [items, shouldLoop],
   );
 
@@ -46,7 +46,8 @@ export default function AutoLoopCarousel<T>({
     if (!shouldLoop || !viewportRef.current) return;
     const step = getStep();
     if (!step) return;
-    viewportRef.current.scrollLeft = step * items.length;
+    // Start from the middle copy, leaving two full copies on each side.
+    viewportRef.current.scrollLeft = step * items.length * 2;
   }, [getStep, items.length, shouldLoop]);
 
   useEffect(() => {
@@ -67,21 +68,35 @@ export default function AutoLoopCarousel<T>({
   }, []);
 
   const normalizeLoopPosition = useCallback(() => {
-    if (!shouldLoop || !viewportRef.current) return;
+    const viewport = viewportRef.current;
+    if (!shouldLoop || !viewport) return;
     const step = getStep();
     if (!step) return;
     const setWidth = step * items.length;
-    const current = viewportRef.current.scrollLeft;
-    if (current >= setWidth * 2 - step * 0.25) {
-      viewportRef.current.scrollLeft = current - setWidth;
-    } else if (current <= step * 0.25) {
-      viewportRef.current.scrollLeft = current + setWidth;
+    const current = viewport.scrollLeft;
+
+    let next: number | null = null;
+    if (current >= setWidth * 4 - step * 0.2) {
+      next = current - setWidth * 2;
+    } else if (current <= setWidth + step * 0.2) {
+      next = current + setWidth * 2;
     }
+    if (next === null) return;
+
+    // Jump between identical copies with snapping and smooth scrolling temporarily
+    // disabled. The visible card stays identical, so the loop never runs backward.
+    viewport.style.scrollBehavior = "auto";
+    viewport.style.scrollSnapType = "none";
+    viewport.scrollLeft = next;
+    requestAnimationFrame(() => {
+      viewport.style.removeProperty("scroll-behavior");
+      viewport.style.removeProperty("scroll-snap-type");
+    });
   }, [getStep, items.length, shouldLoop]);
 
   const handleScroll = useCallback(() => {
     if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
-    scrollTimerRef.current = setTimeout(normalizeLoopPosition, 180);
+    scrollTimerRef.current = setTimeout(normalizeLoopPosition, 420);
   }, [normalizeLoopPosition]);
 
   const move = useCallback((direction: 1 | -1) => {

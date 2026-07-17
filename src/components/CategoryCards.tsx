@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Sparkles, BookOpen, Building2, MoveLeft } from "lucide-react";
+import { ArrowLeft, Sparkles, BookOpen, Building2 } from "lucide-react";
 import { pickCategoryVisual } from "@/lib/category-visuals";
+import AutoLoopCarousel from "@/components/AutoLoopCarousel";
 
 interface Category {
   id: number;
@@ -82,19 +83,17 @@ export default function CategoryCards({ categories }: { categories: Category[] }
           </Link>
         </div>
 
-        <div className="px-4 sm:px-6 md:hidden flex items-center gap-1.5 text-[10px] font-bold text-slate-500 mb-2">
-          <MoveLeft className="w-3.5 h-3.5" /> برای دیدن همه رشته‌ها، کارت‌ها را ورق بزنید
-        </div>
-
-        <div
-          className="px-4 sm:px-6 lg:px-8 overflow-x-auto md:overflow-visible scroll-smooth snap-x snap-mandatory overscroll-x-contain touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          aria-label="فهرست رشته‌های آموزشی"
-        >
-          <div className="flex w-max gap-3 pb-3 md:w-auto md:grid md:grid-cols-3 lg:grid-cols-5 md:gap-4">
-            {categories.map((category, index) => (
-              <CategoryCompactCard key={category.id} category={category} index={index} />
-            ))}
-          </div>
+        <div className="px-4 sm:px-6 lg:px-8">
+          <AutoLoopCarousel
+            items={categories}
+            getKey={(category) => category.id}
+            ariaLabel="رشته‌های آموزشی"
+            intervalMs={3400}
+            itemClassName="basis-[74%] sm:basis-[45%] md:basis-[31%] lg:basis-[calc((100%-4rem)/5)]"
+            renderItem={(category, index) => (
+              <CategoryCompactCard category={category} index={index} />
+            )}
+          />
         </div>
       </div>
     </section>
@@ -114,7 +113,7 @@ function CategoryCompactCard({ category, index }: { category: Category; index: n
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
       transition={{ delay: (index % 6) * 0.04, duration: 0.42 }}
-      className="h-full w-[68vw] max-w-[230px] sm:w-[205px] md:w-auto md:max-w-none shrink-0 snap-start"
+      className="h-full w-full min-w-0"
     >
       <Link
         href={`/fields/${category.slug}`}
