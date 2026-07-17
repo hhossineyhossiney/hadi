@@ -40,11 +40,13 @@ export async function POST(req: NextRequest) {
       ? PROFESSIONAL_SITE_ASSISTANT_PROMPT
       : (SYSTEM_PROMPTS[mode] || SYSTEM_PROMPTS.general);
     const liveKnowledge = isGeneralAssistant ? await buildLiveSiteKnowledge() : "";
+    // Some OpenRouter fallback models only honor the first system message.
+    // Keep instructions and live facts in one authoritative message.
+    const groundedSystemPrompt = liveKnowledge
+      ? `${systemPrompt}\n\n=== اطلاعات زنده و قابل استناد سایت ===\n${liveKnowledge}\n=== پایان اطلاعات زنده ===`
+      : systemPrompt;
     const finalMessages: AIMessage[] = [
-      { role: "system", content: systemPrompt },
-      ...(liveKnowledge
-        ? [{ role: "system" as const, content: `اطلاعات زنده و قابل استناد سایت:\n${liveKnowledge}` }]
-        : []),
+      { role: "system", content: groundedSystemPrompt },
       ...trimmed,
     ];
 
@@ -58,6 +60,7 @@ export async function POST(req: NextRequest) {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache, no-transform",
         "X-Accel-Buffering": "no",
+        "X-AI-Knowledge-Length": String(liveKnowledge.length),
       },
     });
   } catch (e: any) {
