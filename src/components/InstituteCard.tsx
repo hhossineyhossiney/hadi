@@ -176,6 +176,15 @@ export default function InstituteCard({ institute, index = 0 }: { institute: Ins
                   </span>
                 </div>
               )}
+
+              {isTop && !institute.managerName && (
+                <div className="mt-2 flex">
+                  <span className="card-neon-pulse inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-[9px] font-black text-white shadow-lg">
+                    <Award className="w-2.5 h-2.5" />
+                    برگزیده سال
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -269,15 +278,7 @@ export default function InstituteCard({ institute, index = 0 }: { institute: Ins
             </Link>
           </div>
 
-          {/* Badge برگزیده top-left corner */}
-          {isTop && !institute.managerName && (
-            <div className="absolute top-4 left-4 z-10">
-              <div className="card-neon-pulse px-2.5 py-1 rounded-full text-[10px] font-black text-white shadow-lg bg-gradient-to-r from-amber-500 to-orange-500 flex items-center gap-1">
-                <Award className="w-3 h-3" />
-                برگزیده سال
-              </div>
-            </div>
-          )}
+
         </div>
       </div>
     </motion.div>

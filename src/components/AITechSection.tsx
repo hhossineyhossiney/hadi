@@ -76,11 +76,11 @@ export default function AITechSection() {
             {/* Tools and the matte orbital artwork share one compact layer on mobile. */}
             <div className="relative mb-6 isolate">
               <div className="lg:hidden pointer-events-none absolute -inset-2 z-0 overflow-hidden rounded-[28px]" aria-hidden="true">
-                <div className="absolute inset-0 bg-gradient-to-b from-[#190a36]/25 via-[#251044]/35 to-[#071126]/45" />
-                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 opacity-[0.26] blur-[3.5px] saturate-75 scale-[0.9]">
+                <div className="absolute inset-0 bg-gradient-to-b from-[#190a36]/[0.12] via-[#251044]/[0.20] to-[#071126]/[0.30]" />
+                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 opacity-[0.42] blur-[1.5px] saturate-[0.9] scale-[0.9]">
                   <AIVisualization />
                 </div>
-                <div className="absolute inset-0 bg-[#130a2c]/20 backdrop-blur-[1.5px]" />
+                <div className="absolute inset-0 bg-[#130a2c]/[0.08] backdrop-blur-[0.5px]" />
               </div>
 
               <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -91,7 +91,7 @@ export default function AITechSection() {
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: 0.3 + i * 0.1 }}
-                    className="p-4 rounded-[16px] bg-white/[0.065] lg:bg-white/5 backdrop-blur-2xl lg:backdrop-blur-sm border border-white/20 lg:border-white/10 shadow-[0_16px_44px_rgba(0,0,0,0.22)] hover:border-purple-500/50 hover:bg-white/10 transition-all group"
+                    className="p-4 rounded-[16px] bg-white/[0.05] lg:bg-white/5 backdrop-blur-lg lg:backdrop-blur-sm border border-white/20 lg:border-white/10 shadow-[0_16px_44px_rgba(0,0,0,0.22)] hover:border-purple-500/50 hover:bg-white/10 transition-all group"
                   >
                     <div className="w-10 h-10 rounded-[10px] bg-gradient-to-br from-purple-500 to-fuchsia-500 flex items-center justify-center mb-2 shadow-lg shadow-purple-500/40 group-hover:scale-110 transition-transform">
                       <f.icon className="w-5 h-5 text-white" />
