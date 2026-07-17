@@ -16,7 +16,7 @@ export default function PublicHero() {
   const [city, setCity] = useState("همه شهرها");
 
   return (
-    <section className="relative overflow-hidden pt-32 lg:pt-40 pb-16 lg:pb-20">
+    <section className="relative overflow-hidden pt-24 md:pt-32 lg:pt-40 pb-8 md:pb-16 lg:pb-20">
       {/* Background */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-[#04152A] via-[#0B4F8B]/25 to-[#04152A]" />
@@ -36,7 +36,7 @@ export default function PublicHero() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex justify-center mb-6"
+          className="hidden md:flex justify-center mb-6"
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/10">
             <ShieldCheck className="w-4 h-4 text-secondary-300" />
@@ -46,12 +46,21 @@ export default function PublicHero() {
           </div>
         </motion.div>
 
-        {/* Title */}
+        {/* Compact mobile headline; full campaign headline stays unchanged on desktop. */}
+        <motion.h1
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="md:hidden text-center text-[22px] font-black text-white mb-4 leading-tight"
+        >
+          دوره مهارتی‌ات را <span className="text-amber-300">سریع پیدا کن</span>
+        </motion.h1>
+
+        {/* Desktop title */}
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="text-center text-4xl md:text-6xl lg:text-7xl font-black text-white mb-6 leading-[1.1]"
+          className="hidden md:block text-center text-4xl md:text-6xl lg:text-7xl font-black text-white mb-6 leading-[1.1]"
           style={{ letterSpacing: "-0.03em" }}
         >
           دوره‌ای که می‌خواستی،
@@ -65,7 +74,7 @@ export default function PublicHero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="text-center text-base md:text-lg text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed"
+          className="hidden md:block text-center text-base md:text-lg text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed"
         >
           بیش از <span className="font-black text-white">۱۴۰ دوره فعال</span> در آموزشگاه‌های
           آزاد فنی‌وحرفه‌ای شهرستان زبرخان — با گواهی رسمی و بین‌المللی.
@@ -80,7 +89,41 @@ export default function PublicHero() {
           method="GET"
           className="relative max-w-3xl mx-auto"
         >
-          <div className="relative rounded-3xl bg-white/[0.06] backdrop-blur-xl border border-white/15 shadow-2xl shadow-primary-900/40 p-2 flex flex-col md:flex-row items-stretch gap-2">
+          {/* Mobile: one compact row for city, query and submit. */}
+          <div className="md:hidden relative rounded-[18px] bg-white/[0.065] backdrop-blur-xl border border-white/15 shadow-xl shadow-primary-900/30 p-2 flex items-center gap-2">
+            <div className="relative w-[102px] shrink-0">
+              <MapPin className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-primary-300 pointer-events-none" />
+              <select
+                name="city"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="w-full h-11 pr-8 pl-2 rounded-[12px] bg-white/5 border border-white/10 text-white text-[11px] font-black appearance-none focus:outline-none"
+                aria-label="انتخاب شهر"
+              >
+                {CITIES.map((c) => <option key={c} value={c} className="bg-slate-900">{c}</option>)}
+              </select>
+            </div>
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="search"
+                name="q"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="دوره یا آموزشگاه..."
+                className="w-full h-11 pr-9 pl-2 rounded-[12px] bg-white/5 border border-white/10 text-white text-base font-bold placeholder:text-slate-500 focus:outline-none"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-11 h-11 rounded-[12px] bg-gradient-to-br from-primary-500 to-secondary-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-primary-500/25"
+              aria-label="جستجو"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="hidden md:flex relative rounded-3xl bg-white/[0.06] backdrop-blur-xl border border-white/15 shadow-2xl shadow-primary-900/40 p-2 flex-row items-stretch gap-2">
             {/* City select */}
             <div className="relative md:w-48">
               <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-300 pointer-events-none" />
@@ -122,7 +165,7 @@ export default function PublicHero() {
           </div>
 
           {/* Popular categories */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          <div className="mt-6 hidden md:flex flex-wrap items-center justify-center gap-2">
             <span className="text-xs text-slate-400 font-bold ml-2">جستجوی محبوب:</span>
             {POPULAR.map((p) => (
               <Link
@@ -141,26 +184,27 @@ export default function PublicHero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="mt-12 grid grid-cols-2 lg:grid-cols-4 gap-3"
+          className="mt-5 md:mt-12 grid grid-cols-4 gap-2 md:gap-3"
         >
           {[
-            { href: "/institutes", icon: ShieldCheck, label: "آموزشگاه‌های دارای مجوز", color: "from-primary-500 to-primary-700" },
-            { href: "/courses", icon: BookOpen, label: "دوره‌های در حال ثبت‌نام", color: "from-secondary-500 to-teal-700" },
-            { href: "/shop", icon: GraduationCap, label: "دوره‌های آنلاین قابل خرید", color: "from-amber-500 to-orange-600" },
-            { href: "/fields", icon: Award, label: "رشته‌ها و گواهی‌نامه‌ها", color: "from-fuchsia-500 to-purple-700" },
+            { href: "/institutes", icon: ShieldCheck, label: "آموزشگاه‌های دارای مجوز", mobileLabel: "آموزشگاه‌ها", color: "from-primary-500 to-primary-700" },
+            { href: "/courses", icon: BookOpen, label: "دوره‌های در حال ثبت‌نام", mobileLabel: "دوره‌ها", color: "from-secondary-500 to-teal-700" },
+            { href: "/shop", icon: GraduationCap, label: "دوره‌های آنلاین قابل خرید", mobileLabel: "آنلاین", color: "from-amber-500 to-orange-600" },
+            { href: "/fields", icon: Award, label: "رشته‌ها و گواهی‌نامه‌ها", mobileLabel: "رشته‌ها", color: "from-fuchsia-500 to-purple-700" },
           ].map((a, i) => (
             <Link
               key={i}
               href={a.href}
-              className="group flex items-center gap-3 p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-white/20 hover:bg-white/[0.05] transition-all"
+              className="group flex flex-col md:flex-row items-center justify-center md:justify-start gap-1.5 md:gap-3 p-2 md:p-4 rounded-[14px] md:rounded-2xl bg-white/[0.03] border border-white/10 hover:border-white/20 hover:bg-white/[0.05] transition-all min-w-0"
             >
-              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${a.color} flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform`}>
-                <a.icon className="w-5 h-5 text-white" />
+              <div className={`w-9 h-9 md:w-11 md:h-11 rounded-[10px] md:rounded-xl bg-gradient-to-br ${a.color} flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform`}>
+                <a.icon className="w-4 h-4 md:w-5 md:h-5 text-white" />
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-black text-white truncate">{a.label}</div>
+              <div className="min-w-0 text-center md:text-right md:flex-1">
+                <div className="md:hidden text-[9px] leading-none font-black text-white whitespace-nowrap">{a.mobileLabel}</div>
+                <div className="hidden md:block text-sm font-black text-white truncate">{a.label}</div>
               </div>
-              <ArrowLeft className="w-4 h-4 text-slate-400 group-hover:-translate-x-1 group-hover:text-white transition-all" />
+              <ArrowLeft className="hidden md:block w-4 h-4 text-slate-400 group-hover:-translate-x-1 group-hover:text-white transition-all" />
             </Link>
           ))}
         </motion.div>
@@ -170,7 +214,7 @@ export default function PublicHero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
-          className="mt-8 flex justify-center"
+          className="mt-8 hidden md:flex justify-center"
         >
           <Link
             href="/for-institutes"
