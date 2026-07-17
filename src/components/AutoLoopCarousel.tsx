@@ -17,7 +17,7 @@ export default function AutoLoopCarousel<T>({
   renderItem,
   getKey,
   ariaLabel,
-  intervalMs = 4800,
+  intervalMs = 3200,
   itemClassName = "basis-[88%] sm:basis-[48%] lg:basis-[calc((100%-2rem)/3)]",
 }: AutoLoopCarouselProps<T>) {
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -101,10 +101,18 @@ export default function AutoLoopCarousel<T>({
     if (!shouldLoop || paused || !visible) return;
     const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (reducedMotion) return;
-    const timer = setInterval(() => {
+
+    const advance = () => {
       if (!document.hidden) move(1);
-    }, intervalMs);
-    return () => clearInterval(timer);
+    };
+
+    // Show movement almost immediately so users recognize the carousel.
+    const firstMove = setTimeout(advance, 650);
+    const timer = setInterval(advance, intervalMs);
+    return () => {
+      clearTimeout(firstMove);
+      clearInterval(timer);
+    };
   }, [intervalMs, move, paused, shouldLoop, visible]);
 
   useEffect(() => () => {

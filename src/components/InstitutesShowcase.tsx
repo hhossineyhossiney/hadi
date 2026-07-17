@@ -128,7 +128,7 @@ export default function InstitutesShowcase({ institutes }: Props) {
             items={filtered.slice(0, 6)}
             getKey={(institute) => institute.id}
             ariaLabel="آموزشگاه‌های برتر دارای مجوز رسمی"
-            intervalMs={6000}
+            intervalMs={3400}
             renderItem={(institute, index) => (
               <InstituteCard
                 institute={{

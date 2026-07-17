@@ -324,7 +324,7 @@ export default function CoursesShowcase({
             items={limit && limit > 0 ? filtered.slice(0, limit) : filtered}
             getKey={(course) => course.id}
             ariaLabel="جدیدترین دوره‌های مهارتی"
-            intervalMs={5200}
+            intervalMs={3000}
             renderItem={(course, index) => (
               <CourseCard course={course} index={index} />
             )}

@@ -88,7 +88,7 @@ export default function ShopShowcase() {
               items={courses.slice(0, 6)}
               getKey={(course) => course.id}
               ariaLabel="دوره‌های آنلاین حرفه‌ای"
-              intervalMs={5600}
+              intervalMs={3200}
               renderItem={(course, index) => (
                 <OnlineCourseCard course={course} index={index} />
               )}
