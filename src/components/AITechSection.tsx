@@ -12,7 +12,7 @@ const AI_FEATURES = [
 
 export default function AITechSection() {
   return (
-    <section className="relative py-20 lg:py-28 overflow-hidden">
+    <section className="relative py-14 sm:py-20 lg:py-28 overflow-hidden">
       {/* Futuristic background */}
       <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#04152A] via-[#1a0b3a] to-[#04152A]">
         <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-purple-500/20 blur-[100px] animate-float" />
@@ -29,14 +29,14 @@ export default function AITechSection() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-10 items-center">
-          {/* Right: AI Visualization */}
-          <div className="relative order-2 lg:order-1">
+        <div className="grid lg:grid-cols-2 gap-0 lg:gap-10 items-center">
+          {/* Desktop visualization keeps its original layout. On mobile it becomes a matte backdrop. */}
+          <div className="relative order-2 lg:order-1 hidden lg:block">
             <AIVisualization />
           </div>
 
           {/* Left: content */}
-          <div className="order-1 lg:order-2 text-center lg:text-right">
+          <div className="relative isolate order-1 lg:order-2 text-center lg:text-right">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -73,7 +73,16 @@ export default function AITechSection() {
               دستیار هوشمند برای مدیران آموزشگاه و هنرجویان — از تولید محتوا تا پاسخگویی خودکار، پیشنهاد دوره و تحلیل داده.
             </motion.p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+            {/* Mobile: orbital graphic moves behind the tools as a soft matte layer. */}
+            <div className="lg:hidden pointer-events-none absolute -inset-x-10 top-[185px] bottom-[-24px] -z-10 overflow-hidden rounded-[36px]" aria-hidden="true">
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#1a0b3a]/25 to-[#04152A]/45" />
+              <div className="absolute inset-x-0 top-2 opacity-30 blur-[2.5px] saturate-75 scale-[0.92] -translate-y-6">
+                <AIVisualization />
+              </div>
+              <div className="absolute inset-0 bg-[#130a2c]/15 backdrop-blur-[1px]" />
+            </div>
+
+            <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
               {AI_FEATURES.map((f, i) => (
                 <motion.div
                   key={f.title}
@@ -81,7 +90,7 @@ export default function AITechSection() {
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: 0.3 + i * 0.1 }}
-                  className="p-4 rounded-[14px] bg-white/5 backdrop-blur-sm border border-white/10 hover:border-purple-500/50 hover:bg-white/10 transition-all group"
+                  className="p-4 rounded-[16px] bg-white/[0.075] lg:bg-white/5 backdrop-blur-xl lg:backdrop-blur-sm border border-white/15 lg:border-white/10 shadow-[0_14px_40px_rgba(0,0,0,0.18)] hover:border-purple-500/50 hover:bg-white/10 transition-all group"
                 >
                   <div className="w-10 h-10 rounded-[10px] bg-gradient-to-br from-purple-500 to-fuchsia-500 flex items-center justify-center mb-2 shadow-lg shadow-purple-500/40 group-hover:scale-110 transition-transform">
                     <f.icon className="w-5 h-5 text-white" />
