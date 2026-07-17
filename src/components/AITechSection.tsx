@@ -73,32 +73,34 @@ export default function AITechSection() {
               دستیار هوشمند برای مدیران آموزشگاه و هنرجویان — از تولید محتوا تا پاسخگویی خودکار، پیشنهاد دوره و تحلیل داده.
             </motion.p>
 
-            {/* Mobile: orbital graphic moves behind the tools as a soft matte layer. */}
-            <div className="lg:hidden pointer-events-none absolute -inset-x-10 top-[185px] bottom-[-24px] -z-10 overflow-hidden rounded-[36px]" aria-hidden="true">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#1a0b3a]/25 to-[#04152A]/45" />
-              <div className="absolute inset-x-0 top-2 opacity-30 blur-[2.5px] saturate-75 scale-[0.92] -translate-y-6">
-                <AIVisualization />
+            {/* Tools and the matte orbital artwork share one compact layer on mobile. */}
+            <div className="relative mb-6 isolate">
+              <div className="lg:hidden pointer-events-none absolute -inset-2 z-0 overflow-hidden rounded-[28px]" aria-hidden="true">
+                <div className="absolute inset-0 bg-gradient-to-b from-[#190a36]/25 via-[#251044]/35 to-[#071126]/45" />
+                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 opacity-[0.26] blur-[3.5px] saturate-75 scale-[0.9]">
+                  <AIVisualization />
+                </div>
+                <div className="absolute inset-0 bg-[#130a2c]/20 backdrop-blur-[1.5px]" />
               </div>
-              <div className="absolute inset-0 bg-[#130a2c]/15 backdrop-blur-[1px]" />
-            </div>
 
-            <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-              {AI_FEATURES.map((f, i) => (
-                <motion.div
-                  key={f.title}
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.3 + i * 0.1 }}
-                  className="p-4 rounded-[16px] bg-white/[0.075] lg:bg-white/5 backdrop-blur-xl lg:backdrop-blur-sm border border-white/15 lg:border-white/10 shadow-[0_14px_40px_rgba(0,0,0,0.18)] hover:border-purple-500/50 hover:bg-white/10 transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-[10px] bg-gradient-to-br from-purple-500 to-fuchsia-500 flex items-center justify-center mb-2 shadow-lg shadow-purple-500/40 group-hover:scale-110 transition-transform">
-                    <f.icon className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="text-sm font-black text-white mb-1">{f.title}</div>
-                  <div className="text-[11px] text-slate-400 leading-relaxed">{f.desc}</div>
-                </motion.div>
-              ))}
+              <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {AI_FEATURES.map((f, i) => (
+                  <motion.div
+                    key={f.title}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.3 + i * 0.1 }}
+                    className="p-4 rounded-[16px] bg-white/[0.065] lg:bg-white/5 backdrop-blur-2xl lg:backdrop-blur-sm border border-white/20 lg:border-white/10 shadow-[0_16px_44px_rgba(0,0,0,0.22)] hover:border-purple-500/50 hover:bg-white/10 transition-all group"
+                  >
+                    <div className="w-10 h-10 rounded-[10px] bg-gradient-to-br from-purple-500 to-fuchsia-500 flex items-center justify-center mb-2 shadow-lg shadow-purple-500/40 group-hover:scale-110 transition-transform">
+                      <f.icon className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="text-sm font-black text-white mb-1">{f.title}</div>
+                    <div className="text-[11px] text-slate-400 leading-relaxed">{f.desc}</div>
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
