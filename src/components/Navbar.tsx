@@ -42,24 +42,24 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Brand — compact single-line title on mobile */}
-          <Link href="/" className="flex items-center gap-1.5 sm:gap-2.5 group min-w-0 flex-1 lg:flex-none shrink">
-            <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-[10px] sm:rounded-[12px] overflow-hidden shrink-0 bg-[#071a33] border border-amber-400/20 shadow-lg shadow-primary-500/15 group-hover:scale-105 transition-transform duration-300">
+          <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group min-w-0 flex-1 lg:flex-none shrink">
+            <div className="relative w-11 h-11 lg:w-12 lg:h-12 rounded-[12px] overflow-hidden shrink-0 bg-[#071a33] border border-amber-400/35 shadow-[0_6px_22px_rgba(20,184,166,0.2)] group-hover:scale-105 transition-transform duration-300">
               <img
                 src="/images/fanixo-logo.png"
                 alt="لوگوی فَنی‌اکسو"
                 className="w-full h-full object-contain"
               />
             </div>
-            <div className="flex flex-col min-w-0 leading-none">
+            <div className="flex flex-col min-w-0 leading-none rounded-[10px] px-1.5 py-1 bg-white/[0.025] lg:bg-transparent">
               <span
-                className="font-extrabold gradient-text whitespace-nowrap leading-tight tracking-[-0.02em]"
-                style={{ fontSize: "clamp(8px, 2.25vw, 16px)" }}
+                className="font-black text-text-primary whitespace-nowrap leading-tight tracking-[-0.045em] drop-shadow-[0_1px_6px_rgba(0,0,0,0.35)]"
+                style={{ fontFamily: "Vazirmatn, Tahoma, sans-serif", fontSize: "clamp(10px, 2.8vw, 16px)" }}
               >
                 آموزشگاه‌های آزاد فنی و حرفه‌ای زبرخان
               </span>
               <span
-                className="text-text-tertiary font-bold whitespace-nowrap mt-0.5"
-                style={{ fontSize: "clamp(7px, 1.65vw, 10px)" }}
+                className="text-primary-400 font-extrabold whitespace-nowrap mt-1 tracking-wide"
+                style={{ fontFamily: "Vazirmatn, Tahoma, sans-serif", fontSize: "clamp(8px, 2.05vw, 11px)" }}
               >
                 مرکز شماره ۱۲
               </span>
@@ -113,7 +113,6 @@ export default function Navbar() {
 
           {/* Mobile action buttons (right side) */}
           <div className="lg:hidden flex items-center gap-1 shrink-0">
-            <ThemeToggle compact />
             {status === "authenticated" && user ? (
               <UserMenuMobile user={user} isAdmin={isAdmin} />
             ) : status === "unauthenticated" ? (
@@ -129,9 +128,9 @@ export default function Navbar() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="lg:hidden p-2.5 rounded-xl hover:bg-primary-50 transition-colors shrink-0"
+            className="lg:hidden p-2 rounded-xl hover:bg-primary-50 transition-colors shrink-0"
           >
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
@@ -157,6 +156,11 @@ export default function Navbar() {
                   {link.label}
                 </Link>
               ))}
+
+              <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-white/5 border border-border-default">
+                <span className="text-xs font-bold text-text-secondary">حالت نمایش</span>
+                <ThemeToggle compact />
+              </div>
 
               {status === "authenticated" && user ? (
                 <div className="pt-3 border-t border-border-default space-y-2">
