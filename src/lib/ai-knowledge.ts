@@ -30,6 +30,89 @@ function levelLabel(value: unknown): string {
   return levels[String(value || "")] || clean(value) || "ثبت نشده";
 }
 
+async function buildPublicApiFallbackKnowledge(): Promise<string> {
+  try {
+    const [institutesResponse, coursesResponse, shopResponse, faqResponse] = await Promise.all([
+      fetch(`${SITE_ORIGIN}/api/institutes`, { cache: "no-store" }),
+      fetch(`${SITE_ORIGIN}/api/courses`, { cache: "no-store" }),
+      fetch(`${SITE_ORIGIN}/api/shop?limit=200`, { cache: "no-store" }),
+      fetch(`${SITE_ORIGIN}/api/faqs`, { cache: "no-store" }),
+    ]);
+    const institutesData: any[] = institutesResponse.ok ? await institutesResponse.json() : [];
+    const coursesData: any[] = coursesResponse.ok ? await coursesResponse.json() : [];
+    const shopJson: any = shopResponse.ok ? await shopResponse.json() : {};
+    const onlineData: any[] = Array.isArray(shopJson?.courses) ? shopJson.courses : [];
+    const faqData: any[] = faqResponse.ok ? await faqResponse.json() : [];
+
+    const regionCounts = new Map<string, number>();
+    institutesData.forEach((institute) => {
+      const region = institute.regionName || "نامشخص";
+      regionCounts.set(region, (regionCounts.get(region) || 0) + 1);
+    });
+    const categoryInstitutes = new Map<string, Set<string>>();
+    coursesData.forEach((course) => {
+      const category = course.categoryName || "سایر";
+      const ids = categoryInstitutes.get(category) || new Set<string>();
+      if (course.instituteSlug || course.instituteName) ids.add(course.instituteSlug || course.instituteName);
+      categoryInstitutes.set(category, ids);
+    });
+
+    const lines: string[] = [
+      `اطلاعات زنده فنی‌اکسو — ${SITE_ORIGIN}`,
+      `آمار قطعی: ${institutesData.length.toLocaleString("fa-IR")} آموزشگاه، ${coursesData.length.toLocaleString("fa-IR")} دوره حضوری، ${onlineData.length.toLocaleString("fa-IR")} دوره آنلاین.`,
+      `آموزشگاه بر اساس منطقه: ${Array.from(regionCounts).map(([name, count]) => `${name}: ${count.toLocaleString("fa-IR")}`).join(" | ")}`,
+      `آموزشگاه ارائه‌دهنده بر اساس رشته: ${Array.from(categoryInstitutes).map(([name, ids]) => `${name}: ${ids.size.toLocaleString("fa-IR")}`).join(" | ")}`,
+      "\n=== آموزشگاه‌ها ===",
+    ];
+    institutesData.forEach((institute) => lines.push([
+      `نام: ${institute.name}`,
+      `منطقه: ${institute.regionName || "ثبت نشده"}`,
+      `آدرس: ${clean(institute.address) || "ثبت نشده"}`,
+      `موبایل: ${institute.mobile || "ثبت نشده"}`,
+      `تلفن: ${institute.phone || "ثبت نشده"}`,
+      `مدیر: ${institute.managerName || "ثبت نشده"}`,
+      `امتیاز: ${institute.rating || "ثبت نشده"}`,
+      `تعداد دوره: ${institute.courseCount || 0}`,
+      `لینک: ${SITE_ORIGIN}/institutes/${institute.slug}`,
+    ].join(" | ")));
+    lines.push("\n=== دوره‌های حضوری ===");
+    coursesData.forEach((course) => lines.push([
+      `دوره: ${course.title}`,
+      `آموزشگاه: ${course.instituteName || "ثبت نشده"}`,
+      `رشته: ${course.categoryName || "ثبت نشده"}`,
+      `مدرس: ${course.instructor || "ثبت نشده"}`,
+      `سطح: ${levelLabel(course.level)}`,
+      `مدت: ${course.duration || "ثبت نشده"}`,
+      `شهریه: ${money(course.price)}`,
+      `قیمت اصلی: ${course.originalPrice ? money(course.originalPrice) : "ثبت نشده"}`,
+      `پیش‌نیاز: ${clean(course.requirements) || "ثبت نشده"}`,
+      `توضیح: ${clean(course.description, 260) || "ثبت نشده"}`,
+      `لینک: ${SITE_ORIGIN}/courses/${course.slug}`,
+    ].join(" | ")));
+    lines.push("\n=== دوره‌های آنلاین ===");
+    onlineData.forEach((course) => lines.push([
+      `دوره آنلاین: ${course.title}`,
+      `آموزشگاه: ${course.institute_name || "ثبت نشده"}`,
+      `مدرس: ${course.instructor || "ثبت نشده"}`,
+      `سطح: ${levelLabel(course.level)}`,
+      `قیمت: ${money(course.price)}`,
+      `قیمت اصلی: ${course.original_price ? money(course.original_price) : "ثبت نشده"}`,
+      `تخفیف: ${course.discount_percent || 0}٪`,
+      `درس: ${course.total_lessons || 0}`,
+      `گواهینامه: ${course.has_certificate ? "دارد" : "ثبت نشده"}`,
+      `لینک خرید: ${SITE_ORIGIN}/shop/${course.slug}`,
+    ].join(" | ")));
+    if (faqData.length) {
+      lines.push("\n=== سوالات متداول ===");
+      faqData.forEach((item) => lines.push(`سوال: ${clean(item.question)} | پاسخ: ${clean(item.answer, 500)}`));
+    }
+    return lines.join("\n").slice(0, 36_000);
+  } catch (error) {
+    console.error("buildPublicApiFallbackKnowledge", error);
+    return `داده زنده در دسترس نیست. هیچ اطلاعاتی را حدس نزن. سایت: ${SITE_ORIGIN}`;
+  }
+}
+
 export async function buildLiveSiteKnowledge(): Promise<string> {
   try {
     const [instituteRows, courseRows, onlineRows, faqRows] = await Promise.all([
@@ -245,8 +328,8 @@ export async function buildLiveSiteKnowledge(): Promise<string> {
     sections.push(`\nثبت‌نام عمومی: ${SITE_ORIGIN}/register | همه دوره‌ها: ${SITE_ORIGIN}/courses | فروشگاه آنلاین: ${SITE_ORIGIN}/shop | آموزشگاه‌ها: ${SITE_ORIGIN}/institutes | جستجو: ${SITE_ORIGIN}/search`);
     return sections.join("\n").slice(0, 42_000);
   } catch (error) {
-    console.error("buildLiveSiteKnowledge", error);
-    return `اطلاعات زنده سایت در این لحظه قابل دریافت نیست. تنها اطلاعات قطعی عمومی: نشانی سایت ${SITE_ORIGIN} و مسیر ثبت‌نام ${SITE_ORIGIN}/register است. در پاسخ، هیچ عدد، قیمت، نام یا نشانی را حدس نزن.`;
+    console.error("buildLiveSiteKnowledge; switching to public API fallback", error);
+    return buildPublicApiFallbackKnowledge();
   }
 }
 
