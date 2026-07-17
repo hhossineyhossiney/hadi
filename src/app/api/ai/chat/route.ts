@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { aiStream, SYSTEM_PROMPTS, checkRateLimit, type AIMessage } from "@/lib/ai";
+import { buildLiveSiteKnowledge, PROFESSIONAL_SITE_ASSISTANT_PROMPT } from "@/lib/ai-knowledge";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -15,9 +16,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "messages required" }, { status: 400 });
     }
     // last N only
-    const trimmed = messages.slice(-12).map((m) => ({
-      role: m.role === "assistant" ? "assistant" : m.role === "system" ? "system" : "user",
-      content: String(m.content || "").slice(0, 4000),
+    const trimmed = messages.slice(-12).map((message) => ({
+      // System-role messages are never accepted from the browser.
+      role: message.role === "assistant" ? "assistant" as const : "user" as const,
+      content: String(message.content || "").slice(0, 4000),
     }));
 
     // Rate limit key (user id or ip)
@@ -25,7 +27,7 @@ export async function POST(req: NextRequest) {
     const uid = (session?.user as any)?.id;
     const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "anon";
     const rlKey = uid ? `u:${uid}` : `ip:${ip}`;
-    const rl = checkRateLimit(rlKey, uid ? 60 : 15);
+    const rl = checkRateLimit(rlKey, uid ? 100 : 40);
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "rate_limit", resetAt: rl.resetAt },
@@ -33,16 +35,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const systemPrompt = SYSTEM_PROMPTS[mode] || SYSTEM_PROMPTS.general;
+    const isGeneralAssistant = mode === "general";
+    const systemPrompt = isGeneralAssistant
+      ? PROFESSIONAL_SITE_ASSISTANT_PROMPT
+      : (SYSTEM_PROMPTS[mode] || SYSTEM_PROMPTS.general);
+    const liveKnowledge = isGeneralAssistant ? await buildLiveSiteKnowledge() : "";
     const finalMessages: AIMessage[] = [
       { role: "system", content: systemPrompt },
-      ...trimmed as AIMessage[],
+      ...(liveKnowledge
+        ? [{ role: "system" as const, content: `اطلاعات زنده و قابل استناد سایت:\n${liveKnowledge}` }]
+        : []),
+      ...trimmed,
     ];
 
     const stream = await aiStream({
       messages: finalMessages,
-      temperature: 0.7,
-      maxTokens: 1000,
+      temperature: isGeneralAssistant ? 0.25 : 0.7,
+      maxTokens: isGeneralAssistant ? 1800 : 1200,
     });
     return new Response(stream, {
       headers: {

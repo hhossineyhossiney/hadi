@@ -4,8 +4,8 @@ import { eq } from "drizzle-orm";
 
 // ─── Config: OpenRouter (OpenAI-compatible API) ──────────────────────
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
-const HTTP_REFERER = "https://amozeshgahazadconfig.vercel.app";
-const X_TITLE = "Zabarkhan AI";
+const HTTP_REFERER = "https://www.fanixo.ir";
+const X_TITLE = "Fanixo Professional Education Advisor";
 
 export const AI_MODELS = {
   fast: "qwen/qwen3-next-80b-a3b-instruct:free",

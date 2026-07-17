@@ -12,8 +12,21 @@ interface Msg {
 const WELCOME: Msg = {
   role: "assistant",
   content:
-    "سلام 👋 من دستیار هوشمند زبرخانم. هر سوالی درباره دوره‌ها، ثبت‌نام، آموزشگاه‌ها یا هر چیز دیگه‌ای داری بپرس.",
+    "سلام 👋 من مشاور هوشمند فنی‌اکسو هستم و به اطلاعات زنده آموزشگاه‌ها و دوره‌ها دسترسی دارم. درباره تعداد آموزشگاه‌ها، شهریه، مدرس، آدرس، ثبت‌نام یا انتخاب مسیر یادگیری از من بپرس.",
 };
+
+function RichMessage({ content }: { content: string }) {
+  const parts = content.split(/(https?:\/\/[^\s]+)/g);
+  return (
+    <>
+      {parts.map((part, index) => part.startsWith("http") ? (
+        <a key={index} href={part.replace(/[)،.]+$/, "")} target="_blank" rel="noopener noreferrer" className="text-cyan-300 underline underline-offset-2 break-all">
+          {part}
+        </a>
+      ) : <span key={index}>{part}</span>)}
+    </>
+  );
+}
 
 export default function AIChatWidget() {
   const [open, setOpen] = useState(false);
@@ -54,8 +67,8 @@ export default function AIChatWidget() {
     if (open) setTimeout(() => inputRef.current?.focus(), 200);
   }, [open]);
 
-  async function send() {
-    const text = input.trim();
+  async function send(overrideText?: string | unknown) {
+    const text = (typeof overrideText === "string" ? overrideText : input).trim();
     if (!text || loading) return;
     const next = [...msgs, { role: "user" as const, content: text }];
     setMsgs(next);
@@ -129,10 +142,10 @@ export default function AIChatWidget() {
   }
 
   const quickPrompts = [
-    "چطور در دوره‌ها ثبت‌نام کنم؟",
-    "آموزشگاه‌های معتبر رو معرفی کن",
-    "دوره‌های آنلاین قابل خرید کدومان؟",
-    "چطور آموزشگاهم رو ثبت کنم؟",
+    "چند آموزشگاه فعال در هر منطقه داریم؟",
+    "دوره‌های کامپیوتر را با قیمت و مدرس معرفی کن",
+    "برای ورود سریع به بازار کار کدام دوره مناسب‌تر است؟",
+    "دوره‌های آنلاین تخفیف‌دار و لینک خریدشان را بگو",
   ];
 
   return (
@@ -191,7 +204,7 @@ export default function AIChatWidget() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-black text-white leading-tight">
-                    دستیار هوشمند زبرخان
+                    مشاور هوشمند فنی‌اکسو
                   </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -246,7 +259,7 @@ export default function AIChatWidget() {
                           : "bg-white/5 border border-white/10 text-slate-200 rounded-tl-sm"
                       }`}
                     >
-                      {m.content || (
+                      {m.content ? <RichMessage content={m.content} /> : (
                         <span className="inline-flex items-center gap-1 text-slate-400">
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           در حال تایپ...
@@ -266,10 +279,7 @@ export default function AIChatWidget() {
                     {quickPrompts.map((p, i) => (
                       <button
                         key={i}
-                        onClick={() => {
-                          setInput(p);
-                          setTimeout(() => send(), 50);
-                        }}
+                        onClick={() => send(p)}
                         className="w-full text-right px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 hover:border-white/20 hover:bg-white/[0.06] text-xs font-bold text-slate-300 transition-colors"
                       >
                         {p}
@@ -310,7 +320,7 @@ export default function AIChatWidget() {
                   </button>
                 </div>
                 <div className="mt-1.5 text-[9px] text-slate-500 text-center">
-                  با هوش مصنوعی زبرخان قدرت گرفته • Enter برای ارسال، Shift+Enter برای خط جدید
+                  متصل به اطلاعات زنده فنی‌اکسو • Enter برای ارسال، Shift+Enter برای خط جدید
                 </div>
               </div>
             </motion.div>
