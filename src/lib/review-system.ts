@@ -25,6 +25,8 @@ export async function ensureReviewSystem() {
         ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_sample BOOLEAN NOT NULL DEFAULT false;
         ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT false;
         ALTER TABLE reviews ADD COLUMN IF NOT EXISTS manager_reply TEXT;
+        ALTER TABLE reviews ADD COLUMN IF NOT EXISTS media_url TEXT;
+        ALTER TABLE reviews ADD COLUMN IF NOT EXISTS media_type VARCHAR(20);
         ALTER TABLE reviews ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
         CREATE INDEX IF NOT EXISTS reviews_institute_status_idx ON reviews (institute_id, status);
         CREATE INDEX IF NOT EXISTS reviews_course_status_idx ON reviews (course_id, status);
@@ -228,6 +230,8 @@ export type PublicReview = {
   comment: string | null;
   authorName: string;
   managerReply: string | null;
+  mediaUrl: string | null;
+  mediaType: string | null;
   isSample: boolean;
   isVerified: boolean;
   createdAt: string | Date | null;
@@ -252,6 +256,8 @@ export async function getPublicReviews(filters: {
       r.comment,
       COALESCE(NULLIF(r.author_name, ''), u.name, 'هنرجو') AS author_name,
       r.manager_reply,
+      r.media_url,
+      r.media_type,
       r.is_sample,
       r.is_verified,
       r.created_at
@@ -269,6 +275,8 @@ export async function getPublicReviews(filters: {
     comment: string | null;
     author_name: string;
     manager_reply: string | null;
+    media_url: string | null;
+    media_type: string | null;
     is_sample: boolean;
     is_verified: boolean;
     created_at: string | Date | null;
@@ -278,6 +286,8 @@ export async function getPublicReviews(filters: {
     comment: row.comment,
     authorName: row.author_name || "هنرجو",
     managerReply: row.manager_reply,
+    mediaUrl: row.media_url,
+    mediaType: row.media_type,
     isSample: !!row.is_sample,
     isVerified: !!row.is_verified,
     createdAt: row.created_at,

@@ -9,6 +9,8 @@ type Review = {
   comment: string | null;
   authorName: string;
   managerReply: string | null;
+  mediaUrl: string | null;
+  mediaType: string | null;
   isSample: boolean;
   isVerified: boolean;
   createdAt: string | null;
@@ -38,6 +40,8 @@ export default function PublicReviewsSection({
   const [items, setItems] = useState<Review[]>([]);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
+  const [mediaUrl, setMediaUrl] = useState("");
+  const [mediaType, setMediaType] = useState<"image" | "video">("image");
   const [summary, setSummary] = useState({ rating: "0", reviewCount: 0 });
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -68,6 +72,14 @@ export default function PublicReviewsSection({
 
   useEffect(() => { void load(); }, [load]);
 
+  const selectMedia = (file: File) => {
+    if (file.size > 1_000_000) { setMessage({ type: "err", text: "حجم تصویر یا ویدئو باید کمتر از یک مگابایت باشد" }); return; }
+    if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) { setMessage({ type: "err", text: "فقط تصویر یا ویدئو مجاز است" }); return; }
+    const reader = new FileReader();
+    reader.onload = () => { setMediaUrl(String(reader.result || "")); setMediaType(file.type.startsWith("video/") ? "video" : "image"); };
+    reader.readAsDataURL(file);
+  };
+
   const submit = async () => {
     setMessage(null);
     if (comment.trim().length < 10) {
@@ -78,7 +90,7 @@ export default function PublicReviewsSection({
     const response = await fetch("/api/reviews", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ instituteId, courseId, sellableCourseId, rating, comment }),
+      body: JSON.stringify({ instituteId, courseId, sellableCourseId, rating, comment, mediaUrl, mediaType }),
     });
     const data = await response.json().catch(() => ({}));
     setSending(false);
@@ -87,6 +99,7 @@ export default function PublicReviewsSection({
       return;
     }
     setComment("");
+    setMediaUrl("");
     setRating(5);
     setMessage({ type: "ok", text: data.message || "نظر ثبت شد" });
     load();
@@ -133,6 +146,10 @@ export default function PublicReviewsSection({
           placeholder="درباره کیفیت آموزش، مدرس، پشتیبانی یا نتیجه‌ای که گرفتید بنویسید..."
           className="w-full resize-none rounded-[13px] border border-border-default bg-bg-secondary px-4 py-3 text-sm text-text-primary outline-none focus:border-primary-400"
         />
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <label className="cursor-pointer rounded-[9px] border border-border-default bg-bg-secondary px-3 py-2 text-[9px] font-black text-text-secondary">افزودن تصویر یا ویدئو<input type="file" accept="image/*,video/*" className="hidden" onChange={(event) => event.target.files?.[0] && selectMedia(event.target.files[0])} /></label>
+          {mediaUrl && <div className="relative h-16 w-24 overflow-hidden rounded-[9px] border border-border-default">{mediaType === "video" ? <video src={mediaUrl} className="h-full w-full object-cover" /> : <img src={mediaUrl} alt="پیش‌نمایش نظر" className="h-full w-full object-cover" />}<button type="button" onClick={() => setMediaUrl("")} className="absolute left-1 top-1 rounded-full bg-black/70 px-1.5 text-white">×</button></div>}
+        </div>
         <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-[9px] text-text-tertiary">نظر پس از بررسی مدیر آموزشگاه منتشر می‌شود.</span>
           <button type="button" onClick={submit} disabled={sending} className="inline-flex items-center justify-center gap-2 rounded-[11px] bg-primary-600 px-5 py-2.5 text-xs font-black text-white disabled:opacity-50">
@@ -173,6 +190,7 @@ export default function PublicReviewsSection({
                 )}
               </div>
               <p className="text-xs leading-6 text-text-secondary">{review.comment}</p>
+              {review.mediaUrl && (review.mediaType === "video" ? <video src={review.mediaUrl} controls className="mt-3 aspect-video w-full rounded-[12px] bg-black object-cover" /> : <img src={review.mediaUrl} alt={`رسانه نظر ${review.authorName}`} className="mt-3 max-h-64 w-full rounded-[12px] object-cover" />)}
               {review.managerReply && (
                 <div className="mt-3 rounded-[11px] border-r-2 border-primary-500 bg-primary-500/[0.05] p-3">
                   <div className="mb-1 flex items-center gap-1 text-[9px] font-black text-primary-600"><CheckCircle2 className="h-3.5 w-3.5" /> پاسخ آموزشگاه</div>

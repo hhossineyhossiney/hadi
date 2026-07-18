@@ -27,6 +27,8 @@ type Review = {
   rating: number;
   comment: string;
   managerReply: string | null;
+  mediaUrl?: string | null;
+  mediaType?: string | null;
   status: "pending" | "published" | "rejected";
   isSample: boolean;
   isVerified: boolean;
@@ -184,6 +186,7 @@ export default function ReviewManagementPanel({ scope = "manager" }: { scope?: "
 
               <div className="mb-3 flex" dir="ltr">{Array.from({ length: 5 }).map((_, index) => <Star key={index} className={`h-4 w-4 ${index < review.rating ? "fill-amber-400 text-amber-400" : "text-slate-700"}`} />)}</div>
               <p className="whitespace-pre-wrap text-xs leading-6 text-slate-300">{review.comment}</p>
+              {review.mediaUrl && (review.mediaType === "video" ? <video src={review.mediaUrl} controls className="mt-3 max-h-64 w-full rounded-[12px] bg-black object-cover" /> : <img src={review.mediaUrl} alt="رسانه نظر" className="mt-3 max-h-64 w-full rounded-[12px] object-cover" />)}
               {review.managerReply && <div className="mt-3 rounded-[10px] border-r-2 border-primary-400 bg-primary-500/5 p-3 text-[10px] leading-5 text-primary-100"><b className="text-primary-300">پاسخ آموزشگاه:</b> {review.managerReply}</div>}
 
               <div className="mt-4 flex flex-wrap gap-2 border-t border-white/5 pt-3">
@@ -232,7 +235,7 @@ function CreateReviewForm({ data, onCancel, onSave, busy }: { data: Data; onCanc
 }
 
 function EditReviewModal({ review, busy, onClose, onSave }: { review: Review; busy: boolean; onClose: () => void; onSave: (payload: Record<string, unknown>) => void }) {
-  const [form, setForm] = useState({ authorName: review.authorName, rating: review.rating, comment: review.comment || "", managerReply: review.managerReply || "", status: review.status });
+  const [form, setForm] = useState({ authorName: review.authorName, rating: review.rating, comment: review.comment || "", managerReply: review.managerReply || "", mediaUrl: review.mediaUrl || "", mediaType: review.mediaType || "image", status: review.status });
   return (
     <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-xl rounded-[20px] border border-white/10 bg-[#0f1a30] p-5 shadow-2xl" onClick={(event) => event.stopPropagation()}>
@@ -242,6 +245,7 @@ function EditReviewModal({ review, busy, onClose, onSave }: { review: Review; bu
           <div className="grid grid-cols-2 gap-3"><select value={form.rating} onChange={(event) => setForm({ ...form, rating: Number(event.target.value) })} className="rounded-[10px] bg-white/90 px-3 py-2.5 text-sm font-bold text-slate-900">{[5, 4, 3, 2, 1].map((value) => <option key={value} value={value}>{value} ستاره</option>)}</select><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as Review["status"] })} className="rounded-[10px] bg-white/90 px-3 py-2.5 text-sm font-bold text-slate-900"><option value="published">منتشرشده</option><option value="pending">در انتظار</option><option value="rejected">ردشده</option></select></div>
           <textarea value={form.comment} onChange={(event) => setForm({ ...form, comment: event.target.value })} rows={4} className="w-full rounded-[10px] bg-white/90 px-3 py-2.5 text-sm font-bold text-slate-900" />
           <textarea value={form.managerReply} onChange={(event) => setForm({ ...form, managerReply: event.target.value })} rows={3} placeholder="پاسخ رسمی آموزشگاه به هنرجو" className="w-full rounded-[10px] bg-white/90 px-3 py-2.5 text-sm font-bold text-slate-900" />
+          <div className="grid grid-cols-[1fr_auto] gap-2"><input value={form.mediaUrl} onChange={(event) => setForm({ ...form, mediaUrl: event.target.value })} placeholder="آدرس تصویر یا ویدئوی نظر" dir="ltr" className="rounded-[10px] bg-white/90 px-3 py-2.5 text-xs font-bold text-slate-900" /><select value={form.mediaType} onChange={(event) => setForm({ ...form, mediaType: event.target.value })} className="rounded-[10px] bg-white/90 px-3 py-2.5 text-xs font-bold text-slate-900"><option value="image">تصویر</option><option value="video">ویدئو</option></select></div>
         </div>
         <div className="mt-4 flex gap-2"><button type="button" disabled={busy} onClick={() => onSave(form)} className="flex-1 rounded-[10px] bg-emerald-600 py-3 text-xs font-black text-white disabled:opacity-50">{busy ? "در حال ذخیره..." : "ذخیره تغییرات"}</button><button type="button" onClick={onClose} className="rounded-[10px] bg-white/5 px-5 py-3 text-xs font-black text-slate-300">انصراف</button></div>
       </div>

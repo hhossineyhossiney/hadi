@@ -101,6 +101,7 @@ export const institutes = pgTable("institutes", {
   licenseNumber: varchar("license_number", { length: 100 }),
   features: jsonb("features").default([]), // string[]
   establishedYear: varchar("established_year", { length: 20 }),
+  advancedProfile: jsonb("advanced_profile").default({}),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -224,6 +225,8 @@ export const reviews = pgTable("reviews", {
   isSample: boolean("is_sample").default(false),
   isVerified: boolean("is_verified").default(false),
   managerReply: text("manager_reply"),
+  mediaUrl: text("media_url"),
+  mediaType: varchar("media_type", { length: 20 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

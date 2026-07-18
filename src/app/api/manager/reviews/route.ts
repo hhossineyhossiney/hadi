@@ -68,7 +68,7 @@ export async function GET() {
           r.id, r.user_id, r.institute_id, r.course_id, r.sellable_course_id,
           COALESCE(NULLIF(r.author_name, ''), u.name, 'هنرجو') AS author_name,
           r.rating, r.comment, r.status, r.is_sample, r.is_verified,
-          r.manager_reply, r.created_at, r.updated_at,
+          r.manager_reply, r.media_url, r.media_type, r.created_at, r.updated_at,
           COALESCE(c.title, sc.title, ${institute.name}) AS target_title,
           CASE WHEN r.course_id IS NOT NULL THEN 'course'
                WHEN r.sellable_course_id IS NOT NULL THEN 'online'
@@ -98,6 +98,8 @@ export async function GET() {
       isSample: !!row.is_sample,
       isVerified: !!row.is_verified,
       managerReply: row.manager_reply,
+      mediaUrl: row.media_url,
+      mediaType: row.media_type,
       targetTitle: row.target_title,
       targetType: row.target_type,
       createdAt: row.created_at,
@@ -146,11 +148,11 @@ export async function POST(request: Request) {
       await db.execute(sql`
         INSERT INTO reviews (
           user_id, institute_id, course_id, sellable_course_id, author_name,
-          rating, comment, status, is_sample, is_verified, manager_reply,
+          rating, comment, status, is_sample, is_verified, manager_reply, media_url, media_type,
           created_at, updated_at
         ) VALUES (
           NULL, ${institute.id}, ${courseId}, ${sellableCourseId}, ${authorName},
-          ${rating}, ${comment}, ${status}, true, false, ${body.managerReply || null},
+          ${rating}, ${comment}, ${status}, true, false, ${body.managerReply || null}, ${body.mediaUrl || null}, ${body.mediaType || null},
           NOW(), NOW()
         )
       `);
@@ -181,12 +183,14 @@ export async function POST(request: Request) {
       const authorName = String(body.authorName || "").trim().slice(0, 255);
       const comment = String(body.comment || "").trim().slice(0, 1500);
       const managerReply = String(body.managerReply || "").trim().slice(0, 1500) || null;
+      const mediaUrl = String(body.mediaUrl || "").slice(0, 1_500_000) || null;
+      const mediaType = body.mediaType === "video" ? "video" : mediaUrl ? "image" : null;
       const status = ["pending", "published", "rejected"].includes(body.status) ? body.status : "published";
       if (!authorName || comment.length < 10 || rating < 1 || rating > 5) return NextResponse.json({ error: "نام، امتیاز و متن معتبر الزامی است" }, { status: 400 });
       await db.execute(sql`
         UPDATE reviews
         SET author_name = ${authorName}, rating = ${rating}, comment = ${comment},
-            manager_reply = ${managerReply}, status = ${status}, updated_at = NOW()
+            manager_reply = ${managerReply}, media_url = ${mediaUrl}, media_type = ${mediaType}, status = ${status}, updated_at = NOW()
         WHERE id = ${reviewId}
       `);
       await refreshReviewAggregates(institute.id, review.course_id, review.sellable_course_id);

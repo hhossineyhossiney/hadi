@@ -1,293 +1,192 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { db } from "@/db";
+import { sql } from "drizzle-orm";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import InstituteBannerSlider from "@/components/InstituteBannerSlider";
-import { db } from "@/db";
-import { institutes, regions, courses, categories } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
-import { pruneInstitute } from "@/lib/media-url";
+import PremiumInstitutePage from "@/components/PremiumInstitutePage";
+import { pruneCourse, pruneInstitute, pruneShopCourse, pruneStory } from "@/lib/media-url";
+import { ensureAdvancedInstituteProfiles, getAdvancedInstituteProfile } from "@/lib/advanced-institute-profile";
 import { seedSampleReviews } from "@/lib/review-system";
-import Link from "next/link";
-import CourseCard from "@/components/CourseCard";
-import PublicReviewsSection from "@/components/PublicReviewsSection";
-import {
-  MapPin,
-  Phone,
-  Star,
-  BadgeCheck,
-  ArrowLeft,
-  MessageCircle,
-  ShieldCheck,
-  Award,
-  BookOpen,
-  Navigation,
-} from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-// Approximate coordinates for Zeberkhan county regions
-const regionCoords: Record<string, { lat: number; lng: number }> = {
-  "قدمگاه": { lat: 36.1049, lng: 59.0641 },
-  "درود": { lat: 36.091, lng: 59.112 },
-  "اسحاق‌آباد": { lat: 36.053, lng: 59.011 },
-  "خور": { lat: 36.033, lng: 59.121 },
-  "خرو": { lat: 36.147, lng: 59.262 },
-};
+function rowsOf<T = Record<string, unknown>>(result: unknown): T[] {
+  const value = result as { rows?: T[] } | T[];
+  return Array.isArray(value) ? value : value.rows || [];
+}
 
-export default async function InstituteDetailPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  await seedSampleReviews();
+  const result = await db.execute(sql`SELECT name, description, profile_photo FROM institutes WHERE slug = ${slug} LIMIT 1`);
+  const institute = rowsOf<any>(result)[0];
+  if (!institute) return { title: "آموزشگاه یافت نشد | فَنی‌اکسو" };
+  const title = `${institute.name} | دوره‌ها، اساتید، نظرات و ثبت‌نام`;
+  const description = institute.description || `پروفایل حرفه‌ای ${institute.name} شامل دوره‌ها، اساتید، امکانات، نظرات، تقویم کلاس‌ها و ثبت‌نام سریع.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: `https://www.fanixo.ir/institutes/${slug}` },
+    openGraph: { title, description, url: `https://www.fanixo.ir/institutes/${slug}`, images: institute.profile_photo ? [institute.profile_photo] : undefined },
+  };
+}
 
-  const institute = await db
-    .select({
-      id: institutes.id,
-      name: institutes.name,
-      slug: institutes.slug,
-      description: institutes.description,
-      address: institutes.address,
-      phone: institutes.phone,
-      mobile: institutes.mobile,
-      email: institutes.email,
-      rating: institutes.rating,
-      reviewCount: institutes.reviewCount,
-      isVerified: institutes.isVerified,
-      images: institutes.images,
-      bannerImages: institutes.bannerImages,
-      regionName: regions.name,
-    })
-    .from(institutes)
-    .leftJoin(regions, eq(institutes.regionId, regions.id))
-    .where(eq(institutes.slug, slug))
-    .then((res) => res[0] ? pruneInstitute(res[0]) : res[0]);
+export default async function InstituteDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  await Promise.all([ensureAdvancedInstituteProfiles(), seedSampleReviews()]);
 
-  if (!institute) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-bg-secondary">
-        <div className="text-center">
-          <h1 className="text-2xl font-black text-text-primary mb-2">آموزشگاه یافت نشد</h1>
-          <Link href="/institutes" className="text-primary-600 hover:underline font-bold">
-            بازگشت به لیست آموزشگاه‌ها
-          </Link>
-        </div>
-      </main>
-    );
-  }
+  const instituteResult = await db.execute(sql`
+    SELECT i.*, r.name AS region_name
+    FROM institutes i
+    LEFT JOIN regions r ON r.id = i.region_id
+    WHERE i.slug = ${slug}
+    LIMIT 1
+  `);
+  const rawInstitute = rowsOf<any>(instituteResult)[0];
+  if (!rawInstitute) notFound();
 
-  const courseList = await db
-    .select({
-      id: courses.id,
-      title: courses.title,
-      slug: courses.slug,
-      description: courses.description,
-      fullDescription: courses.fullDescription,
-      duration: courses.duration,
-      price: courses.price,
-      originalPrice: courses.originalPrice,
-      capacity: courses.capacity,
-      enrolledCount: sql<number>`(SELECT COUNT(*)::int FROM registrations reg WHERE reg.course_id = ${courses.id} AND reg.status = 'approved')`,
-      instructor: courses.instructor,
-      startDate: courses.startDate,
-      image: courses.image,
-      rating: sql<string>`COALESCE((SELECT ROUND(AVG(r.rating)::numeric, 1) FROM reviews r WHERE r.course_id = ${courses.id} AND r.status = 'published'), 0)::text`,
-      reviewCount: sql<number>`(SELECT COUNT(*)::int FROM reviews r WHERE r.course_id = ${courses.id} AND r.status = 'published')`,
-      categoryName: categories.name,
-    })
-    .from(courses)
-    .leftJoin(categories, eq(courses.categoryId, categories.id))
-    .where(eq(courses.instituteId, institute.id));
+  const institute = pruneInstitute({
+    id: Number(rawInstitute.id),
+    name: rawInstitute.name,
+    slug: rawInstitute.slug,
+    description: rawInstitute.description,
+    address: rawInstitute.address,
+    phone: rawInstitute.phone,
+    mobile: rawInstitute.mobile,
+    email: rawInstitute.email,
+    website: rawInstitute.website,
+    images: rawInstitute.images || [],
+    logo: rawInstitute.logo,
+    lat: rawInstitute.lat,
+    lng: rawInstitute.lng,
+    rating: rawInstitute.rating,
+    reviewCount: Number(rawInstitute.review_count || 0),
+    isVerified: !!rawInstitute.is_verified,
+    isFeatured: !!rawInstitute.is_featured,
+    isYearAward: !!rawInstitute.is_year_award,
+    bannerImages: rawInstitute.banner_images || [],
+    profilePhoto: rawInstitute.profile_photo,
+    managerName: rawInstitute.manager_name,
+    managerTitle: rawInstitute.manager_title,
+    licenseNumber: rawInstitute.license_number,
+    features: rawInstitute.features || [],
+    establishedYear: rawInstitute.established_year,
+    regionName: rawInstitute.region_name,
+  });
 
-  const coords = regionCoords[institute.regionName || ""] || regionCoords["قدمگاه"];
-  const bbox = `${coords.lng - 0.02},${coords.lat - 0.012},${coords.lng + 0.02},${coords.lat + 0.012}`;
+  const profile = await getAdvancedInstituteProfile(institute.id);
+
+  const [courseResult, onlineResult, instructorResult, sessionResult, storyResult, similarResult, statsResult] = await Promise.all([
+    db.execute(sql`
+      SELECT c.id, c.title, c.slug, c.description, c.full_description, c.duration,
+             c.price, c.original_price, c.capacity,
+             (SELECT COUNT(*)::int FROM registrations reg WHERE reg.course_id = c.id AND reg.status = 'approved') AS enrolled_count,
+             c.instructor, c.start_date, c.image, c.level,
+             c.registration_closed, c.registration_ended,
+             cat.name AS category_name,
+             ${institute.name}::text AS institute_name,
+             ${institute.slug}::text AS institute_slug,
+             COALESCE((SELECT ROUND(AVG(rv.rating)::numeric, 1) FROM reviews rv WHERE rv.course_id = c.id AND rv.status = 'published'), 0)::text AS rating,
+             (SELECT COUNT(*)::int FROM reviews rv WHERE rv.course_id = c.id AND rv.status = 'published') AS review_count
+      FROM courses c
+      LEFT JOIN categories cat ON cat.id = c.category_id
+      WHERE c.institute_id = ${institute.id} AND c.status = 'approved'
+      ORDER BY c.created_at DESC
+    `),
+    db.execute(sql`
+      SELECT sc.id, sc.slug, sc.title, sc.subtitle, sc.cover_image,
+             sc.instructor, sc.instructor_title, sc.level, sc.price, sc.original_price,
+             sc.discount_percent, sc.total_lessons, sc.total_chapters, sc.total_duration,
+             (SELECT COUNT(*)::int FROM sellable_purchases sp WHERE sp.course_id = sc.id AND sp.status = 'paid') AS students_count,
+             sc.rating, sc.rating_count, sc.is_featured, sc.has_certificate,
+             sc.has_support, sc.lifetime_access, ${institute.name}::text AS institute_name,
+             cat.name AS category_name
+      FROM sellable_courses sc
+      LEFT JOIN categories cat ON cat.id = sc.category_id
+      WHERE sc.institute_id = ${institute.id} AND sc.is_published = true AND sc.status = 'published'
+      ORDER BY sc.is_featured DESC, sc.published_at DESC NULLS LAST
+    `),
+    db.execute(sql`
+      SELECT ins.*,
+             (SELECT COUNT(*)::int FROM courses c WHERE c.institute_id = ins.institute_id AND c.instructor = ins.name) AS course_count,
+             (SELECT COUNT(*)::int FROM registrations reg JOIN courses c ON c.id = reg.course_id WHERE c.institute_id = ins.institute_id AND c.instructor = ins.name AND reg.status = 'approved') AS student_count
+      FROM instructors ins
+      WHERE ins.institute_id = ${institute.id} AND ins.is_active = true
+      ORDER BY ins.rating DESC, ins.created_at DESC
+    `),
+    db.execute(sql`
+      SELECT cs.*, c.title AS course_title
+      FROM course_sessions cs
+      JOIN courses c ON c.id = cs.course_id
+      WHERE c.institute_id = ${institute.id}
+      ORDER BY cs.session_date NULLS LAST, cs.session_time NULLS LAST
+      LIMIT 30
+    `),
+    db.execute(sql`
+      SELECT * FROM stories
+      WHERE institute_id = ${institute.id} AND is_archived = false AND expires_at > NOW()
+      ORDER BY sort_order, created_at DESC
+      LIMIT 10
+    `),
+    db.execute(sql`
+      SELECT i.id, i.name, i.slug, i.rating, i.review_count, i.is_verified,
+             i.logo, i.profile_photo, r.name AS region_name,
+             (SELECT COUNT(*)::int FROM courses c WHERE c.institute_id = i.id AND c.status = 'approved') AS course_count
+      FROM institutes i
+      LEFT JOIN regions r ON r.id = i.region_id
+      WHERE i.id <> ${institute.id} AND i.status = 'approved'
+      ORDER BY (i.region_id = ${rawInstitute.region_id}) DESC, i.rating DESC
+      LIMIT 8
+    `),
+    db.execute(sql`
+      SELECT
+        (SELECT COUNT(*)::int FROM registrations WHERE institute_id = ${institute.id} AND status = 'approved') AS students,
+        (SELECT COUNT(*)::int FROM registrations WHERE institute_id = ${institute.id} AND status = 'approved' AND (progress >= 100 OR certificate_url IS NOT NULL)) AS graduates,
+        (SELECT COUNT(*)::int FROM courses WHERE institute_id = ${institute.id} AND status = 'approved')
+          + (SELECT COUNT(*)::int FROM sellable_courses WHERE institute_id = ${institute.id} AND is_published = true) AS courses,
+        (SELECT COUNT(*)::int FROM instructors WHERE institute_id = ${institute.id} AND is_active = true) AS instructors
+    `),
+  ]);
+
+  const courses = rowsOf<any>(courseResult).map((row) => pruneCourse({
+    id: Number(row.id), title: row.title, slug: row.slug, description: row.description,
+    fullDescription: row.full_description, duration: row.duration, price: row.price,
+    originalPrice: row.original_price, capacity: Number(row.capacity || 0),
+    enrolledCount: Number(row.enrolled_count || 0), instructor: row.instructor,
+    startDate: row.start_date, image: row.image, level: row.level,
+    registrationClosed: !!row.registration_closed, registrationEnded: !!row.registration_ended,
+    categoryName: row.category_name, instituteName: row.institute_name,
+    instituteSlug: row.institute_slug, rating: row.rating,
+    reviewCount: Number(row.review_count || 0),
+  }));
+  const onlineCourses = rowsOf<any>(onlineResult).map((row) => pruneShopCourse(row));
+  const instructors = rowsOf<any>(instructorResult).map((row) => ({ ...row, id: Number(row.id), course_count: Number(row.course_count || 0), student_count: Number(row.student_count || 0) }));
+  const sessions = rowsOf<any>(sessionResult);
+  const stories = rowsOf<any>(storyResult).map((row) => pruneStory({ id: Number(row.id), ...row }));
+  const similar = rowsOf<any>(similarResult).map((row) => pruneInstitute({ id: Number(row.id), ...row }));
+  const rawStats = rowsOf<any>(statsResult)[0] || {};
+  const stats = {
+    students: Number(rawStats.students || 0),
+    graduates: Number(rawStats.graduates || 0),
+    courses: Number(rawStats.courses || 0),
+    instructors: Number(rawStats.instructors || 0),
+  };
 
   return (
-    <main className="min-h-screen bg-bg-primary">
+    <>
       <Navbar />
-
-      {/* ===== Hero Banner ===== */}
-      <div className="relative h-[340px] lg:h-[420px] overflow-hidden">
-        {Array.isArray(institute.bannerImages) && (institute.bannerImages as string[]).length > 0 ? (
-          <InstituteBannerSlider images={institute.bannerImages as string[]} />
-        ) : (
-          <img src="/images/institute-cover.jpg" alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0B1B3A]/95 via-[#0B1B3A]/50 to-[#0B1B3A]/20" />
-
-        <div className="absolute bottom-0 left-0 right-0">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-            <div className="flex items-end gap-5">
-              <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-[20px] gradient-button shadow-2xl flex flex-col items-center justify-center shrink-0 border-2 border-white/40">
-                <span className="text-3xl">🎓</span>
-                <span className="text-[8px] font-black text-white/90 mt-0.5">فنی و حرفه‌ای</span>
-              </div>
-              <div className="flex-1 pb-1">
-                <div className="flex flex-wrap items-center gap-2.5 mb-2">
-                  {institute.isVerified && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-secondary-500/90 px-2.5 py-1 rounded-full backdrop-blur-sm">
-                      <BadgeCheck className="w-3.5 h-3.5" /> تأیید شده
-                    </span>
-                  )}
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-white/90 bg-white/15 px-2.5 py-1 rounded-full backdrop-blur-sm border border-white/20">
-                    <MapPin className="w-3 h-3" /> {institute.regionName}
-                  </span>
-                </div>
-                <h1 className="text-2xl lg:text-4xl font-black text-white mb-1.5">{institute.name}</h1>
-                <div className="flex items-center gap-2 text-white/80">
-                  <Star className="w-4 h-4 text-accent-400 fill-accent-400" />
-                  <span className="font-black text-white">{institute.rating || "—"}</span>
-                  <span className="text-xs text-white/50">({institute.reviewCount || 0} نظر هنرجویان)</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ===== Sticky Action Bar ===== */}
-      <div className="sticky top-0 z-40 glass border-b border-border-default shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 overflow-x-auto">
-            {(institute.mobile || institute.phone) && (
-              <a
-                href={`tel:${institute.mobile || institute.phone}`}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-[12px] bg-surface border border-border-default text-text-primary text-xs font-bold hover:border-primary-300 hover:text-primary-600 transition-all shrink-0"
-              >
-                <Phone className="w-4 h-4 text-primary-500" /> تماس
-              </a>
-            )}
-            {institute.mobile && (
-              <a
-                href={`https://wa.me/${institute.mobile.replace(/^0/, "+98")}`}
-                target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-[12px] bg-secondary-50 border border-secondary-200 text-secondary-700 text-xs font-bold hover:bg-secondary-100 transition-all shrink-0"
-              >
-                <MessageCircle className="w-4 h-4" /> واتساپ
-              </a>
-            )}
-            <a
-              href={`https://www.google.com/maps?q=${coords.lat},${coords.lng}`}
-              target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-[12px] bg-surface border border-border-default text-text-primary text-xs font-bold hover:border-primary-300 hover:text-primary-600 transition-all shrink-0"
-            >
-              <Navigation className="w-4 h-4 text-primary-500" /> مسیریابی
-            </a>
-          </div>
-          <Link
-            href="/register"
-            className="px-6 py-2.5 rounded-[12px] text-xs font-black text-white gradient-button hover:gradient-button-hover shadow-lg shadow-primary-600/25 transition-all shrink-0"
-          >
-            ثبت‌نام سریع
-          </Link>
-        </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {/* ===== About + Trust badges ===== */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
-          <div className="lg:col-span-2 bg-surface rounded-[20px] border border-border-default p-7">
-            <h2 className="text-lg font-black text-text-primary mb-3">درباره آموزشگاه</h2>
-            <p className="text-text-secondary leading-relaxed text-sm mb-5">{institute.description}</p>
-            {institute.address && (
-              <div className="flex items-start gap-2.5 p-4 rounded-[14px] bg-bg-secondary text-sm">
-                <MapPin className="w-4 h-4 text-primary-500 mt-0.5 shrink-0" />
-                <span className="text-text-secondary font-medium">{institute.address}</span>
-              </div>
-            )}
-          </div>
-          <div className="space-y-3">
-            {[
-              { icon: ShieldCheck, title: "دارای مجوز رسمی", desc: "سازمان فنی و حرفه‌ای کشور", color: "text-secondary-600 bg-secondary-50 border-secondary-200" },
-              { icon: BadgeCheck, title: "هویت تأیید شده", desc: "توسط پلتفرم زبرخان آموزش", color: "text-primary-600 bg-primary-50 border-primary-200" },
-              { icon: Award, title: `${courseList.length} دوره فعال`, desc: "با مدرک رسمی پایان دوره", color: "text-accent-600 bg-accent-50 border-accent-200" },
-            ].map((b) => (
-              <div key={b.title} className={`flex items-center gap-3.5 p-4 rounded-[16px] border ${b.color.split(" ").slice(1).join(" ")}`}>
-                <b.icon className={`w-6 h-6 shrink-0 ${b.color.split(" ")[0]}`} />
-                <div>
-                  <div className="text-sm font-black text-text-primary">{b.title}</div>
-                  <div className="text-[11px] text-text-tertiary">{b.desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ===== Courses Grid ===== */}
-        <div className="mb-12">
-          <h2 className="text-xl font-black text-text-primary mb-6">دوره‌های آموزشی</h2>
-          {courseList.length === 0 ? (
-            <div className="bg-surface rounded-[20px] border border-border-default p-12 text-center">
-              <BookOpen className="w-10 h-10 text-text-tertiary mx-auto mb-3" />
-              <p className="text-text-secondary">هنوز دوره‌ای ثبت نشده است</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-7">
-              {courseList.map((course, index) => (
-                <CourseCard
-                  key={course.id}
-                  course={{
-                    ...course,
-                    instituteName: institute.name,
-                    instituteSlug: institute.slug,
-                  }}
-                  index={index}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* ===== Gallery / Portfolio ===== */}
-        {Array.isArray(institute.images) && (institute.images as string[]).length > 0 && (
-          <div className="mb-12">
-            <h2 className="text-xl font-black text-text-primary mb-6">گالری و نمونه‌کارها</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {(institute.images as string[]).map((img, i) => (
-                <div key={i} className="rounded-[16px] overflow-hidden border border-border-default aspect-square hover-lift bg-surface">
-                  <img src={img} alt={`نمونه‌کار ${institute.name} — ${i + 1}`} loading="lazy" className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ===== Map Embed ===== */}
-        <div className="mb-12">
-          <h2 className="text-xl font-black text-text-primary mb-6">موقعیت روی نقشه</h2>
-          <div className="bg-surface rounded-[20px] border border-border-default overflow-hidden">
-            <iframe
-              title="موقعیت آموزشگاه"
-              src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${coords.lat},${coords.lng}`}
-              className="w-full h-[320px] border-0"
-              loading="lazy"
-            />
-            <div className="p-4 flex items-center justify-between">
-              <span className="text-xs text-text-tertiary font-medium">{institute.address}</span>
-              <a
-                href={`https://www.google.com/maps?q=${coords.lat},${coords.lng}`}
-                target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-primary-50 text-primary-700 text-xs font-bold hover:bg-primary-100 transition-colors"
-              >
-                <Navigation className="w-3.5 h-3.5" /> دریافت مسیر
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* ===== Reviews ===== */}
-        <PublicReviewsSection
-          instituteId={institute.id}
-          title={`نظرات هنرجویان ${institute.name}`}
-        />
-
-        <div className="mt-10">
-          <Link href="/institutes" className="inline-flex items-center gap-2 text-text-secondary hover:text-primary-600 transition-colors font-bold text-sm">
-            <ArrowLeft className="w-4 h-4" /> مشاهده سایر آموزشگاه‌ها
-          </Link>
-        </div>
-      </div>
+      <PremiumInstitutePage
+        institute={institute}
+        profile={profile}
+        courses={courses}
+        onlineCourses={onlineCourses}
+        instructors={instructors}
+        sessions={sessions}
+        stories={stories}
+        similar={similar}
+        stats={stats}
+      />
       <Footer />
-    </main>
+    </>
   );
 }

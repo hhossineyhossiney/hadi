@@ -33,7 +33,7 @@ export async function GET() {
         r.id, r.user_id, r.institute_id, r.course_id, r.sellable_course_id,
         COALESCE(NULLIF(r.author_name, ''), u.name, 'هنرجو') AS author_name,
         r.rating, r.comment, r.status, r.is_sample, r.is_verified,
-        r.manager_reply, r.created_at, r.updated_at,
+        r.manager_reply, r.media_url, r.media_type, r.created_at, r.updated_at,
         i.name AS institute_name,
         COALESCE(c.title, sc.title, i.name) AS target_title,
         CASE WHEN r.course_id IS NOT NULL THEN 'course'
@@ -52,7 +52,7 @@ export async function GET() {
       sellableCourseId: row.sellable_course_id ? Number(row.sellable_course_id) : null,
       authorName: row.author_name, rating: Number(row.rating), comment: row.comment,
       status: row.status, isSample: !!row.is_sample, isVerified: !!row.is_verified,
-      managerReply: row.manager_reply, instituteName: row.institute_name,
+      managerReply: row.manager_reply, mediaUrl: row.media_url, mediaType: row.media_type, instituteName: row.institute_name,
       targetTitle: row.target_title, targetType: row.target_type,
       createdAt: row.created_at, updatedAt: row.updated_at,
     }));

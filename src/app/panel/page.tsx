@@ -24,6 +24,7 @@ import WeekdayPicker from "@/components/WeekdayPicker";
 import { calculateCourseSchedule, formatScheduleDays } from "@/lib/schedule";
 import ReviewManagementPanel from "@/components/panel/ReviewManagementPanel";
 import ShopPurchasesModal from "@/components/panel/ShopPurchasesModal";
+import PremiumProfileEditor from "@/components/panel/PremiumProfileEditor";
 
 type TabKey = "dashboard" | "ai_studio" | "courses" | "shop" | "students" | "reviews" | "sessions" | "progress" | "live" | "assignments" | "quizzes" | "grades" | "instructors" | "attendance" | "groups" | "reports" | "subscription" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
 
@@ -230,6 +231,7 @@ export default function ManagerPanelPage() {
           {tab === "profile" && (
             <div className="space-y-6">
               <InstituteProfileForm institute={institute} refresh={fetchData} />
+              <PremiumProfileEditor />
               <ProfileStoriesTab institute={institute} refresh={fetchData} />
             </div>
           )}

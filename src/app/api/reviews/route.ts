@@ -56,6 +56,9 @@ export async function POST(request: Request) {
     const sellableCourseId = Number(body.sellableCourseId || 0) || null;
     const rating = Number(body.rating || 0);
     const comment = String(body.comment || "").trim();
+    const mediaUrl = typeof body.mediaUrl === "string" ? body.mediaUrl : "";
+    const mediaType = body.mediaType === "video" ? "video" : mediaUrl ? "image" : null;
+    if (mediaUrl && mediaUrl.length > 1_500_000) return NextResponse.json({ error: "حجم رسانه نظر بیشتر از حد مجاز است" }, { status: 400 });
 
     if (!instituteId || (courseId && sellableCourseId)) {
       return NextResponse.json({ error: "هدف نظر نامعتبر است" }, { status: 400 });
@@ -129,6 +132,7 @@ export async function POST(request: Request) {
       await db.execute(sql`
         UPDATE reviews
         SET rating = ${rating}, comment = ${comment}, author_name = ${authorName},
+            media_url = ${mediaUrl || null}, media_type = ${mediaType},
             status = 'pending', is_sample = false, is_verified = true, updated_at = NOW()
         WHERE id = ${Number(existing.id)}
       `);
@@ -136,10 +140,10 @@ export async function POST(request: Request) {
       await db.execute(sql`
         INSERT INTO reviews (
           user_id, institute_id, course_id, sellable_course_id, author_name,
-          rating, comment, status, is_sample, is_verified, created_at, updated_at
+          rating, comment, media_url, media_type, status, is_sample, is_verified, created_at, updated_at
         ) VALUES (
           ${userId}, ${instituteId}, ${courseId}, ${sellableCourseId}, ${authorName},
-          ${rating}, ${comment}, 'pending', false, true, NOW(), NOW()
+          ${rating}, ${comment}, ${mediaUrl || null}, ${mediaType}, 'pending', false, true, NOW(), NOW()
         )
       `);
     }
