@@ -69,7 +69,7 @@ export async function seedSampleReviews() {
   await ensureReviewSystem();
   if (!seedPromise) {
     seedPromise = (async () => {
-      const markerResult = await db.execute(sql.raw(`SELECT key FROM site_settings WHERE key = 'review_sample_seed_v1' LIMIT 1`));
+      const markerResult = await db.execute(sql.raw(`SELECT key FROM site_settings WHERE key = 'review_sample_seed_v2' LIMIT 1`));
       if (rowsOf(markerResult).length > 0) return;
 
       const result = await db.execute(sql.raw(`
@@ -98,6 +98,7 @@ export async function seedSampleReviews() {
       for (const institute of institutes) {
         const offset = (Number(institute.id) * 3) % SAMPLE_NAMES.length;
         const courseTitle = institute.course_title || institute.sellable_title || "دوره‌های مهارتی";
+        const instituteDisplayName = String(institute.name || "").replace(/^آموزشگاه\s+/, "");
         const samples = [
           {
             author: SAMPLE_NAMES[offset % SAMPLE_NAMES.length],
@@ -111,7 +112,7 @@ export async function seedSampleReviews() {
             rating: 4,
             courseId: null,
             sellableCourseId: institute.sellable_course_id,
-            comment: `پاسخ‌گویی و پیگیری آموزشگاه ${institute.name} خوب بود. اطلاعات برنامه کلاس و مراحل ثبت‌نام را شفاف توضیح دادند.`,
+            comment: `پاسخ‌گویی و پیگیری آموزشگاه ${instituteDisplayName} خوب بود. اطلاعات برنامه کلاس و مراحل ثبت‌نام را شفاف توضیح دادند.`,
           },
           {
             author: SAMPLE_NAMES[(offset + 2) % SAMPLE_NAMES.length],
@@ -140,8 +141,31 @@ export async function seedSampleReviews() {
         await refreshReviewAggregates(Number(institute.id));
       }
       await db.execute(sql.raw(`
+        UPDATE reviews
+        SET comment = REPLACE(comment, 'آموزشگاه آموزشگاه ', 'آموزشگاه '), updated_at = NOW()
+        WHERE is_sample = true AND comment LIKE '%آموزشگاه آموزشگاه %';
+
+        UPDATE sellable_courses sc
+        SET
+          rating = COALESCE((
+            SELECT ROUND(AVG(r.rating)::numeric, 2)
+            FROM reviews r
+            WHERE r.sellable_course_id = sc.id AND r.status = 'published'
+          ), 0),
+          rating_count = (
+            SELECT COUNT(*)::int
+            FROM reviews r
+            WHERE r.sellable_course_id = sc.id AND r.status = 'published'
+          ),
+          students_count = (
+            SELECT COUNT(*)::int
+            FROM sellable_purchases sp
+            WHERE sp.course_id = sc.id AND sp.status = 'paid'
+          ),
+          updated_at = NOW();
+
         INSERT INTO site_settings (key, value, updated_at)
-        VALUES ('review_sample_seed_v1', '{"done":true}'::jsonb, NOW())
+        VALUES ('review_sample_seed_v2', '{"done":true}'::jsonb, NOW())
         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
       `));
     })().catch((error) => {
