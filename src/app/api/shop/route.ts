@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { sellableCourses, institutes, categories } from "@/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
+import { seedSampleReviews } from "@/lib/review-system";
 
 // GET /api/shop?featured=1&limit=6  or ?all=1
 export async function GET(req: Request) {
+  await seedSampleReviews();
   const url = new URL(req.url);
   const featured = url.searchParams.get("featured");
   const limit = Math.min(Number(url.searchParams.get("limit") || 100), 200);
@@ -16,7 +18,8 @@ export async function GET(req: Request) {
              sc.instructor, sc.instructor_title, sc.instructor_avatar,
              sc.level, sc.price, sc.original_price, sc.discount_percent,
              sc.total_lessons, sc.total_chapters, sc.total_duration,
-             sc.students_count, sc.rating, sc.rating_count,
+             (SELECT COUNT(*)::int FROM sellable_purchases sp WHERE sp.course_id = sc.id AND sp.status = 'paid') AS students_count,
+             sc.rating, sc.rating_count,
              sc.is_featured, sc.has_certificate, sc.has_support, sc.lifetime_access,
              sc.published_at, sc.features,
              i.id AS institute_id, i.name AS institute_name, i.slug AS institute_slug,

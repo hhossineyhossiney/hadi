@@ -15,10 +15,12 @@ import { db } from "@/db";
 import { categories, institutes, regions, courses, siteSettings } from "@/db/schema";
 import { eq, count, sql, inArray, and } from "drizzle-orm";
 import { pruneInstitute, pruneCourse } from "@/lib/media-url";
+import { seedSampleReviews } from "@/lib/review-system";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
+  await seedSampleReviews();
   const rawCats = await db.select().from(categories).orderBy(categories.name);
 
   const cats = await Promise.all(
@@ -98,10 +100,12 @@ export default async function HomePage() {
       originalPrice: courses.originalPrice,
       level: courses.level,
       capacity: courses.capacity,
-      enrolledCount: courses.enrolledCount,
+      enrolledCount: sql<number>`(SELECT COUNT(*)::int FROM registrations reg WHERE reg.course_id = ${courses.id} AND reg.status = 'approved')`,
       instructor: courses.instructor,
       startDate: courses.startDate,
       image: courses.image,
+      rating: sql<string>`COALESCE((SELECT ROUND(AVG(r.rating)::numeric, 1) FROM reviews r WHERE r.course_id = ${courses.id} AND r.status = 'published'), 0)::text`,
+      reviewCount: sql<number>`(SELECT COUNT(*)::int FROM reviews r WHERE r.course_id = ${courses.id} AND r.status = 'published')`,
       categoryName: categories.name,
       instituteName: institutes.name,
       instituteSlug: institutes.slug,

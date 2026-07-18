@@ -12,6 +12,7 @@ import {
   Shield, Sparkles, ArrowLeft, Loader2, Play, Zap,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import PublicReviewsSection from "@/components/PublicReviewsSection";
 
 type Lesson = {
   id: number;
@@ -348,6 +349,7 @@ export default function ShopCourseDetail({ params }: { params: Promise<{ slug: s
                   { k: "chapters", l: "سرفصل‌ها", count: chapters.length },
                   { k: "about", l: "درباره دوره" },
                   { k: "instructor", l: "درباره مدرس" },
+                  { k: "reviews", l: "نظرات", count: course.ratingCount || 0 },
                 ].map(t => (
                   <button
                     key={t.k}
@@ -518,6 +520,15 @@ export default function ShopCourseDetail({ params }: { params: Promise<{ slug: s
                     <p className="text-sm text-text-tertiary">توضیحات مدرس در دسترس نیست.</p>
                   )}
                 </div>
+              )}
+
+              {activeTab === "reviews" && institute && (
+                <PublicReviewsSection
+                  instituteId={institute.id}
+                  sellableCourseId={course.id}
+                  title={`نظرات خریداران دوره ${course.title}`}
+                  compact
+                />
               )}
             </div>
 

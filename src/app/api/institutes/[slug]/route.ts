@@ -1,7 +1,8 @@
 import { db } from "@/db";
 import { institutes, regions, courses, categories, reviews, users } from "@/db/schema";
-import { eq, count } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { seedSampleReviews } from "@/lib/review-system";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
+  await seedSampleReviews();
 
   const institute = await db
     .select({
@@ -62,11 +64,14 @@ export async function GET(
       rating: reviews.rating,
       comment: reviews.comment,
       createdAt: reviews.createdAt,
-      userName: users.name,
+      userName: sql<string>`COALESCE(NULLIF(${reviews.authorName}, ''), ${users.name}, 'هنرجو')`,
+      isSample: reviews.isSample,
+      isVerified: reviews.isVerified,
+      managerReply: reviews.managerReply,
     })
     .from(reviews)
     .leftJoin(users, eq(reviews.userId, users.id))
-    .where(eq(reviews.instituteId, institute.id))
+    .where(and(eq(reviews.instituteId, institute.id), eq(reviews.status, "published")))
     .orderBy(reviews.createdAt);
 
   return NextResponse.json({

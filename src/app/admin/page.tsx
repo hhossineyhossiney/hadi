@@ -13,8 +13,9 @@ import { motion } from "framer-motion";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useMobilePanelDrawer } from "@/components/panel/useMobilePanelDrawer";
 import { normalizePhone } from "@/lib/phone";
+import ReviewManagementPanel from "@/components/panel/ReviewManagementPanel";
 
-type TabKey = "dashboard" | "analytics" | "tickets" | "plans" | "institutes" | "awards" | "managers" | "registrations" | "finance" | "chat" | "categories" | "regions" | "faqs" | "homepage" | "telegram" | "shop_perms";
+type TabKey = "dashboard" | "analytics" | "tickets" | "plans" | "institutes" | "awards" | "managers" | "registrations" | "reviews" | "finance" | "chat" | "categories" | "regions" | "faqs" | "homepage" | "telegram" | "shop_perms";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد مدیریتی", icon: LayoutDashboard },
@@ -25,6 +26,7 @@ const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "awards", label: "برگزیدگان سال ⭐", icon: Award },
   { key: "managers", label: "مدیران آموزشگاه‌ها", icon: Users2 },
   { key: "registrations", label: "مدیریت ثبت‌نام‌ها", icon: ClipboardList },
+  { key: "reviews", label: "نظرات و امتیازها", icon: Star },
   { key: "shop_perms", label: "مجوز فروش آنلاین", icon: ShieldCheck },
   { key: "finance", label: "مالی و درآمد", icon: Wallet },
   { key: "chat", label: "چت با آموزشگاه‌ها", icon: MessageCircle },
@@ -187,6 +189,7 @@ export default function AdminPage() {
           {tab === "awards" && <AwardsTab />}
           {tab === "managers" && <ManagersTab />}
           {tab === "registrations" && <RegistrationsTab />}
+          {tab === "reviews" && <ReviewManagementPanel scope="admin" />}
           {tab === "finance" && <FinanceTab />}
           {tab === "categories" && <CategoriesTab />}
           {tab === "regions" && <RegionsTab />}
@@ -1476,6 +1479,7 @@ function AdminChatTab() {
 /* ============================= SHOP PERMS TAB ============================= */
 function ShopPermsTab() {
   const [data, setData] = useState<any[] | null>(null);
+  const [shopCourses, setShopCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
   const [editing, setEditing] = useState<any>(null);
@@ -1483,7 +1487,7 @@ function ShopPermsTab() {
 
   const load = () => {
     setLoading(true);
-    fetch("/api/admin/shop-permissions").then(r => r.json()).then(d => { setData(d.institutes || []); setLoading(false); });
+    fetch("/api/admin/shop-permissions").then(r => r.json()).then(d => { setData(d.institutes || []); setShopCourses(d.courses || []); setLoading(false); });
   };
   useEffect(load, []);
 
@@ -1566,6 +1570,25 @@ function ShopPermsTab() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="mt-6 rounded-[18px] border border-white/5 bg-[#111a2e] p-4">
+        <div className="mb-4">
+          <h3 className="text-sm font-black text-white">مدیریت نشان «ویژه» روی کارت دوره‌های آنلاین</h3>
+          <p className="mt-1 text-[10px] text-slate-500">این ویژگی مربوط به مدیر کل است و ترتیب نمایش دوره‌ها در فروشگاه و صفحه اصلی را کنترل می‌کند.</p>
+        </div>
+        {shopCourses.length === 0 ? <div className="py-6 text-center text-xs text-slate-500">دوره آنلاین ثبت نشده است.</div> : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {shopCourses.map((course) => (
+              <div key={course.id} className="flex items-center justify-between gap-3 rounded-[12px] border border-white/10 bg-[#0B1120] p-3">
+                <div className="min-w-0"><div className="truncate text-xs font-black text-white">{course.title}</div><div className="mt-1 truncate text-[9px] text-slate-500">{course.institute_name} • {course.is_published ? "منتشرشده" : "پیش‌نویس"}</div></div>
+                <button type="button" onClick={() => save({ action: "toggleFeatured", courseId: course.id, isFeatured: !course.is_featured })} className={`shrink-0 rounded-full px-3 py-2 text-[9px] font-black ${course.is_featured ? "bg-amber-400 text-slate-900" : "bg-white/5 text-slate-400"}`}>
+                  {course.is_featured ? "⭐ ویژه" : "عادی"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {editing && (

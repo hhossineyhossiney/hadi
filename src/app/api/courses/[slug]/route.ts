@@ -1,7 +1,8 @@
 import { db } from "@/db";
 import { courses, institutes, categories, regions } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { getPublicReviews, getReviewSummary, seedSampleReviews } from "@/lib/review-system";
 
 export const dynamic = "force-dynamic";
 
@@ -10,10 +11,12 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
+  await seedSampleReviews();
 
   const runQuery = (withNew: boolean) => {
     const fields: any = {
       id: courses.id,
+      instituteId: courses.instituteId,
       title: courses.title,
       slug: courses.slug,
       description: courses.description,
@@ -21,11 +24,12 @@ export async function GET(
       duration: courses.duration,
       price: courses.price,
       capacity: courses.capacity,
-      enrolledCount: courses.enrolledCount,
+      enrolledCount: sql<number>`(SELECT COUNT(*)::int FROM registrations reg WHERE reg.course_id = ${courses.id} AND reg.status = 'approved')`,
       instructor: courses.instructor,
       requirements: courses.requirements,
       schedule: courses.schedule,
       startDate: courses.startDate,
+      image: courses.image,
       bannerImages: courses.bannerImages,
       totalSessions: courses.totalSessions,
       level: courses.level,
@@ -75,5 +79,10 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json(course);
+  const [reviews, summary] = await Promise.all([
+    getPublicReviews({ instituteId: Number(course.instituteId), courseId: Number(course.id) }),
+    getReviewSummary({ instituteId: Number(course.instituteId), courseId: Number(course.id) }),
+  ]);
+
+  return NextResponse.json({ ...course, reviews, rating: summary.rating, reviewCount: summary.reviewCount });
 }

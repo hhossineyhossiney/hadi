@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Image as ImageIcon, Award, Plus, LogOut, ShieldCheck, Eye, EyeOff,
   UserCircle2, FolderOpen, Menu, Bell, TrendingUp, CalendarDays,
   MessageCircle, Video, Link as LinkIcon, Calendar, ShoppingBag, PlayCircle,
-  ChevronLeft, Sparkles,
+  ChevronLeft, Sparkles, Star,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import AIToolPanel from "@/components/AIToolPanel";
@@ -22,8 +22,10 @@ import PersianDatePicker from "@/components/PersianDatePicker";
 import MoneyInput from "@/components/MoneyInput";
 import WeekdayPicker from "@/components/WeekdayPicker";
 import { calculateCourseSchedule, formatScheduleDays } from "@/lib/schedule";
+import ReviewManagementPanel from "@/components/panel/ReviewManagementPanel";
+import ShopPurchasesModal from "@/components/panel/ShopPurchasesModal";
 
-type TabKey = "dashboard" | "ai_studio" | "courses" | "shop" | "students" | "sessions" | "progress" | "live" | "assignments" | "quizzes" | "grades" | "instructors" | "attendance" | "groups" | "reports" | "subscription" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
+type TabKey = "dashboard" | "ai_studio" | "courses" | "shop" | "students" | "reviews" | "sessions" | "progress" | "live" | "assignments" | "quizzes" | "grades" | "instructors" | "attendance" | "groups" | "reports" | "subscription" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
@@ -32,6 +34,7 @@ const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "courses", label: "مدیریت دوره‌ها", icon: BookOpen },
   { key: "shop", label: "فروش آنلاین دوره", icon: Wallet },
   { key: "students", label: "لیست هنرجویان", icon: Users },
+  { key: "reviews", label: "مدیریت نظرات و امتیازها", icon: Star },
   { key: "instructors", label: "مدیریت اساتید", icon: UserCircle2 },
   { key: "progress", label: "وضعیت پیشرفت هنرجویان", icon: TrendingUp },
   { key: "grades", label: "ثبت نمرات و کارنامه", icon: Award },
@@ -221,6 +224,7 @@ export default function ManagerPanelPage() {
           {tab === "ai_studio" && <AIStudioTab />}
           {tab === "courses" && <CoursesTab data={data} refresh={fetchData} />}
           {tab === "students" && <StudentsTab data={data} refresh={fetchData} />}
+          {tab === "reviews" && <ReviewManagementPanel scope="manager" />}
           {tab === "gallery" && <GalleryTab data={data} refresh={fetchData} />}
           {tab === "banner" && <BannerTab data={data} refresh={fetchData} />}
           {tab === "profile" && (
@@ -720,6 +724,7 @@ function ShopTab() {
   const [msg, setMsg] = useState("");
   const [creating, setCreating] = useState(false);
   const [editingCourse, setEditingCourse] = useState<any>(null);
+  const [purchasesCourseId, setPurchasesCourseId] = useState<number | null>(null);
   const [managingCourseId, setManagingCourseId] = useState<number | null>(null);
   const [form, setForm] = useState<any>({
     title: "", subtitle: "", description: "", price: "", originalPrice: "",
@@ -855,9 +860,8 @@ function ShopTab() {
               <label className="text-[10px] font-black text-slate-400 mb-1 block">توضیحات کامل دوره</label>
               <textarea value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} rows={4} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-xs font-bold resize-none" />
             </div>
-            <div className="md:col-span-2">
-              <label className="text-[10px] font-black text-slate-400 mb-1 block">تصویر کاور (لینک یا Base64)</label>
-              <input value={form.coverImage} onChange={(e) => setForm({...form, coverImage: e.target.value})} placeholder="https://... یا data:image/..." className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-xs font-bold" dir="ltr" />
+            <div className="md:col-span-2 rounded-[14px] border border-cyan-500/20 bg-cyan-500/5 p-4">
+              <ImagePickField value={form.coverImage || ""} onChange={(value) => setForm({ ...form, coverImage: value })} label="تصویر اصلی کارت و صفحه دوره" />
             </div>
           </div>
           <div className="mt-4 flex gap-2">
@@ -913,16 +917,24 @@ function ShopTab() {
                   <span>{c.studentsCount || 0} خرید</span>
                 </div>
                 <div className="text-base font-black gradient-text mb-3" dir="ltr">{Number(c.price).toLocaleString("fa-IR")} تومان</div>
-                <div className="flex gap-2">
-                  <button onClick={() => setManagingCourseId(c.id)} className="flex-1 px-3 py-2 rounded-[8px] bg-primary-600 hover:bg-primary-700 text-white text-[11px] font-black flex items-center justify-center gap-1">
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => setManagingCourseId(c.id)} className="px-3 py-2.5 rounded-[8px] bg-primary-600 hover:bg-primary-700 text-white text-[11px] font-black flex items-center justify-center gap-1">
                     <Video className="w-3 h-3" /> فصل‌ها و درس‌ها
                   </button>
-                  <button onClick={() => act({ action: "publish", courseId: c.id, publish: !c.isPublished })} className={`px-3 py-2 rounded-[8px] text-[11px] font-black ${c.isPublished ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400"}`}>
-                    {c.isPublished ? "پیش‌نویس" : "انتشار"}
+                  <button onClick={() => setEditingCourse({ ...c })} className="px-3 py-2.5 rounded-[8px] bg-sky-500/20 text-sky-300 text-[11px] font-black flex items-center justify-center gap-1">
+                    <Pencil className="w-3 h-3" /> ویرایش کامل
                   </button>
-                  <button onClick={() => { if (confirm("این دوره و همه محتویاتش حذف شود؟")) act({ action: "delete", courseId: c.id }); }} className="px-3 py-2 rounded-[8px] bg-error-500/20 text-error-400 text-[11px] font-black">
-                    <Trash2 className="w-3 h-3" />
+                  <button onClick={() => setPurchasesCourseId(c.id)} className="px-3 py-2.5 rounded-[8px] bg-violet-500/20 text-violet-300 text-[11px] font-black flex items-center justify-center gap-1">
+                    <Users className="w-3 h-3" /> خریدها ({Number(c.studentsCount || 0).toLocaleString("fa-IR")})
                   </button>
+                  <div className="flex gap-2">
+                    <button onClick={() => act({ action: "publish", courseId: c.id, publish: !c.isPublished })} className={`flex-1 px-3 py-2 rounded-[8px] text-[11px] font-black ${c.isPublished ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400"}`}>
+                      {c.isPublished ? "پیش‌نویس" : "انتشار"}
+                    </button>
+                    <button onClick={() => { if (confirm("این دوره و همه محتویاتش حذف شود؟")) act({ action: "delete", courseId: c.id }); }} className="px-3 py-2 rounded-[8px] bg-error-500/20 text-error-400 text-[11px] font-black">
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -936,6 +948,122 @@ function ShopTab() {
           onClose={() => { setManagingCourseId(null); fetchData(); }}
         />
       )}
+      {editingCourse && (
+        <ShopCourseEditModal
+          course={editingCourse}
+          categories={data?.categories || []}
+          onClose={() => setEditingCourse(null)}
+          onSave={async (payload) => {
+            const result = await act({ action: "update", courseId: editingCourse.id, ...payload });
+            if (result) { setEditingCourse(null); setMsg("✅ همه اطلاعات و تصویر دوره بروزرسانی شد"); }
+          }}
+        />
+      )}
+      {purchasesCourseId && (
+        <ShopPurchasesModal
+          courseId={purchasesCourseId}
+          onClose={() => setPurchasesCourseId(null)}
+          onChanged={fetchData}
+        />
+      )}
+    </div>
+  );
+}
+
+function LinesField({ label, value, onChange, placeholder }: { label: string; value: string[]; onChange: (value: string[]) => void; placeholder: string }) {
+  return (
+    <div>
+      <label className="text-[10px] font-black text-slate-400 mb-1 block">{label}</label>
+      <textarea
+        value={(value || []).join("\n")}
+        onChange={(event) => onChange(event.target.value.split("\n"))}
+        rows={4}
+        placeholder={placeholder}
+        className="w-full px-3 py-2.5 rounded-[10px] bg-white/90 text-slate-900 text-xs font-bold resize-none"
+      />
+      <div className="mt-1 text-[9px] text-slate-500">هر مورد را در یک خط جدا بنویسید.</div>
+    </div>
+  );
+}
+
+function ShopCourseEditModal({ course, categories, onClose, onSave }: { course: any; categories: any[]; onClose: () => void; onSave: (payload: any) => Promise<void> }) {
+  const [form, setForm] = useState<any>({
+    ...course,
+    categoryId: course.categoryId || "",
+    features: Array.isArray(course.features) ? course.features : [],
+    requirements: Array.isArray(course.requirements) ? course.requirements : [],
+    targetAudience: Array.isArray(course.targetAudience) ? course.targetAudience : [],
+    hasSupport: course.hasSupport !== false,
+    hasCertificate: course.hasCertificate !== false,
+    hasDownload: !!course.hasDownload,
+    lifetimeAccess: course.lifetimeAccess !== false,
+  });
+  const [saving, setSaving] = useState(false);
+
+  const submit = async () => {
+    if (!String(form.title || "").trim()) { alert("عنوان دوره الزامی است"); return; }
+    setSaving(true);
+    await onSave({
+      ...form,
+      title: String(form.title).trim(),
+      features: (form.features || []).map((item: string) => item.trim()).filter(Boolean),
+      requirements: (form.requirements || []).map((item: string) => item.trim()).filter(Boolean),
+      targetAudience: (form.targetAudience || []).map((item: string) => item.trim()).filter(Boolean),
+    });
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[225] bg-black/85 backdrop-blur-sm flex items-center justify-center p-3" onClick={onClose}>
+      <div className="w-full max-w-5xl max-h-[94dvh] overflow-y-auto rounded-[22px] bg-[#0f1a30] border border-white/10 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="sticky top-0 z-20 bg-[#0f1a30]/95 backdrop-blur-xl border-b border-white/10 px-5 py-4 flex items-center justify-between">
+          <div><h3 className="font-black text-white flex items-center gap-2"><Pencil className="w-4 h-4 text-sky-300" /> ویرایش کامل دوره آنلاین</h3><p className="text-[10px] text-slate-500 mt-1">تمام اطلاعات کارت صفحه اصلی و صفحه خرید از اینجا کنترل می‌شود.</p></div>
+          <button type="button" onClick={onClose} className="p-2 rounded-full bg-white/5 text-slate-400"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-5 grid gap-5 lg:grid-cols-[300px_1fr]">
+          <div className="space-y-4">
+            <div className="rounded-[16px] bg-[#111a2e] border border-white/10 p-4">
+              <ImagePickField value={form.coverImage || ""} onChange={(value) => setForm({ ...form, coverImage: value })} label="تصویر اصلی کارت و صفحه دوره" />
+              <p className="mt-3 text-[9px] text-cyan-200 leading-5">این همان تصویری است که روی کارت دوره آنلاین در صفحه اصلی، فروشگاه و بالای صفحه دوره نمایش داده می‌شود.</p>
+            </div>
+            <div className="rounded-[16px] bg-[#111a2e] border border-white/10 p-4">
+              <ImagePickField value={form.instructorAvatar || ""} onChange={(value) => setForm({ ...form, instructorAvatar: value })} label="تصویر مدرس" />
+            </div>
+            <div className="rounded-[16px] bg-[#111a2e] border border-white/10 p-4 space-y-3">
+              <div className="text-[11px] font-black text-white">ویژگی‌های نمایش‌داده‌شده روی کارت و صفحه دوره</div>
+              {[
+                ["hasSupport", "پشتیبانی مستقیم"],
+                ["hasCertificate", "گواهینامه"],
+                ["hasDownload", "امکان دانلود"],
+                ["lifetimeAccess", "دسترسی مادام‌العمر"],
+              ].map(([key, label]) => <label key={key} className="flex items-center justify-between gap-3 text-xs font-bold text-slate-300"><span>{label}</span><input type="checkbox" checked={!!form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.checked })} className="w-4 h-4" /></label>)}
+              {!form.lifetimeAccess && <input type="number" value={form.accessDurationDays || ""} onChange={(event) => setForm({ ...form, accessDurationDays: event.target.value })} placeholder="مدت دسترسی (روز)" className="w-full px-3 py-2.5 rounded-[10px] bg-white/90 text-slate-900 text-xs font-bold" />}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div><label className="text-[10px] font-black text-slate-400 mb-1 block">عنوان دوره *</label><input value={form.title || ""} onChange={(event) => setForm({ ...form, title: event.target.value })} className="w-full px-3 py-2.5 rounded-[10px] bg-white/90 text-slate-900 text-sm font-bold" /></div>
+              <div><label className="text-[10px] font-black text-slate-400 mb-1 block">رشته</label><select value={form.categoryId || ""} onChange={(event) => setForm({ ...form, categoryId: event.target.value })} className="w-full px-3 py-2.5 rounded-[10px] bg-white/90 text-slate-900 text-sm font-bold"><option value="">بدون رشته</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></div>
+              <div className="md:col-span-2"><label className="text-[10px] font-black text-slate-400 mb-1 block">زیرعنوان کارت</label><input value={form.subtitle || ""} onChange={(event) => setForm({ ...form, subtitle: event.target.value })} className="w-full px-3 py-2.5 rounded-[10px] bg-white/90 text-slate-900 text-sm font-bold" /></div>
+              <div><label className="text-[10px] font-black text-slate-400 mb-1 block">قیمت فروش (تومان)</label><MoneyInput value={String(form.price || "")} onChange={(value) => setForm({ ...form, price: value })} /></div>
+              <div><label className="text-[10px] font-black text-slate-400 mb-1 block">قیمت قبل تخفیف</label><MoneyInput value={String(form.originalPrice || "")} onChange={(value) => setForm({ ...form, originalPrice: value })} /></div>
+              <div><label className="text-[10px] font-black text-slate-400 mb-1 block">سطح دوره</label><select value={form.level || "beginner"} onChange={(event) => setForm({ ...form, level: event.target.value })} className="w-full px-3 py-2.5 rounded-[10px] bg-white/90 text-slate-900 text-sm font-bold"><option value="beginner">مقدماتی</option><option value="intermediate">متوسط</option><option value="advanced">پیشرفته</option><option value="comprehensive">جامع</option></select></div>
+              <div><label className="text-[10px] font-black text-slate-400 mb-1 block">لینک ویدئوی معرفی</label><input value={form.trailerVideo || ""} onChange={(event) => setForm({ ...form, trailerVideo: event.target.value })} dir="ltr" className="w-full px-3 py-2.5 rounded-[10px] bg-white/90 text-slate-900 text-xs font-bold" /></div>
+              <div><label className="text-[10px] font-black text-slate-400 mb-1 block">نام مدرس</label><input value={form.instructor || ""} onChange={(event) => setForm({ ...form, instructor: event.target.value })} className="w-full px-3 py-2.5 rounded-[10px] bg-white/90 text-slate-900 text-sm font-bold" /></div>
+              <div><label className="text-[10px] font-black text-slate-400 mb-1 block">عنوان و تخصص مدرس</label><input value={form.instructorTitle || ""} onChange={(event) => setForm({ ...form, instructorTitle: event.target.value })} className="w-full px-3 py-2.5 rounded-[10px] bg-white/90 text-slate-900 text-sm font-bold" /></div>
+              <div className="md:col-span-2"><label className="text-[10px] font-black text-slate-400 mb-1 block">توضیحات کامل دوره</label><textarea value={form.description || ""} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={6} className="w-full px-3 py-2.5 rounded-[10px] bg-white/90 text-slate-900 text-sm font-bold resize-none" /></div>
+              <div className="md:col-span-2"><label className="text-[10px] font-black text-slate-400 mb-1 block">رزومه مدرس</label><textarea value={form.instructorBio || ""} onChange={(event) => setForm({ ...form, instructorBio: event.target.value })} rows={3} className="w-full px-3 py-2.5 rounded-[10px] bg-white/90 text-slate-900 text-sm font-bold resize-none" /></div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <LinesField label="چه چیزهایی یاد می‌گیرند؟" value={form.features} onChange={(value) => setForm({ ...form, features: value })} placeholder="مثلاً ساخت پروژه واقعی" />
+              <LinesField label="پیش‌نیازها" value={form.requirements} onChange={(value) => setForm({ ...form, requirements: value })} placeholder="مثلاً بدون پیش‌نیاز" />
+              <LinesField label="مخاطبان دوره" value={form.targetAudience} onChange={(value) => setForm({ ...form, targetAudience: value })} placeholder="مثلاً افراد مبتدی" />
+            </div>
+          </div>
+        </div>
+        <div className="sticky bottom-0 flex gap-2 border-t border-white/10 bg-[#0f1a30]/95 px-5 py-4 backdrop-blur-xl"><button type="button" onClick={submit} disabled={saving} className="flex-1 rounded-[11px] bg-emerald-600 py-3 text-sm font-black text-white disabled:opacity-50">{saving ? "در حال ذخیره..." : "ذخیره همه تغییرات"}</button><button type="button" onClick={onClose} className="rounded-[11px] bg-white/5 px-6 py-3 text-sm font-black text-slate-300">انصراف</button></div>
+      </div>
     </div>
   );
 }
@@ -1231,7 +1359,7 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
     title: "", description: "", fullDescription: "", price: "", originalPrice: "",
     capacity: "", duration: "", schedule: "", startDate: "", instructor: "",
     instructorTitle: "", level: "", totalSessions: "", syllabus: [] as string[],
-    categoryId: "", requirements: "",
+    categoryId: "", requirements: "", image: "",
     scheduleDays: [] as string[], scheduleTime: "", sessionDuration: "", totalHours: "",
   };
   const [newCourse, setNewCourse] = useState<any>(emptyForm);
@@ -1291,6 +1419,10 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
             <option value="">انتخاب رشته *</option>
             {categories?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
+          <div className="md:col-span-2 rounded-[14px] border border-cyan-500/20 bg-cyan-500/5 p-4">
+            <ImagePickField value={newCourse.image || ""} onChange={(value) => setNewCourse({ ...newCourse, image: value })} label="تصویر اصلی کارت دوره حضوری" />
+            <p className="mt-2 text-[9px] leading-5 text-cyan-200">این تصویر روی کارت دوره در صفحه اصلی، فهرست دوره‌ها و صفحه آموزشگاه نمایش داده می‌شود.</p>
+          </div>
           <MoneyInput value={newCourse.price} onChange={(v) => setNewCourse({ ...newCourse, price: v })} placeholder="شهریه دوره" />
           <input placeholder="ظرفیت (نفر)" type="number" value={newCourse.capacity} onChange={(e) => setNewCourse({ ...newCourse, capacity: e.target.value })}
             className="px-4 py-3 rounded-[12px] bg-[#0B1120] border border-white/10 text-sm font-semibold text-white placeholder:text-slate-500" />
@@ -1382,6 +1514,15 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
           <div key={c.id} className="bg-[#111a2e] border border-white/5 rounded-[18px] p-6">
             {editCourse?.id === c.id ? (
               <div className="space-y-3">
+                <div className="rounded-[12px] border border-cyan-500/20 bg-cyan-500/5 p-3">
+                  <ImagePickField value={editCourse.image || ""} onChange={(value) => setEditCourse({ ...editCourse, image: value })} label="تصویر اصلی کارت دوره حضوری" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500">رشته دوره</label>
+                  <select value={editCourse.categoryId || ""} onChange={(event) => setEditCourse({ ...editCourse, categoryId: event.target.value })} className="w-full px-3 py-2.5 rounded-[10px] bg-[#0B1120] border border-white/10 text-xs font-semibold text-white mt-1">
+                    {categories?.map((category: any) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                  </select>
+                </div>
                 {[
                   { k: "title", l: "عنوان دوره" },
                   { k: "capacity", l: "ظرفیت (نفر)" }, { k: "duration", l: "مدت" },
@@ -1489,6 +1630,7 @@ function CoursesTab({ data, refresh }: { data: any; refresh: () => void }) {
                       totalHours: editCourse.totalHours,
                       instructor: editCourse.instructor, instructorTitle: editCourse.instructorTitle,
                       level: editCourse.level, requirements: editCourse.requirements,
+                      categoryId: editCourse.categoryId, image: editCourse.image || null,
                       syllabus: (editCourse.syllabus || []).filter((x: string) => x && x.trim()),
                     };
                     const ok = await act(payload);

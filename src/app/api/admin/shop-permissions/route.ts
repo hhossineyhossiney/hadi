@@ -25,7 +25,14 @@ export async function GET() {
       ORDER BY i.name
     `);
     const list = (rows as any).rows || rows;
-    return NextResponse.json({ institutes: list });
+    const courseRows = await db.execute(sql`
+      SELECT sc.id, sc.title, sc.is_featured, sc.is_published, sc.status,
+             sc.rating, sc.rating_count, sc.students_count, i.name AS institute_name
+      FROM sellable_courses sc
+      LEFT JOIN institutes i ON i.id = sc.institute_id
+      ORDER BY sc.is_featured DESC, sc.created_at DESC
+    `);
+    return NextResponse.json({ institutes: list, courses: (courseRows as any).rows || courseRows });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "خطا" }, { status: 500 });
   }
@@ -38,6 +45,14 @@ export async function POST(req: Request) {
     const s = await getServerSession(authOptions);
     const adminId = Number((s?.user as any)?.id) || null;
     const body = await req.json();
+    if (body.action === "toggleFeatured") {
+      const courseId = Number(body.courseId || 0);
+      const course = await db.select().from(sellableCourses).where(eq(sellableCourses.id, courseId)).then((items) => items[0]);
+      if (!course) return NextResponse.json({ error: "دوره آنلاین یافت نشد" }, { status: 404 });
+      const [updated] = await db.update(sellableCourses).set({ isFeatured: !!body.isFeatured, updatedAt: new Date() }).where(eq(sellableCourses.id, courseId)).returning();
+      return NextResponse.json({ ok: true, course: updated });
+    }
+
     const { instituteId, maxCourses, isEnabled, commissionPercent, notes } = body;
     if (!instituteId) return NextResponse.json({ error: "instituteId required" }, { status: 400 });
 

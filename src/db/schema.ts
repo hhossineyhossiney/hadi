@@ -215,9 +215,17 @@ export const reviews = pgTable("reviews", {
   instituteId: integer("institute_id")
     .references(() => institutes.id)
     .notNull(),
+  courseId: integer("course_id"),
+  sellableCourseId: integer("sellable_course_id"),
+  authorName: varchar("author_name", { length: 255 }),
   rating: integer("rating").notNull(),
   comment: text("comment"),
+  status: varchar("status", { length: 20 }).default("published"), // pending|published|rejected
+  isSample: boolean("is_sample").default(false),
+  isVerified: boolean("is_verified").default(false),
+  managerReply: text("manager_reply"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 /* ================= NEW TABLES ================= */

@@ -2,11 +2,13 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import InstituteBannerSlider from "@/components/InstituteBannerSlider";
 import { db } from "@/db";
-import { institutes, regions, courses, categories, reviews, users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { institutes, regions, courses, categories } from "@/db/schema";
+import { eq, sql } from "drizzle-orm";
 import { pruneInstitute } from "@/lib/media-url";
+import { seedSampleReviews } from "@/lib/review-system";
 import Link from "next/link";
 import CourseCard from "@/components/CourseCard";
+import PublicReviewsSection from "@/components/PublicReviewsSection";
 import {
   MapPin,
   Phone,
@@ -37,6 +39,7 @@ export default async function InstituteDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  await seedSampleReviews();
 
   const institute = await db
     .select({
@@ -84,26 +87,17 @@ export default async function InstituteDetailPage({
       price: courses.price,
       originalPrice: courses.originalPrice,
       capacity: courses.capacity,
-      enrolledCount: courses.enrolledCount,
+      enrolledCount: sql<number>`(SELECT COUNT(*)::int FROM registrations reg WHERE reg.course_id = ${courses.id} AND reg.status = 'approved')`,
       instructor: courses.instructor,
       startDate: courses.startDate,
       image: courses.image,
+      rating: sql<string>`COALESCE((SELECT ROUND(AVG(r.rating)::numeric, 1) FROM reviews r WHERE r.course_id = ${courses.id} AND r.status = 'published'), 0)::text`,
+      reviewCount: sql<number>`(SELECT COUNT(*)::int FROM reviews r WHERE r.course_id = ${courses.id} AND r.status = 'published')`,
       categoryName: categories.name,
     })
     .from(courses)
     .leftJoin(categories, eq(courses.categoryId, categories.id))
     .where(eq(courses.instituteId, institute.id));
-
-  const reviewList = await db
-    .select({
-      id: reviews.id,
-      rating: reviews.rating,
-      comment: reviews.comment,
-      userName: users.name,
-    })
-    .from(reviews)
-    .leftJoin(users, eq(reviews.userId, users.id))
-    .where(eq(reviews.instituteId, institute.id));
 
   const coords = regionCoords[institute.regionName || ""] || regionCoords["قدمگاه"];
   const bbox = `${coords.lng - 0.02},${coords.lat - 0.012},${coords.lng + 0.02},${coords.lat + 0.012}`;
@@ -282,26 +276,10 @@ export default async function InstituteDetailPage({
         </div>
 
         {/* ===== Reviews ===== */}
-        {reviewList.length > 0 && (
-          <div>
-            <h2 className="text-xl font-black text-text-primary mb-6">نظرات هنرجویان</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {reviewList.map((review) => (
-                <div key={review.id} className="bg-surface rounded-[20px] border border-border-default p-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="flex">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={`w-4 h-4 ${i < (review.rating || 0) ? "text-accent-400 fill-accent-400" : "text-border-strong"}`} />
-                      ))}
-                    </div>
-                    <span className="text-xs text-text-tertiary">{review.userName || "هنرجو"}</span>
-                  </div>
-                  <p className="text-text-secondary text-sm">{review.comment}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <PublicReviewsSection
+          instituteId={institute.id}
+          title={`نظرات هنرجویان ${institute.name}`}
+        />
 
         <div className="mt-10">
           <Link href="/institutes" className="inline-flex items-center gap-2 text-text-secondary hover:text-primary-600 transition-colors font-bold text-sm">

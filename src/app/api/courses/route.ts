@@ -2,10 +2,12 @@ import { db } from "@/db";
 import { courses, institutes, categories, regions } from "@/db/schema";
 import { sql, eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { ensureReviewSystem } from "@/lib/review-system";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  await ensureReviewSystem();
   const { searchParams } = new URL(request.url);
   const category = searchParams.get("category");
   const q = searchParams.get("q");
@@ -38,10 +40,12 @@ export async function GET(request: Request) {
       originalPrice: courses.originalPrice,
       level: courses.level,
       capacity: courses.capacity,
-      enrolledCount: courses.enrolledCount,
+      enrolledCount: sql<number>`(SELECT COUNT(*)::int FROM registrations reg WHERE reg.course_id = ${courses.id} AND reg.status = 'approved')`,
       instructor: courses.instructor,
       startDate: courses.startDate,
       image: courses.image,
+      rating: sql<string>`COALESCE((SELECT ROUND(AVG(r.rating)::numeric, 1) FROM reviews r WHERE r.course_id = ${courses.id} AND r.status = 'published'), 0)::text`,
+      reviewCount: sql<number>`(SELECT COUNT(*)::int FROM reviews r WHERE r.course_id = ${courses.id} AND r.status = 'published')`,
       fullDescription: courses.fullDescription,
       categoryName: categories.name,
       categorySlug: categories.slug,

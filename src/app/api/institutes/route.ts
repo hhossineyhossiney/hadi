@@ -2,10 +2,12 @@ import { db } from "@/db";
 import { institutes, regions, courses } from "@/db/schema";
 import { sql, eq, count, and, like } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { seedSampleReviews } from "@/lib/review-system";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  await seedSampleReviews();
   const { searchParams } = new URL(request.url);
   const region = searchParams.get("region");
   const q = searchParams.get("q");

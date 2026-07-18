@@ -22,9 +22,11 @@ import {
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import CourseBannerSlider from "@/components/CourseBannerSlider";
+import PublicReviewsSection from "@/components/PublicReviewsSection";
 
 interface Course {
   id: number;
+  instituteId: number;
   title: string;
   slug: string;
   description: string | null;
@@ -37,7 +39,10 @@ interface Course {
   requirements: string | null;
   schedule: string | null;
   startDate: string | null;
+  image: string | null;
   bannerImages: string[] | null;
+  rating?: string | null;
+  reviewCount?: number | null;
   registrationClosed?: boolean | null;
   registrationEnded?: boolean | null;
   categoryName: string | null;
@@ -161,6 +166,8 @@ export default function CourseDetailPage() {
             className="bg-surface rounded-[28px] border border-border-default overflow-hidden mb-8"
           >
             <div className="h-56 gradient-hero relative overflow-hidden">
+              {course.image && <img src={course.image} alt={course.title} className="absolute inset-0 h-full w-full object-cover" loading="eager" />}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#071426]/90 via-[#071426]/55 to-[#071426]/30" />
               <div
                 className="absolute inset-0 opacity-[0.1]"
                 style={{
@@ -355,6 +362,14 @@ export default function CourseDetailPage() {
                     </div>
                   )}
                 </div>
+              </div>
+
+              <div className="mb-8">
+                <PublicReviewsSection
+                  instituteId={course.instituteId}
+                  courseId={course.id}
+                  title={`نظرات هنرجویان دوره ${course.title}`}
+                />
               </div>
 
               {(() => {

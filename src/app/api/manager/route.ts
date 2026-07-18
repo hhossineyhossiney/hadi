@@ -243,7 +243,7 @@ export async function POST(request: Request) {
     const { action } = body;
 
     if (action === "createCourse") {
-      const { title, description, fullDescription, price, originalPrice, capacity, duration, schedule, startDate, instructor, instructorTitle, level, totalSessions, syllabus, categoryId, requirements,
+      const { title, description, fullDescription, price, originalPrice, capacity, duration, schedule, startDate, instructor, instructorTitle, level, totalSessions, syllabus, categoryId, requirements, image,
         scheduleDays, scheduleTime, sessionDuration, totalHours } = body;
       if (!title || !String(title).trim()) {
         return NextResponse.json({ error: "عنوان دوره الزامی است" }, { status: 400 });
@@ -297,6 +297,7 @@ export async function POST(request: Request) {
         totalSessions: computedTotalSessions,
         syllabus: Array.isArray(syllabus) ? syllabus.filter((x: unknown) => typeof x === "string" && (x as string).trim()) : [],
         requirements: requirements || null,
+        image: typeof image === "string" && image ? image : null,
         status: "approved",
       };
       // Add new schedule fields (fault-tolerant)
@@ -325,7 +326,7 @@ export async function POST(request: Request) {
     }
 
     if (action === "updateCourse") {
-      const { courseId, title, description, fullDescription, price, originalPrice, capacity, duration, schedule, startDate, instructor, instructorTitle, level, totalSessions, syllabus, categoryId, requirements,
+      const { courseId, title, description, fullDescription, price, originalPrice, capacity, duration, schedule, startDate, instructor, instructorTitle, level, totalSessions, syllabus, categoryId, requirements, image,
         scheduleDays, scheduleTime, sessionDuration, totalHours } = body;
       const c = await db.select().from(courses)
         .where(and(eq(courses.id, courseId), eq(courses.instituteId, inst.id)))
@@ -380,7 +381,11 @@ export async function POST(request: Request) {
         syllabus: Array.isArray(syllabus) ? syllabus.filter((x: unknown) => typeof x === "string" && (x as string).trim()) : c.syllabus,
         requirements: requirements ?? c.requirements,
         categoryId: categoryNumber !== undefined ? categoryNumber : c.categoryId,
+        image: image !== undefined ? (typeof image === "string" && image ? image : null) : c.image,
       };
+      if (typeof updateData.image === "string" && updateData.image.startsWith("data:") && updateData.image.length > 1_300_000) {
+        return NextResponse.json({ error: "حجم تصویر اصلی دوره بیشتر از حد مجاز است" }, { status: 400 });
+      }
       try {
         updateData.scheduleDays = days;
         updateData.scheduleTime = scheduleTime ?? (c as any).scheduleTime ?? null;
@@ -490,6 +495,10 @@ export async function POST(request: Request) {
       if (!reg) return NextResponse.json({ error: "ثبت‌نام متعلق به آموزشگاه شما نیست" }, { status: 403 });
       const [updated] = await db.update(registrations).set({ status })
         .where(eq(registrations.id, registrationId)).returning();
+      const approvedForCourse = await db.select({ value: count() }).from(registrations)
+        .where(and(eq(registrations.courseId, reg.courseId), eq(registrations.status, "approved")))
+        .then((items) => Number(items[0]?.value || 0));
+      await db.update(courses).set({ enrolledCount: approvedForCourse }).where(eq(courses.id, reg.courseId));
 
       // Send notification to student (best-effort)
       if (reg.userId) {
@@ -611,6 +620,10 @@ export async function POST(request: Request) {
       // 2) payment_fees has ON DELETE CASCADE — will be removed automatically
       // 3) Delete the registration itself
       await db.delete(registrations).where(eq(registrations.id, registrationId));
+      const approvedForCourse = await db.select({ value: count() }).from(registrations)
+        .where(and(eq(registrations.courseId, reg.courseId), eq(registrations.status, "approved")))
+        .then((items) => Number(items[0]?.value || 0));
+      await db.update(courses).set({ enrolledCount: approvedForCourse }).where(eq(courses.id, reg.courseId));
 
       // 4) Notify student (best-effort)
       if (reg.userId) {

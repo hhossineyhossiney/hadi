@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/db";
-import { institutes, sellableCourses, sellablePermissions, sellableChapters, sellableLessons, users } from "@/db/schema";
+import { institutes, sellableCourses, sellablePermissions, sellableChapters, sellableLessons, users, categories } from "@/db/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { normalizePhone } from "@/lib/phone";
 
@@ -64,7 +64,8 @@ export async function GET() {
              features, requirements, target_audience,
              has_support, has_certificate, has_download, lifetime_access, access_duration_days,
              is_published, is_featured, status, published_at,
-             created_at, updated_at
+             created_at, updated_at,
+             (SELECT COUNT(*)::int FROM sellable_purchases sp WHERE sp.course_id = sellable_courses.id AND sp.status = 'paid') AS paid_count
       FROM sellable_courses
       WHERE institute_id = ${inst.id}
       ORDER BY created_at DESC
@@ -95,7 +96,8 @@ export async function GET() {
         totalDuration: c.total_duration,
         totalLessons: c.total_lessons,
         totalChapters: c.total_chapters,
-        studentsCount: c.students_count,
+        studentsCount: Number(c.paid_count || 0),
+        storedStudentsCount: c.students_count,
         rating: c.rating,
         ratingCount: c.rating_count,
         price: c.price,
@@ -120,9 +122,12 @@ export async function GET() {
       };
     }));
 
+    const categoryList = await db.select({ id: categories.id, name: categories.name }).from(categories).orderBy(categories.name);
+
     return NextResponse.json({
       institute: { id: inst.id, name: inst.name, slug: inst.slug },
       permission: perm || { isEnabled: false, maxCourses: 0, commissionPercent: "10.00" },
+      categories: categoryList,
       courses: enriched,
     });
   } catch (e: any) {
@@ -148,8 +153,13 @@ export async function POST(req: Request) {
       if (currentCount >= (perm.maxCourses || 0)) {
         return NextResponse.json({ error: `سقف مجاز شما ${perm.maxCourses} دوره است. برای افزایش با مدیر کل تماس بگیرید.` }, { status: 400 });
       }
-      const { title, subtitle, description, price, originalPrice, level, instructor, instructorTitle, coverImage, features, requirements, targetAudience } = body;
-      if (!title || !price) return NextResponse.json({ error: "عنوان و قیمت الزامی است" }, { status: 400 });
+      const {
+        title, subtitle, description, price, originalPrice, level, instructor, instructorTitle,
+        instructorAvatar, instructorBio, coverImage, trailerVideo, categoryId, language,
+        features, requirements, targetAudience, hasSupport, hasCertificate, hasDownload,
+        lifetimeAccess, accessDurationDays,
+      } = body;
+      if (!title || price === undefined || price === null || price === "") return NextResponse.json({ error: "عنوان و قیمت الزامی است" }, { status: 400 });
 
       const slug = makeSlug(title);
       const discountPercent = originalPrice && Number(originalPrice) > Number(price)
@@ -163,15 +173,25 @@ export async function POST(req: Request) {
         subtitle: subtitle ? String(subtitle).slice(0, 500) : null,
         description: description || null,
         coverImage: coverImage || null,
+        trailerVideo: trailerVideo || null,
+        categoryId: categoryId ? Number(categoryId) : null,
         instructor: instructor || null,
         instructorTitle: instructorTitle || null,
+        instructorAvatar: instructorAvatar || null,
+        instructorBio: instructorBio || null,
         level: level || "beginner",
+        language: language || "fa",
         price: String(price),
         originalPrice: originalPrice ? String(originalPrice) : null,
         discountPercent,
         features: Array.isArray(features) ? features : [],
         requirements: Array.isArray(requirements) ? requirements : [],
         targetAudience: Array.isArray(targetAudience) ? targetAudience : [],
+        hasSupport: hasSupport !== false,
+        hasCertificate: hasCertificate !== false,
+        hasDownload: !!hasDownload,
+        lifetimeAccess: lifetimeAccess !== false,
+        accessDurationDays: lifetimeAccess === false && accessDurationDays ? Number(accessDurationDays) : null,
         status: "draft",
       }).returning();
       return NextResponse.json({ ok: true, course: created });
@@ -183,15 +203,27 @@ export async function POST(req: Request) {
       if (!c) return NextResponse.json({ error: "دوره یافت نشد" }, { status: 404 });
 
       const update: any = {};
-      const allowed = ["title", "subtitle", "description", "coverImage", "trailerVideo", "instructor", "instructorTitle", "instructorAvatar", "instructorBio", "level", "price", "originalPrice", "features", "requirements", "targetAudience", "hasSupport", "hasCertificate", "hasDownload", "lifetimeAccess", "accessDurationDays"];
+      const allowed = [
+        "title", "subtitle", "description", "coverImage", "trailerVideo", "categoryId", "language",
+        "instructor", "instructorTitle", "instructorAvatar", "instructorBio", "level",
+        "price", "originalPrice", "features", "requirements", "targetAudience",
+        "hasSupport", "hasCertificate", "hasDownload", "lifetimeAccess", "accessDurationDays",
+      ];
       for (const k of allowed) {
         if (rest[k] !== undefined) update[k] = rest[k];
       }
-      if (update.price !== undefined) update.price = String(update.price);
-      if (update.originalPrice !== undefined && update.originalPrice !== null) update.originalPrice = String(update.originalPrice);
-      if (update.price && update.originalPrice && Number(update.originalPrice) > Number(update.price)) {
-        update.discountPercent = Math.round((1 - Number(update.price) / Number(update.originalPrice)) * 100);
+      if (update.price !== undefined) update.price = String(Math.max(0, Number(update.price) || 0));
+      if (update.originalPrice !== undefined) update.originalPrice = update.originalPrice ? String(Math.max(0, Number(update.originalPrice) || 0)) : null;
+      if (update.categoryId !== undefined) update.categoryId = update.categoryId ? Number(update.categoryId) : null;
+      if (update.accessDurationDays !== undefined) update.accessDurationDays = update.lifetimeAccess ? null : (Number(update.accessDurationDays) || null);
+      if (typeof update.coverImage === "string" && update.coverImage.startsWith("data:") && update.coverImage.length > 1_300_000) {
+        return NextResponse.json({ error: "حجم تصویر کاور بیشتر از حد مجاز است" }, { status: 400 });
       }
+      const nextPrice = update.price !== undefined ? Number(update.price) : Number(c.price);
+      const nextOriginal = update.originalPrice !== undefined ? Number(update.originalPrice || 0) : Number(c.originalPrice || 0);
+      update.discountPercent = nextOriginal > nextPrice && nextPrice >= 0
+        ? Math.round((1 - nextPrice / nextOriginal) * 100)
+        : 0;
       update.updatedAt = new Date();
 
       const [updated] = await db.update(sellableCourses).set(update).where(eq(sellableCourses.id, Number(courseId))).returning();

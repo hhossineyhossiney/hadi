@@ -4,10 +4,12 @@ import { sellableCourses, sellableChapters, sellableLessons, institutes, sellabl
 import { eq, and } from "drizzle-orm";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { getPublicReviews, getReviewSummary, seedSampleReviews } from "@/lib/review-system";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   try {
+    await seedSampleReviews();
     const course = await db.select().from(sellableCourses).where(eq(sellableCourses.slug, slug)).then(r => r[0]);
     if (!course || !course.isPublished) {
       return NextResponse.json({ error: "دوره یافت نشد" }, { status: 404 });
@@ -40,11 +42,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       })),
     }));
 
+    const [reviews, reviewSummary] = await Promise.all([
+      getPublicReviews({ instituteId: course.instituteId, sellableCourseId: course.id }),
+      getReviewSummary({ instituteId: course.instituteId, sellableCourseId: course.id }),
+    ]);
+
     return NextResponse.json({
-      course,
+      course: { ...course, rating: reviewSummary.rating, ratingCount: reviewSummary.reviewCount },
       institute: inst ? { id: inst.id, name: inst.name, slug: inst.slug, phone: inst.phone } : null,
       chapters: chaptersWithLessons,
       hasPurchased,
+      reviews,
     });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "خطا" }, { status: 500 });

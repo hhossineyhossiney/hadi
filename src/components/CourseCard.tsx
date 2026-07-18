@@ -9,6 +9,7 @@ import {
   Calendar,
   ArrowLeft,
   Sparkles,
+  Star,
 } from "lucide-react";
 import { pickCategoryVisual } from "@/lib/category-visuals";
 
@@ -30,6 +31,8 @@ export interface CourseCardData {
   instituteSlug?: string | null;
   image?: string | null;
   regionName?: string | null;
+  rating?: string | null;
+  reviewCount?: number | null;
 }
 
 // Per-category color palette (glow + accent + button)
@@ -253,6 +256,14 @@ export default function CourseCard({
                   {course.categoryName}
                 </span>
               )}
+            </div>
+          )}
+
+          {(Number(course.rating || 0) > 0 || Number(course.reviewCount || 0) > 0) && (
+            <div className="relative mx-5 mb-1 flex items-center gap-2 text-[10px] text-slate-400">
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+              <b className="text-white">{Number(course.rating || 0).toFixed(1)}</b>
+              <span>({Number(course.reviewCount || 0).toLocaleString("fa-IR")} نظر واقعی و نمونه)</span>
             </div>
           )}
 

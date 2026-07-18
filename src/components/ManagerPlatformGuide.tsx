@@ -514,6 +514,25 @@ const managerModules: ManagerModule[] = [
     ],
     result: "مدیر حتی خارج از پنل وب، از رویدادهای مهم آموزشگاه باخبر می‌شود.",
   },
+  {
+    order: 23,
+    category: "communication",
+    icon: Star,
+    title: "مدیریت نظرات و امتیازها",
+    desc: "سامانه واقعی و قابل مدیریت نظرات برای آموزشگاه، دوره حضوری و دوره آنلاین.",
+    location: "منوی پنل ← مدیریت نظرات و امتیازها",
+    color: "from-amber-400 to-orange-600",
+    items: [
+      "دریافت نظر واقعی فقط از هنرجوی تأییدشده یا خریدار دوره",
+      "مشاهده نظرات در انتظار، منتشرشده و ردشده",
+      "تأیید، رد، ویرایش یا حذف نظر توسط مدیر آموزشگاه",
+      "ثبت پاسخ رسمی آموزشگاه زیر نظر هنرجو",
+      "نمایش امتیاز و تعداد نظر روی کارت‌های عمومی",
+      "نظرهای نمونه مرتبط برای آموزش کار با بخش مدیریت",
+      "محاسبه خودکار میانگین امتیاز پس از هر تغییر",
+    ],
+    result: "امتیازها از رکوردهای واقعی پایگاه داده محاسبه می‌شوند و مدیر کنترل کامل فرایند انتشار و پاسخ‌گویی را دارد.",
+  },
 ];
 
 const studentGroups: {
@@ -584,7 +603,8 @@ const adminFeatures: { icon: LucideIcon; title: string; desc: string }[] = [
   { icon: Star, title: "برگزیدگان سال", desc: "مدیریت آموزشگاه‌ها و چهره‌های منتخب صفحه اصلی." },
   { icon: UserCog, title: "مدیران آموزشگاه", desc: "ساخت حساب، اتصال مدیر به آموزشگاه و کنترل دسترسی." },
   { icon: ClipboardCheck, title: "ثبت‌نام‌ها", desc: "نمای کلی و کنترل وضعیت ثبت‌نام‌های شبکه." },
-  { icon: ShieldCheck, title: "مجوز فروش آنلاین", desc: "فعال‌سازی، تعیین سقف دوره و درصد کمیسیون هر آموزشگاه." },
+  { icon: Star, title: "نظرات و امتیازها", desc: "نظارت، ویرایش، انتشار یا حذف نظرات تمام آموزشگاه‌ها و دوره‌ها." },
+  { icon: ShieldCheck, title: "مجوز و دوره ویژه", desc: "فعال‌سازی فروش، تعیین سقف و کمیسیون و کنترل نشان ویژه دوره آنلاین." },
   { icon: Wallet, title: "مالی و درآمد", desc: "درآمد، فروش، کمیسیون و گزارش مالی کل سامانه." },
   { icon: MessageCircle, title: "چت با آموزشگاه‌ها", desc: "ارتباط مستقیم مدیر کل با مدیر هر مرکز." },
   { icon: BookOpen, title: "رشته‌ها", desc: "مدیریت دسته‌بندی و رشته‌های قابل نمایش در سایت." },
@@ -954,7 +974,7 @@ export default function ManagerPlatformGuide() {
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br from-fuchsia-500 to-purple-600"><ShieldCheck className="h-6 w-6 text-white" /></div>
             <div>
               <h3 className="text-xl font-black text-white md:text-2xl">نظارت و پشتیبانی مدیر کل سامانه</h3>
-              <p className="mt-1 text-xs text-slate-400">۱۶ بخش برای کنترل شبکه، دسترسی‌ها، محتوای عمومی و کیفیت خدمات</p>
+              <p className="mt-1 text-xs text-slate-400">۱۷ بخش برای کنترل شبکه، دسترسی‌ها، محتوای عمومی و کیفیت خدمات</p>
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
