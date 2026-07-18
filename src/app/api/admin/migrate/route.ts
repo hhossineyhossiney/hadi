@@ -581,6 +581,7 @@ const MIGRATIONS: { name: string; sql: string }[] = [
         max_courses INTEGER DEFAULT 0,
         max_students INTEGER DEFAULT 0,
         max_shop_courses INTEGER DEFAULT 0,
+        online_sales_enabled BOOLEAN DEFAULT false,
         commission_percent DECIMAL(5, 2) DEFAULT 10.00,
         features JSONB DEFAULT '[]'::jsonb,
         color VARCHAR(30) DEFAULT 'primary',
@@ -610,21 +611,21 @@ const MIGRATIONS: { name: string; sql: string }[] = [
       CREATE INDEX IF NOT EXISTS idx_sub_inst ON institute_subscriptions(institute_id);
 
       -- Seed default plans (only if empty)
-      INSERT INTO subscription_plans (name, slug, description, price, price_yearly, duration_days, max_courses, max_students, max_shop_courses, commission_percent, features, color, is_popular, sort_order)
+      INSERT INTO subscription_plans (name, slug, description, price, price_yearly, duration_days, max_courses, max_students, max_shop_courses, online_sales_enabled, commission_percent, features, color, is_popular, sort_order)
       SELECT * FROM (VALUES
-        ('پلن رایگان', 'free', 'مناسب آموزشگاه‌های تازه‌کار برای شروع', 0, 0, 30, 5, 50, 0, 15.00,
+        ('پلن رایگان', 'free', 'مناسب آموزشگاه‌های تازه‌کار برای شروع', 0, 0, 30, 5, 50, 0, false, 15.00,
          '["مدیریت ۵ دوره", "تا ۵۰ هنرجو", "پشتیبانی پایه", "دسترسی به پنل مدیریت"]'::jsonb,
          'slate', false, 1),
-        ('پلن پایه', 'basic', 'برای آموزشگاه‌های متوسط با تعداد هنرجویان بیشتر', 490000, 4900000, 30, 20, 300, 3, 12.00,
+        ('پلن پایه', 'basic', 'برای آموزشگاه‌های متوسط با تعداد هنرجویان بیشتر', 490000, 4900000, 30, 20, 300, 3, true, 12.00,
          '["مدیریت ۲۰ دوره", "تا ۳۰۰ هنرجو", "۳ دوره فروش آنلاین", "پشتیبانی ۸ ساعته", "گزارش‌های Excel", "پیام‌رسان گروهی"]'::jsonb,
          'primary', false, 2),
-        ('پلن طلایی', 'gold', 'محبوب‌ترین پلن — مناسب اکثر آموزشگاه‌ها', 990000, 9900000, 30, 50, 1000, 10, 10.00,
+        ('پلن طلایی', 'gold', 'محبوب‌ترین پلن — مناسب اکثر آموزشگاه‌ها', 990000, 9900000, 30, 50, 1000, 10, true, 10.00,
          '["مدیریت ۵۰ دوره", "تا ۱۰۰۰ هنرجو", "۱۰ دوره فروش آنلاین", "پشتیبانی ۱۶ ساعته", "کمیسیون کاهش‌یافته ۱۰٪", "دسترسی به همه امکانات", "استوری و بنر ویژه"]'::jsonb,
          'amber', true, 3),
-        ('پلن ویژه', 'premium', 'برای آموزشگاه‌های بزرگ با نیاز نامحدود', 1990000, 19900000, 30, 0, 0, 0, 7.00,
+        ('پلن ویژه', 'premium', 'برای آموزشگاه‌های بزرگ با نیاز نامحدود', 1990000, 19900000, 30, 0, 0, 0, true, 7.00,
          '["دوره نامحدود", "هنرجو نامحدود", "فروش آنلاین نامحدود", "پشتیبانی ۲۴/۷ ویژه", "کمیسیون کاهش‌یافته ۷٪", "همه امکانات + استوری در صفحه اصلی", "درج در بخش برگزیدگان"]'::jsonb,
          'purple', false, 4)
-      ) AS v(name, slug, description, price, price_yearly, duration_days, max_courses, max_students, max_shop_courses, commission_percent, features, color, is_popular, sort_order)
+      ) AS v(name, slug, description, price, price_yearly, duration_days, max_courses, max_students, max_shop_courses, online_sales_enabled, commission_percent, features, color, is_popular, sort_order)
       WHERE NOT EXISTS (SELECT 1 FROM subscription_plans);
     `,
   },

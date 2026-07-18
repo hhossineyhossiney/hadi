@@ -2,12 +2,13 @@ import { db } from "@/db";
 import {
   registrations, courses, institutes, categories, telegramChats,
   users, notifications, walletTransactions, sellableCourses, sellablePurchases,
-  sellablePermissions, paymentFees,
+  paymentFees,
 } from "@/db/schema";
 import { sendTelegramMessage, editTelegramMessage, answerCallbackQuery } from "@/lib/telegram";
 import { normalizePhone } from "@/lib/phone";
 import { eq, desc, count, and, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { getInstituteEntitlement } from "@/lib/subscription-entitlements";
 
 export const dynamic = "force-dynamic";
 
@@ -387,9 +388,9 @@ async function managerCourses(chatId: string, instituteId: number) {
 }
 
 async function managerShop(chatId: string, instituteId: number) {
-  const perm = await db.select().from(sellablePermissions).where(eq(sellablePermissions.instituteId, instituteId)).then(r => r[0]);
-  if (!perm || !perm.isEnabled) {
-    return sendTelegramMessage(chatId, "❌ مجوز فروش آنلاین برای شما فعال نیست.\nبا مدیر کل تماس بگیرید.", MANAGER_KB);
+  const entitlement = await getInstituteEntitlement(instituteId);
+  if (!entitlement.onlineSalesEnabled) {
+    return sendTelegramMessage(chatId, "❌ فروش آنلاین در پلن فعال شما وجود ندارد.\nبا ارتقای پلن، دسترسی خودکار فعال می‌شود.", MANAGER_KB);
   }
   const rows = await db.execute(sql`
     SELECT c.id, c.title, c.price, c.is_published,
@@ -398,7 +399,7 @@ async function managerShop(chatId: string, instituteId: number) {
     FROM sellable_courses c WHERE c.institute_id = ${instituteId} ORDER BY c.created_at DESC
   `);
   const list = ((rows as any).rows || rows) as any[];
-  let t = `💼 <b>فروش آنلاین</b>\n\n📊 وضعیت مجوز: <b>فعال</b> • سقف: ${perm.maxCourses} دوره\n💵 کمیسیون: ${perm.commissionPercent}٪\n\n📚 <b>دوره‌های شما (${list.length}):</b>\n\n`;
+  let t = `💼 <b>فروش آنلاین</b>\n\n📊 پلن: <b>${entitlement.planName || "—"}</b> • سقف: ${entitlement.unlimitedShopCourses ? "نامحدود" : `${entitlement.maxShopCourses} دوره`}\n💵 کمیسیون خودکار پلن: ${entitlement.commissionPercent}٪\n\n📚 <b>دوره‌های شما (${list.length}):</b>\n\n`;
   list.forEach((c, i) => {
     const st = c.is_published ? "🟢 منتشر" : "🟡 پیش‌نویس";
     t += `${i + 1}. ${st} <b>${c.title}</b>\n💰 ${fmtMoney(c.price)}\n🛒 ${c.sales} فروش • خالص: ${Number(c.revenue).toLocaleString("fa-IR")} ت\n───────────\n`;

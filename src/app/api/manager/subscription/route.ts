@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { institutes, users } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { normalizePhone } from "@/lib/phone";
+import { ensureSubscriptionEntitlementsSchema, getInstituteEntitlement } from "@/lib/subscription-entitlements";
 
 async function findInstitute() {
   const s = await getServerSession(authOptions);
@@ -33,10 +34,11 @@ export async function GET() {
   if (!inst) return NextResponse.json({ error: "unauth" }, { status: 403 });
 
   try {
+    await ensureSubscriptionEntitlementsSchema();
     // Current active subscription (or last one)
     const activeRow = await db.execute(sql`
       SELECT s.*, p.name AS plan_name, p.description AS plan_description, p.color AS plan_color,
-             p.features, p.max_courses, p.max_students, p.max_shop_courses, p.commission_percent, p.duration_days
+             p.features, p.max_courses, p.max_students, p.max_shop_courses, p.online_sales_enabled, p.commission_percent, p.duration_days
       FROM institute_subscriptions s
       LEFT JOIN subscription_plans p ON p.id = s.plan_id
       WHERE s.institute_id = ${inst.id}
@@ -61,9 +63,12 @@ export async function GET() {
       ORDER BY s.created_at DESC LIMIT 20
     `);
 
+    const entitlement = await getInstituteEntitlement(inst.id);
+
     return NextResponse.json({
       institute: { id: inst.id, name: inst.name },
       current,
+      entitlement,
       usage: {
         courses: Number(((coursesCnt as any).rows || coursesCnt)[0]?.c || 0),
         students: Number(((studentsCnt as any).rows || studentsCnt)[0]?.c || 0),

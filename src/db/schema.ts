@@ -722,6 +722,7 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   maxCourses: integer("max_courses").default(0),          // 0 = نامحدود
   maxStudents: integer("max_students").default(0),
   maxShopCourses: integer("max_shop_courses").default(0),
+  onlineSalesEnabled: boolean("online_sales_enabled").default(false),
   commissionPercent: decimal("commission_percent", { precision: 5, scale: 2 }).default("10.00"),
   features: jsonb("features").default([]),                 // ["پشتیبانی 24/7", "آمار پیشرفته", ...]
   color: varchar("color", { length: 30 }).default("primary"),

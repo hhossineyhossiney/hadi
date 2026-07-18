@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/db";
-import { sellableCourses, sellablePurchases, sellablePermissions, walletTransactions } from "@/db/schema";
+import { sellableCourses, sellablePurchases, walletTransactions } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { getInstituteEntitlement } from "@/lib/subscription-entitlements";
 
 export async function POST(req: Request) {
   try {
@@ -21,8 +22,11 @@ export async function POST(req: Request) {
       .then(r => r[0]);
     if (existing) return NextResponse.json({ error: "شما قبلاً این دوره را خریداری کرده‌اید", alreadyPurchased: true }, { status: 409 });
 
-    const perm = await db.select().from(sellablePermissions).where(eq(sellablePermissions.instituteId, course.instituteId)).then(r => r[0]);
-    const commissionPct = Number(perm?.commissionPercent || "10.00");
+    const entitlement = await getInstituteEntitlement(course.instituteId);
+    if (!entitlement.onlineSalesEnabled) {
+      return NextResponse.json({ error: "فروش این دوره به‌دلیل غیرفعال بودن پلن آموزشگاه موقتاً امکان‌پذیر نیست" }, { status: 403 });
+    }
+    const commissionPct = Number(entitlement.commissionPercent || "0.00");
     const amount = Number(course.price);
     const commission = Math.floor(amount * commissionPct / 100);
     const net = amount - commission;

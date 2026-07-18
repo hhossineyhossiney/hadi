@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/db";
-import { institutes, sellableCourses, sellablePermissions, sellableChapters, sellableLessons, users, categories } from "@/db/schema";
+import { institutes, sellableCourses, sellableChapters, sellableLessons, users, categories } from "@/db/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { normalizePhone } from "@/lib/phone";
+import { syncLegacySellablePermission } from "@/lib/subscription-entitlements";
 
 // Same resolver logic as /api/manager/route.ts — with autoheal by mobile
 async function findInstitute() {
@@ -53,7 +54,7 @@ export async function GET() {
     const inst = await findInstitute();
     if (!inst) return NextResponse.json({ error: "آموزشگاهی به حساب شما متصل نیست" }, { status: 403 });
 
-    const perm = await db.select().from(sellablePermissions).where(eq(sellablePermissions.instituteId, inst.id)).then(r => r[0]);
+    const entitlement = await syncLegacySellablePermission(inst.id);
 
     // Use raw SQL to be fault-tolerant against schema mismatches (new cover_image columns etc.)
     const coursesRaw = await db.execute(sql`
@@ -126,7 +127,14 @@ export async function GET() {
 
     return NextResponse.json({
       institute: { id: inst.id, name: inst.name, slug: inst.slug },
-      permission: perm || { isEnabled: false, maxCourses: 0, commissionPercent: "10.00" },
+      permission: {
+        isEnabled: entitlement.onlineSalesEnabled,
+        maxCourses: entitlement.maxShopCourses,
+        isUnlimited: entitlement.unlimitedShopCourses,
+        commissionPercent: entitlement.commissionPercent,
+        planName: entitlement.planName,
+        source: "subscription_plan",
+      },
       categories: categoryList,
       courses: enriched,
     });
@@ -141,8 +149,10 @@ export async function POST(req: Request) {
   const inst = await findInstitute();
   if (!inst) return NextResponse.json({ error: "آموزشگاهی به حساب شما متصل نیست" }, { status: 403 });
 
-  const perm = await db.select().from(sellablePermissions).where(eq(sellablePermissions.instituteId, inst.id)).then(r => r[0]);
-  if (!perm || !perm.isEnabled) return NextResponse.json({ error: "مجوز فروش آنلاین برای شما فعال نیست. با مدیر کل تماس بگیرید." }, { status: 403 });
+  const entitlement = await syncLegacySellablePermission(inst.id);
+  if (!entitlement.onlineSalesEnabled) {
+    return NextResponse.json({ error: "فروش آنلاین در پلن فعال آموزشگاه شما وجود ندارد. با ارتقای پلن، دسترسی خودکار فعال می‌شود." }, { status: 403 });
+  }
 
   try {
     const body = await req.json();
@@ -150,8 +160,8 @@ export async function POST(req: Request) {
 
     if (action === "create") {
       const currentCount = await db.select({ c: sql<number>`count(*)::int` }).from(sellableCourses).where(eq(sellableCourses.instituteId, inst.id)).then(r => r[0]?.c || 0);
-      if (currentCount >= (perm.maxCourses || 0)) {
-        return NextResponse.json({ error: `سقف مجاز شما ${perm.maxCourses} دوره است. برای افزایش با مدیر کل تماس بگیرید.` }, { status: 400 });
+      if (!entitlement.unlimitedShopCourses && currentCount >= entitlement.maxShopCourses) {
+        return NextResponse.json({ error: `سقف پلن شما ${entitlement.maxShopCourses} دوره آنلاین است. برای افزایش، پلن را ارتقا دهید.` }, { status: 400 });
       }
       const {
         title, subtitle, description, price, originalPrice, level, instructor, instructorTitle,

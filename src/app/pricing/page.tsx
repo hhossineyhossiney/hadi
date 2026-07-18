@@ -78,7 +78,7 @@ export default function PricingPage() {
                     <div className="pt-4 border-t border-[var(--border-default)] space-y-1 text-[10px] text-text-secondary mb-6">
                       <div>📚 {p.max_courses === 0 ? "دوره نامحدود" : `تا ${p.max_courses} دوره`}</div>
                       <div>👥 {p.max_students === 0 ? "هنرجو نامحدود" : `تا ${p.max_students} هنرجو`}</div>
-                      <div>🎬 {p.max_shop_courses === 0 ? "بدون فروش آنلاین" : `${p.max_shop_courses} دوره فروش آنلاین`}</div>
+                      <div>🎬 {!p.online_sales_enabled ? "بدون فروش آنلاین" : p.max_shop_courses === 0 ? "فروش آنلاین نامحدود" : `${p.max_shop_courses} دوره فروش آنلاین`}</div>
                       <div>💰 کمیسیون سامانه: {p.commission_percent}٪</div>
                     </div>
                     <a href="tel:09159513179" className={`block text-center py-3 rounded-[12px] font-black text-sm ${p.is_popular ? "bg-gradient-to-l from-amber-400 to-yellow-500 text-slate-900" : "gradient-button text-white"}`}>

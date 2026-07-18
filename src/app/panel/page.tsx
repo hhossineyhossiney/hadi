@@ -753,7 +753,7 @@ function ShopTab() {
 
   const perm = data?.permission;
   const courses = data?.courses || [];
-  const canCreate = perm?.isEnabled && courses.length < (perm?.maxCourses || 0);
+  const canCreate = !!perm?.isEnabled && (!!perm?.isUnlimited || courses.length < Number(perm?.maxCourses || 0));
 
   return (
     <div>
@@ -770,9 +770,9 @@ function ShopTab() {
               <Lock className="w-5 h-5" />
             </div>
             <div>
-              <div className="font-black text-amber-300 text-sm mb-1">دسترسی فروش آنلاین شما فعال نیست</div>
+              <div className="font-black text-amber-300 text-sm mb-1">فروش آنلاین در پلن فعلی فعال نیست</div>
               <div className="text-xs text-slate-300 leading-relaxed">
-                برای فعال‌سازی امکان فروش دوره‌های آنلاین، با مدیر کل سامانه تماس بگیرید. مدیر کل تعداد دوره‌های مجاز و درصد کمیسیون را تعیین می‌کند.
+                دسترسی فروش آنلاین، سقف دوره‌ها و کمیسیون مستقیماً از پلن اشتراک محاسبه می‌شود. با اختصاص یا ارتقای پلن مناسب، این بخش خودکار فعال خواهد شد و نیازی به مجوز جداگانه نیست.
               </div>
             </div>
           </div>
@@ -784,8 +784,8 @@ function ShopTab() {
             <div className="text-sm font-black text-emerald-300 flex items-center gap-1"><Check className="w-4 h-4" /> فعال</div>
           </div>
           <div className="p-4 rounded-[14px] bg-gradient-to-br from-primary-500/15 to-primary-500/5 border border-primary-500/25">
-            <div className="text-[10px] text-slate-400 font-bold mb-1">سقف مجاز</div>
-            <div className="text-lg font-black text-primary-300">{Number(perm.maxCourses).toLocaleString("fa-IR")}</div>
+            <div className="text-[10px] text-slate-400 font-bold mb-1">سقف پلن {perm.planName ? `«${perm.planName}»` : ""}</div>
+            <div className="text-lg font-black text-primary-300">{perm.isUnlimited ? "نامحدود" : Number(perm.maxCourses).toLocaleString("fa-IR")}</div>
           </div>
           <div className="p-4 rounded-[14px] bg-gradient-to-br from-indigo-500/15 to-indigo-500/5 border border-indigo-500/25">
             <div className="text-[10px] text-slate-400 font-bold mb-1">دوره‌های ثبت‌شده</div>
@@ -812,9 +812,9 @@ function ShopTab() {
           >
             <Plus className="w-4 h-4" /> {creating ? "بستن فرم" : "افزودن دوره فروشی جدید"}
           </button>
-          {!canCreate && perm?.maxCourses > 0 && courses.length >= perm.maxCourses && (
+          {!canCreate && !perm?.isUnlimited && perm?.maxCourses > 0 && courses.length >= perm.maxCourses && (
             <div className="mt-2 text-[11px] text-amber-400 font-bold">
-              ⚠ سقف {perm.maxCourses} دوره پر است. برای افزایش با مدیر کل تماس بگیرید.
+              ⚠ سقف {perm.maxCourses} دوره در پلن فعلی تکمیل شده است؛ با ارتقای پلن سقف جدید خودکار اعمال می‌شود.
             </div>
           )}
         </div>
@@ -3939,6 +3939,7 @@ function ManagerSubscriptionTab() {
   if (loading) return <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>;
 
   const cur = data?.current;
+  const entitlement = data?.entitlement || {};
   const usage = data?.usage || {};
   const hist = data?.history || [];
   const isActive = cur?.status === "active" && (!cur.expires_at || new Date(cur.expires_at) > new Date());
@@ -4018,12 +4019,13 @@ function ManagerSubscriptionTab() {
             </div>
             <div>
               <div className="flex items-center justify-between text-[10px] mb-1">
-                <span className="text-slate-300 font-bold">🎬 دوره‌های فروش آنلاین: {usage.shopCourses}/{cur.max_shop_courses === 0 ? "0 (غیرمجاز)" : cur.max_shop_courses}</span>
-                <span className="text-slate-400">{cur.max_shop_courses === 0 ? "—" : `${usagePercent(usage.shopCourses, cur.max_shop_courses)}٪`}</span>
+                <span className="text-slate-300 font-bold">🎬 دوره‌های فروش آنلاین: {usage.shopCourses}/{!entitlement.onlineSalesEnabled ? "غیرفعال" : entitlement.unlimitedShopCourses ? "∞" : entitlement.maxShopCourses}</span>
+                <span className={entitlement.onlineSalesEnabled ? "text-emerald-300 font-black" : "text-slate-400"}>{!entitlement.onlineSalesEnabled ? "در این پلن فعال نیست" : entitlement.unlimitedShopCourses ? "نامحدود و خودکار" : `${usagePercent(usage.shopCourses, entitlement.maxShopCourses)}٪`}</span>
               </div>
               <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-                <div className="h-full bg-gradient-to-l from-amber-500 to-amber-300 transition-all" style={{ width: cur.max_shop_courses === 0 ? "0%" : `${usagePercent(usage.shopCourses, cur.max_shop_courses)}%` }} />
+                <div className="h-full bg-gradient-to-l from-amber-500 to-amber-300 transition-all" style={{ width: !entitlement.onlineSalesEnabled ? "0%" : entitlement.unlimitedShopCourses ? "20%" : `${usagePercent(usage.shopCourses, entitlement.maxShopCourses)}%` }} />
               </div>
+              <div className="mt-1 text-[9px] text-slate-500">مجوز فروش، سقف و کمیسیون مستقیماً از همین پلن اعمال می‌شود و مجوز جداگانه لازم نیست.</div>
             </div>
           </div>
 
@@ -4174,7 +4176,7 @@ function ManagerSubscriptionTab() {
                     </div>
                     <div className="flex items-center gap-2 text-xs text-slate-300">
                       <span>🎬</span>
-                      <span>{p.max_shop_courses === 0 ? "بدون فروش آنلاین" : `${p.max_shop_courses} دوره فروش آنلاین`}</span>
+                      <span>{!p.online_sales_enabled ? "بدون فروش آنلاین" : p.max_shop_courses === 0 ? "فروش آنلاین نامحدود" : `${p.max_shop_courses} دوره فروش آنلاین`}</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-slate-300">
                       <span>💰</span>

@@ -27,7 +27,7 @@ const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "managers", label: "مدیران آموزشگاه‌ها", icon: Users2 },
   { key: "registrations", label: "مدیریت ثبت‌نام‌ها", icon: ClipboardList },
   { key: "reviews", label: "نظرات و امتیازها", icon: Star },
-  { key: "shop_perms", label: "مجوز فروش آنلاین", icon: ShieldCheck },
+  { key: "shop_perms", label: "فروش آنلاین بر اساس پلن", icon: ShieldCheck },
   { key: "finance", label: "مالی و درآمد", icon: Wallet },
   { key: "chat", label: "چت با آموزشگاه‌ها", icon: MessageCircle },
   { key: "categories", label: "مدیریت رشته‌ها", icon: BookOpen },
@@ -1476,96 +1476,73 @@ function AdminChatTab() {
   );
 }
 
-/* ============================= SHOP PERMS TAB ============================= */
+/* ============================= ONLINE SALES — DERIVED FROM PLANS ============================= */
 function ShopPermsTab() {
-  const [data, setData] = useState<any[] | null>(null);
+  const [data, setData] = useState<any[]>([]);
   const [shopCourses, setShopCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
-  const [editing, setEditing] = useState<any>(null);
   const [search, setSearch] = useState("");
 
   const load = () => {
     setLoading(true);
-    fetch("/api/admin/shop-permissions").then(r => r.json()).then(d => { setData(d.institutes || []); setShopCourses(d.courses || []); setLoading(false); });
+    fetch("/api/admin/shop-permissions").then(r => r.json()).then(d => {
+      setData(d.institutes || []);
+      setShopCourses(d.courses || []);
+      setLoading(false);
+    });
   };
   useEffect(load, []);
 
-  const save = async (payload: any) => {
-    const r = await fetch("/api/admin/shop-permissions", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload) });
-    const d = await r.json();
-    if (r.ok) { setMsg("✅ ذخیره شد"); load(); return true; }
-    else { setMsg("❌ " + (d.error || "خطا")); return false; }
+  const toggleFeatured = async (course: any) => {
+    const response = await fetch("/api/admin/shop-permissions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "toggleFeatured", courseId: course.id, isFeatured: !course.is_featured }),
+    });
+    const value = await response.json();
+    if (response.ok) { setMsg("✅ وضعیت دوره ویژه ذخیره شد"); load(); }
+    else setMsg("❌ " + (value.error || "خطا"));
   };
 
   if (loading) return <div className="text-center py-10"><Loader2 className="w-8 h-8 animate-spin mx-auto text-primary-500" /></div>;
 
-  const filtered = (data || []).filter(i => !search || i.name?.includes(search) || i.mobile?.includes(search));
+  const filtered = data.filter(i => !search || i.name?.includes(search) || i.mobile?.includes(search) || i.plan_name?.includes(search));
   const enabled = filtered.filter(i => i.is_enabled);
-  const disabled = filtered.filter(i => !i.is_enabled);
 
   return (
     <div>
-      <h2 className="text-2xl font-black text-white mb-1">مجوز فروش آنلاین آموزشگاه‌ها</h2>
-      <p className="text-slate-400 text-sm mb-6">
-        برای هر آموزشگاه سقف تعداد دوره فروشی، درصد کمیسیون و فعال/غیرفعال بودن دسترسی رو تعیین کن
+      <h2 className="text-2xl font-black text-white mb-1">فروش آنلاین بر اساس پلن اشتراک</h2>
+      <p className="text-slate-400 text-sm mb-5">
+        دسترسی فروش، سقف دوره‌ها و کمیسیون از پلن فعال هر آموزشگاه خوانده می‌شود؛ این بخش فقط وضعیت خودکار را نمایش می‌دهد و تنظیم تکراری ندارد.
       </p>
 
+      <div className="mb-5 rounded-[16px] border border-emerald-500/25 bg-emerald-500/10 p-4 text-xs leading-6 text-emerald-100">
+        <b className="text-emerald-300">✓ فعال‌سازی خودکار:</b> به‌محض اختصاص پلن، مجوز فروش آنلاین، سقف و درصد کمیسیون همان پلن فوراً اعمال می‌شود. با تغییر یا انقضای پلن نیز دسترسی خودکار به‌روز خواهد شد.
+      </div>
       {msg && <div className={`mb-4 p-3 rounded-[10px] text-xs font-bold ${msg.startsWith("❌") ? "bg-error-500/15 text-error-400" : "bg-emerald-500/15 text-emerald-400"}`}>{msg}</div>}
 
       <div className="grid grid-cols-3 gap-3 mb-5">
-        <div className="p-4 rounded-[14px] bg-gradient-to-br from-emerald-500/15 to-transparent border border-emerald-500/25">
-          <div className="text-[10px] text-slate-400 font-bold mb-1">فعال</div>
-          <div className="text-2xl font-black text-emerald-300">{enabled.length.toLocaleString("fa-IR")}</div>
-        </div>
-        <div className="p-4 rounded-[14px] bg-gradient-to-br from-amber-500/15 to-transparent border border-amber-500/25">
-          <div className="text-[10px] text-slate-400 font-bold mb-1">غیرفعال</div>
-          <div className="text-2xl font-black text-amber-300">{disabled.length.toLocaleString("fa-IR")}</div>
-        </div>
-        <div className="p-4 rounded-[14px] bg-gradient-to-br from-primary-500/15 to-transparent border border-primary-500/25">
-          <div className="text-[10px] text-slate-400 font-bold mb-1">کل دوره‌های منتشرشده</div>
-          <div className="text-2xl font-black text-primary-300">
-            {filtered.reduce((s, i) => s + Number(i.published_count || 0), 0).toLocaleString("fa-IR")}
-          </div>
-        </div>
+        <div className="p-4 rounded-[14px] bg-gradient-to-br from-emerald-500/15 to-transparent border border-emerald-500/25"><div className="text-[10px] text-slate-400 font-bold mb-1">فروش فعال</div><div className="text-2xl font-black text-emerald-300">{enabled.length.toLocaleString("fa-IR")}</div></div>
+        <div className="p-4 rounded-[14px] bg-gradient-to-br from-amber-500/15 to-transparent border border-amber-500/25"><div className="text-[10px] text-slate-400 font-bold mb-1">بدون فروش در پلن</div><div className="text-2xl font-black text-amber-300">{(filtered.length - enabled.length).toLocaleString("fa-IR")}</div></div>
+        <div className="p-4 rounded-[14px] bg-gradient-to-br from-primary-500/15 to-transparent border border-primary-500/25"><div className="text-[10px] text-slate-400 font-bold mb-1">دوره منتشرشده</div><div className="text-2xl font-black text-primary-300">{filtered.reduce((sum, item) => sum + Number(item.published_count || 0), 0).toLocaleString("fa-IR")}</div></div>
       </div>
 
-      <input value={search} onChange={e => setSearch(e.target.value)} placeholder="جستجو نام یا موبایل" className="w-full mb-4 px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" />
+      <input value={search} onChange={e => setSearch(e.target.value)} placeholder="جست‌وجوی آموزشگاه یا پلن" className="w-full mb-4 px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" />
 
       <div className="bg-[#111a2e] border border-white/5 rounded-[18px] overflow-x-auto">
         <table className="w-full text-xs">
-          <thead>
-            <tr className="text-right text-[10px] font-black text-slate-500 border-b border-white/5">
-              <th className="px-4 py-3">آموزشگاه</th>
-              <th className="px-4 py-3">وضعیت</th>
-              <th className="px-4 py-3">سقف مجاز</th>
-              <th className="px-4 py-3">ثبت‌شده</th>
-              <th className="px-4 py-3">منتشرشده</th>
-              <th className="px-4 py-3">کمیسیون</th>
-              <th className="px-4 py-3">اقدام</th>
-            </tr>
-          </thead>
+          <thead><tr className="text-right text-[10px] font-black text-slate-500 border-b border-white/5"><th className="px-4 py-3">آموزشگاه</th><th className="px-4 py-3">پلن فعال</th><th className="px-4 py-3">فروش آنلاین</th><th className="px-4 py-3">سقف پلن</th><th className="px-4 py-3">مصرف</th><th className="px-4 py-3">کمیسیون</th><th className="px-4 py-3">منبع</th></tr></thead>
           <tbody className="divide-y divide-white/5">
-            {filtered.map((i) => (
-              <tr key={i.id} className="hover:bg-white/5">
-                <td className="px-4 py-3 font-bold text-white">{i.name}
-                  {i.mobile && <div className="text-[10px] text-slate-500 font-normal" dir="ltr">{i.mobile}</div>}
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-1 rounded-full text-[10px] font-black ${i.is_enabled ? "bg-emerald-500/15 text-emerald-400" : "bg-slate-500/15 text-slate-400"}`}>
-                    {i.is_enabled ? "فعال" : "غیرفعال"}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-white font-bold">{Number(i.max_courses || 0).toLocaleString("fa-IR")}</td>
-                <td className="px-4 py-3 text-slate-300">{Number(i.current_count || 0).toLocaleString("fa-IR")}</td>
-                <td className="px-4 py-3 text-emerald-400 font-bold">{Number(i.published_count || 0).toLocaleString("fa-IR")}</td>
-                <td className="px-4 py-3 text-amber-300 font-bold">{i.commission_percent || "10.00"}٪</td>
-                <td className="px-4 py-3">
-                  <button onClick={() => setEditing({ instituteId: i.id, name: i.name, maxCourses: i.max_courses || 0, isEnabled: !!i.is_enabled, commissionPercent: i.commission_percent || "10.00", notes: i.notes || "" })}
-                    className="px-3 py-1.5 rounded-[8px] bg-primary-500/20 text-primary-300 text-[10px] font-black hover:bg-primary-500/30 flex items-center gap-1">
-                    <Pencil className="w-3 h-3" /> تنظیم
-                  </button>
-                </td>
+            {filtered.map((item) => (
+              <tr key={item.id} className="hover:bg-white/5">
+                <td className="px-4 py-3 font-bold text-white">{item.name}{item.mobile && <div className="text-[10px] text-slate-500 font-normal" dir="ltr">{item.mobile}</div>}</td>
+                <td className="px-4 py-3 text-primary-300 font-bold">{item.plan_name || "—"}</td>
+                <td className="px-4 py-3"><span className={`px-2 py-1 rounded-full text-[10px] font-black ${item.is_enabled ? "bg-emerald-500/15 text-emerald-400" : "bg-slate-500/15 text-slate-400"}`}>{item.is_enabled ? "فعال خودکار" : "غیرفعال"}</span></td>
+                <td className="px-4 py-3 text-white font-bold">{item.is_enabled ? (item.is_unlimited ? "نامحدود" : Number(item.max_courses || 0).toLocaleString("fa-IR")) : "—"}</td>
+                <td className="px-4 py-3 text-slate-300">{Number(item.current_count || 0).toLocaleString("fa-IR")}</td>
+                <td className="px-4 py-3 text-amber-300 font-bold">{item.is_enabled ? `${item.commission_percent}٪` : "—"}</td>
+                <td className="px-4 py-3"><span className="rounded-full bg-violet-500/10 px-2 py-1 text-[9px] font-black text-violet-300">{item.permission_source}</span></td>
               </tr>
             ))}
           </tbody>
@@ -1573,56 +1550,18 @@ function ShopPermsTab() {
       </div>
 
       <div className="mt-6 rounded-[18px] border border-white/5 bg-[#111a2e] p-4">
-        <div className="mb-4">
-          <h3 className="text-sm font-black text-white">مدیریت نشان «ویژه» روی کارت دوره‌های آنلاین</h3>
-          <p className="mt-1 text-[10px] text-slate-500">این ویژگی مربوط به مدیر کل است و ترتیب نمایش دوره‌ها در فروشگاه و صفحه اصلی را کنترل می‌کند.</p>
-        </div>
+        <div className="mb-4"><h3 className="text-sm font-black text-white">مدیریت نشان «ویژه» روی کارت دوره‌های آنلاین</h3><p className="mt-1 text-[10px] text-slate-500">فقط این نشان تبلیغاتی توسط مدیر کل کنترل می‌شود؛ دسترسی و کمیسیون همچنان از پلن می‌آید.</p></div>
         {shopCourses.length === 0 ? <div className="py-6 text-center text-xs text-slate-500">دوره آنلاین ثبت نشده است.</div> : (
           <div className="grid gap-3 md:grid-cols-2">
             {shopCourses.map((course) => (
               <div key={course.id} className="flex items-center justify-between gap-3 rounded-[12px] border border-white/10 bg-[#0B1120] p-3">
                 <div className="min-w-0"><div className="truncate text-xs font-black text-white">{course.title}</div><div className="mt-1 truncate text-[9px] text-slate-500">{course.institute_name} • {course.is_published ? "منتشرشده" : "پیش‌نویس"}</div></div>
-                <button type="button" onClick={() => save({ action: "toggleFeatured", courseId: course.id, isFeatured: !course.is_featured })} className={`shrink-0 rounded-full px-3 py-2 text-[9px] font-black ${course.is_featured ? "bg-amber-400 text-slate-900" : "bg-white/5 text-slate-400"}`}>
-                  {course.is_featured ? "⭐ ویژه" : "عادی"}
-                </button>
+                <button type="button" onClick={() => toggleFeatured(course)} className={`shrink-0 rounded-full px-3 py-2 text-[9px] font-black ${course.is_featured ? "bg-amber-400 text-slate-900" : "bg-white/5 text-slate-400"}`}>{course.is_featured ? "⭐ ویژه" : "عادی"}</button>
               </div>
             ))}
           </div>
         )}
       </div>
-
-      {editing && (
-        <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4" onClick={() => setEditing(null)}>
-          <div className="w-full max-w-md bg-[#082D53] border border-white/10 rounded-[18px] p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="mb-4">
-              <div className="text-sm font-black text-white">تنظیم دسترسی فروش</div>
-              <div className="text-[11px] text-slate-400 mt-0.5">{editing.name}</div>
-            </div>
-            <div className="space-y-3">
-              <label className="flex items-center gap-2 text-xs text-white font-bold cursor-pointer">
-                <input type="checkbox" checked={editing.isEnabled} onChange={e => setEditing({...editing, isEnabled: e.target.checked})} />
-                فعال بودن دسترسی فروش آنلاین
-              </label>
-              <div>
-                <label className="text-[10px] font-black text-slate-400 mb-1 block">حداکثر تعداد دوره مجاز</label>
-                <input type="number" value={editing.maxCourses} onChange={e => setEditing({...editing, maxCourses: Number(e.target.value)})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
-              </div>
-              <div>
-                <label className="text-[10px] font-black text-slate-400 mb-1 block">درصد کمیسیون سامانه</label>
-                <input type="number" step="0.01" value={editing.commissionPercent} onChange={e => setEditing({...editing, commissionPercent: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
-              </div>
-              <div>
-                <label className="text-[10px] font-black text-slate-400 mb-1 block">یادداشت (اختیاری)</label>
-                <textarea value={editing.notes} onChange={e => setEditing({...editing, notes: e.target.value})} rows={2} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-xs font-bold resize-none" />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button onClick={async () => { if (await save(editing)) setEditing(null); }} className="flex-1 py-2.5 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white text-xs font-black">ذخیره تنظیمات</button>
-                <button onClick={() => setEditing(null)} className="flex-1 py-2.5 rounded-[10px] bg-white/10 text-slate-300 text-xs font-black">انصراف</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -1954,7 +1893,7 @@ function AdminPlansTab() {
     setMsg("❌ " + (d.error || "خطا")); return false;
   };
 
-  const newPlan = () => setEditing({ id: null, name: "", slug: "", description: "", price: "", priceYearly: "", durationDays: 30, maxCourses: 0, maxStudents: 0, maxShopCourses: 0, commissionPercent: "10.00", features: [""], color: "primary", isPopular: false, sortOrder: 99 });
+  const newPlan = () => setEditing({ id: null, name: "", slug: "", description: "", price: "", priceYearly: "", durationDays: 30, maxCourses: 0, maxStudents: 0, maxShopCourses: 0, onlineSalesEnabled: false, commissionPercent: "10.00", features: [""], color: "primary", isPopular: false, sortOrder: 99 });
 
   return (
     <div>
@@ -1997,12 +1936,12 @@ function AdminPlansTab() {
                 <div className="text-[10px] text-slate-400 mb-3 space-y-0.5">
                   <div>📚 {p.max_courses === 0 ? "نامحدود" : `${p.max_courses} دوره`}</div>
                   <div>👥 {p.max_students === 0 ? "نامحدود" : `${p.max_students} هنرجو`}</div>
-                  <div>🎬 {p.max_shop_courses === 0 ? "بدون فروش" : `${p.max_shop_courses} دوره آنلاین`}</div>
+                  <div>🎬 {!p.online_sales_enabled ? "فروش آنلاین غیرفعال" : p.max_shop_courses === 0 ? "فروش آنلاین نامحدود" : `${p.max_shop_courses} دوره آنلاین`}</div>
                   <div>💰 کمیسیون: {p.commission_percent}٪</div>
                 </div>
                 <div className="flex gap-1">
                   <button onClick={() => setAssigning({ planId: p.id, planName: p.name, instituteId: "", durationDays: p.duration_days, notes: "" })} className="flex-1 px-2 py-1.5 rounded-[8px] bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black">اختصاص به آموزشگاه</button>
-                  <button onClick={() => setEditing({...p, features: p.features || [""]})} className="px-2 py-1.5 rounded-[8px] bg-sky-500/20 text-sky-400"><Pencil className="w-3 h-3" /></button>
+                  <button onClick={() => setEditing({...p, onlineSalesEnabled: !!p.online_sales_enabled, features: p.features || [""]})} className="px-2 py-1.5 rounded-[8px] bg-sky-500/20 text-sky-400"><Pencil className="w-3 h-3" /></button>
                   <button onClick={() => { if (confirm("حذف این پلن؟")) act({ action: "deletePlan", id: p.id }); }} className="px-2 py-1.5 rounded-[8px] bg-error-500/20 text-error-400"><Trash2 className="w-3 h-3" /></button>
                 </div>
               </div>
@@ -2086,9 +2025,13 @@ function AdminPlansTab() {
                 <input type="number" value={editing.max_students ?? editing.maxStudents ?? 0} onChange={e => setEditing({...editing, maxStudents: Number(e.target.value)})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
               </div>
               <div>
-                <label className="text-[10px] font-black text-slate-400 block mb-1">دوره فروش آنلاین</label>
-                <input type="number" value={editing.max_shop_courses ?? editing.maxShopCourses ?? 0} onChange={e => setEditing({...editing, maxShopCourses: Number(e.target.value)})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold" dir="ltr" />
+                <label className="text-[10px] font-black text-slate-400 block mb-1">سقف دوره آنلاین (۰ = نامحدود)</label>
+                <input type="number" min="0" disabled={!(editing.online_sales_enabled ?? editing.onlineSalesEnabled ?? false)} value={editing.max_shop_courses ?? editing.maxShopCourses ?? 0} onChange={e => setEditing({...editing, maxShopCourses: Number(e.target.value)})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold disabled:opacity-50" dir="ltr" />
               </div>
+              <label className="flex items-center gap-2 rounded-[10px] border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200 font-bold">
+                <input type="checkbox" checked={!!(editing.online_sales_enabled ?? editing.onlineSalesEnabled)} onChange={e => setEditing({...editing, onlineSalesEnabled: e.target.checked, online_sales_enabled: e.target.checked})} />
+                فروش آنلاین در این پلن فعال باشد
+              </label>
               <div>
                 <label className="text-[10px] font-black text-slate-400 block mb-1">رنگ</label>
                 <select value={editing.color || "primary"} onChange={e => setEditing({...editing, color: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold">
@@ -2124,6 +2067,7 @@ function AdminPlansTab() {
         <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4" onClick={() => setAssigning(null)}>
           <div className="w-full max-w-md bg-[#082D53] rounded-[18px] border border-white/10 p-5 space-y-3" onClick={e => e.stopPropagation()}>
             <div className="text-sm font-black text-white mb-2">اختصاص پلن «{assigning.planName}» به آموزشگاه</div>
+            <div className="rounded-[10px] border border-emerald-500/20 bg-emerald-500/10 p-3 text-[10px] leading-5 text-emerald-200">با ثبت این فرم، فروش آنلاین، سقف دوره و کمیسیون پلن نیز همان لحظه و بدون مجوز جداگانه فعال می‌شود.</div>
             <div>
               <label className="text-[10px] font-black text-slate-400 block mb-1">انتخاب آموزشگاه *</label>
               <select value={assigning.instituteId} onChange={e => setAssigning({...assigning, instituteId: e.target.value})} className="w-full px-3 py-2 rounded-[8px] bg-white/85 text-slate-900 text-sm font-bold">
