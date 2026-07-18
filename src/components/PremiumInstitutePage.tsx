@@ -73,7 +73,13 @@ function Stars({ value }: { value: number }) {
 }
 
 function SectionTitle({ eyebrow, title, description }: { eyebrow: string; title: string; description?: string }) {
-  return <div className="mb-6"><span className="mb-2 block text-[10px] font-black tracking-widest text-fuchsia-400">{eyebrow}</span><h2 className="text-xl font-black text-white md:text-2xl">{title}</h2>{description && <p className="mt-2 max-w-2xl text-xs leading-6 text-slate-400">{description}</p>}</div>;
+  return (
+    <div className="mb-8">
+      <span className="mb-2.5 block text-xs font-black tracking-[0.16em] text-fuchsia-400 md:text-sm">{eyebrow}</span>
+      <h2 className="text-2xl font-black leading-tight text-white md:text-4xl">{title}</h2>
+      {description && <p className="mt-3 max-w-3xl text-sm font-medium leading-7 text-slate-300 md:text-base md:leading-8">{description}</p>}
+    </div>
+  );
 }
 
 function SampleBadge({ show }: { show?: boolean }) {
@@ -195,7 +201,7 @@ export default function PremiumInstitutePage({ institute, profile, courses, onli
 
       {/* Floating quick nav */}
       <nav className="sticky top-20 z-40 border-y border-white/10 bg-[#070a1c]/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-2 [scrollbar-width:none]">{[["#courses","دوره‌ها"],["#about","معرفی"],["#teachers","اساتید"],["#portfolio","نمونه‌کار"],["#reviews","نظرات"],["#calendar","تقویم"],["#contact","تماس و مشاوره"]].map(([href,label]) => <a key={href} href={href} className="shrink-0 rounded-full px-3 py-2 text-[10px] font-black text-slate-400 hover:bg-fuchsia-500/15 hover:text-fuchsia-300">{label}</a>)}</div>
+        <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-2 [scrollbar-width:none]">{[["#courses","دوره‌ها"],["#about","معرفی"],["#teachers","اساتید"],["#portfolio","نمونه‌کار"],["#reviews","نظرات"],["#calendar","تقویم"],["#contact","تماس و مشاوره"]].map(([href,label]) => <a key={href} href={href} className="shrink-0 rounded-full px-4 py-2.5 text-xs font-black text-slate-300 hover:bg-fuchsia-500/15 hover:text-fuchsia-200 md:text-sm">{label}</a>)}</div>
       </nav>
 
       {/* Competitive advantages */}
@@ -208,8 +214,8 @@ export default function PremiumInstitutePage({ institute, profile, courses, onli
         <div className="mx-auto max-w-7xl px-4 md:px-8">
           <SectionTitle eyebrow="COURSES" title="دوره‌های آموزشی" description="دوره‌های حضوری و آنلاین را بر اساس نوع، قیمت و وضعیت ثبت‌نام پیدا کنید." />
           <div className="mb-7 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex gap-2 overflow-x-auto">{[["all","همه"],["inperson","حضوری"],["online","آنلاین"],["free","رایگان"],["open","در حال ثبت‌نام"]].map(([key,label]) => <button key={key} onClick={() => setCourseFilter(key)} className={`shrink-0 rounded-full px-4 py-2 text-[10px] font-black ${courseFilter === key ? "bg-fuchsia-500 text-white" : "border border-white/10 bg-white/5 text-slate-400"}`}>{label}</button>)}</div>
-            <div className="relative"><Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" /><input value={courseQuery} onChange={(event) => setCourseQuery(event.target.value)} placeholder="جست‌وجوی دوره یا مدرس..." className="w-full rounded-[12px] border border-white/10 bg-white/5 py-3 pr-10 pl-4 text-sm text-white outline-none lg:w-80" /></div>
+            <div className="flex gap-2.5 overflow-x-auto pb-1">{[["all","همه"],["inperson","حضوری"],["online","آنلاین"],["free","رایگان"],["open","در حال ثبت‌نام"]].map(([key,label]) => <button key={key} onClick={() => setCourseFilter(key)} className={`shrink-0 rounded-full px-5 py-2.5 text-xs font-black md:px-6 md:py-3 md:text-sm ${courseFilter === key ? "bg-fuchsia-500 text-white shadow-lg shadow-fuchsia-500/20" : "border border-white/15 bg-white/5 text-slate-300 hover:border-fuchsia-400/30 hover:text-white"}`}>{label}</button>)}</div>
+            <div className="relative"><Search className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" /><input value={courseQuery} onChange={(event) => setCourseQuery(event.target.value)} placeholder="جست‌وجوی دوره یا مدرس..." className="w-full rounded-[14px] border border-white/15 bg-white/[0.06] py-3.5 pr-12 pl-4 text-base font-medium text-white outline-none placeholder:text-slate-500 focus:border-fuchsia-400/40 lg:w-96" /></div>
           </div>
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">{filteredCourses.map((course, index) => course.mode === "online" ? <OnlineCourseCard key={`online-${course.id}`} course={course} index={index} /> : <CourseCard key={`course-${course.id}`} course={course} index={index} />)}</div>
           {filteredCourses.length === 0 && <div className="rounded-[20px] border border-dashed border-white/10 py-14 text-center text-sm text-slate-500">دوره‌ای با این فیلتر پیدا نشد.</div>}
