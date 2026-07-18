@@ -1,0 +1,40 @@
+import type { MetadataRoute } from "next";
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    id: "/",
+    name: "فَنی‌اکسو | سامانه آموزش و مدیریت آموزشگاه",
+    short_name: "فَنی‌اکسو",
+    description: "آموزش آنلاین، ثبت‌نام دوره‌های مهارتی و مدیریت یکپارچه آموزشگاه‌های فنی و حرفه‌ای زبرخان",
+    start_url: "/?source=pwa",
+    scope: "/",
+    display: "standalone",
+    background_color: "#04152A",
+    theme_color: "#071426",
+    orientation: "any",
+    dir: "rtl",
+    lang: "fa-IR",
+    categories: ["education", "productivity", "business"],
+    icons: [
+      { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+    ],
+    shortcuts: [
+      {
+        name: "مشاهده دوره‌ها",
+        short_name: "دوره‌ها",
+        description: "جست‌وجو و مشاهده دوره‌های حضوری",
+        url: "/courses?source=pwa-shortcut",
+        icons: [{ src: "/icons/shortcut-courses.png", sizes: "96x96", type: "image/png" }],
+      },
+      {
+        name: "پنل کاربری",
+        short_name: "پنل من",
+        description: "ورود به پنل متناسب با نقش کاربری",
+        url: "/my?source=pwa-shortcut",
+        icons: [{ src: "/icons/shortcut-panel.png", sizes: "96x96", type: "image/png" }],
+      },
+    ],
+  };
+}
