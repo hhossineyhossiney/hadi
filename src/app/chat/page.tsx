@@ -685,6 +685,16 @@ function ChatContent() {
               <h1 className="text-lg font-black text-white">مرکز چت</h1>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={closeChatPage}
+                className="inline-flex items-center gap-2 rounded-[11px] border border-error-500/25 bg-error-500/15 px-4 py-2 text-xs font-black text-error-400 transition hover:border-error-500/40 hover:bg-error-500/25 hover:text-error-300"
+                aria-label="بستن مرکز چت و بازگشت به پنل"
+                title="بستن مرکز چت"
+              >
+                <X className="h-4 w-4" />
+                بستن چت
+              </button>
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
                 <User className="w-3.5 h-3.5" />
                 {user?.name || "کاربر"}
