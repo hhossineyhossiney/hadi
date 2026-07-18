@@ -153,23 +153,23 @@ export default function PremiumInstitutePage({ institute, profile, courses, onli
   };
 
   return (
-    <main className="min-h-screen bg-[#050817] text-white">
+    <main className="premium-institute-page min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-[#050817] text-white">
       {/* Hero */}
       <section className="relative min-h-[580px] overflow-hidden border-b border-fuchsia-500/15">
         <img src={heroCover} alt={`کاور ${institute.name}`} className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-l from-[#050817]/95 via-[#080b21]/80 to-[#07091a]/45" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#050817] via-transparent to-[#050817]/35" />
         <div className="absolute right-[10%] top-16 h-72 w-72 rounded-full bg-fuchsia-600/20 blur-[120px]" />
-        <div className="relative mx-auto grid min-h-[580px] max-w-7xl items-center gap-8 px-4 pb-16 pt-28 md:grid-cols-[1.2fr_0.8fr] md:px-8">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="relative mx-auto grid min-h-[580px] w-full min-w-0 max-w-7xl items-center gap-8 px-4 pb-16 pt-28 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] md:px-8">
+          <motion.div className="min-w-0" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1 rounded-full border border-fuchsia-400/30 bg-fuchsia-500/15 px-3 py-1.5 text-[10px] font-black text-fuchsia-200"><Sparkles className="h-3.5 w-3.5" /> پروفایل حرفه‌ای آموزشگاه</span>
               {institute.isVerified && <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-500/15 px-3 py-1.5 text-[10px] font-black text-emerald-200"><BadgeCheck className="h-3.5 w-3.5" /> مجوز و هویت تأییدشده</span>}
               {institute.isYearAward && <span className="inline-flex items-center gap-1 rounded-full bg-amber-400 px-3 py-1.5 text-[10px] font-black text-slate-950"><Award className="h-3.5 w-3.5" /> آموزشگاه برگزیده</span>}
             </div>
             <div className="mb-5 flex items-center gap-4">
-              <img src={logo} alt={`لوگوی ${institute.name}`} className="h-20 w-20 rounded-[22px] border-2 border-white/25 bg-white/10 object-cover p-1 shadow-2xl" />
-              <div><h1 className="text-3xl font-black leading-tight md:text-5xl">{institute.name}</h1><p className="mt-2 text-sm font-bold text-fuchsia-300 md:text-lg">{profile.slogan}</p></div>
+              <img src={logo} alt={`لوگوی ${institute.name}`} className="h-20 w-20 shrink-0 rounded-[22px] border-2 border-white/25 bg-white/10 object-cover p-1 shadow-2xl" />
+              <div className="min-w-0 flex-1"><h1 className="break-words text-3xl font-black leading-tight md:text-5xl">{institute.name}</h1><p className="mt-2 break-words text-sm font-bold leading-6 text-fuchsia-300 md:text-lg">{profile.slogan}</p></div>
             </div>
             <p className="mb-6 max-w-2xl text-sm leading-7 text-slate-300">{institute.description || profile.mission}</p>
             <div className="mb-7 flex flex-wrap items-center gap-4 text-xs">
@@ -186,7 +186,7 @@ export default function PremiumInstitutePage({ institute, profile, courses, onli
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-2 gap-3 rounded-[28px] border border-white/10 bg-[#080b20]/70 p-4 backdrop-blur-xl md:p-5">
+          <div className="grid w-full min-w-0 grid-cols-2 gap-3 rounded-[28px] border border-white/10 bg-[#080b20]/70 p-4 backdrop-blur-xl md:p-5">
             {[
               { icon: Users, value: studentTotal, label: "هنرجو", color: "text-cyan-300" },
               { icon: GraduationCap, value: graduateTotal, label: "فارغ‌التحصیل", color: "text-fuchsia-300" },
@@ -194,7 +194,7 @@ export default function PremiumInstitutePage({ institute, profile, courses, onli
               { icon: BriefcaseBusiness, value: profile.employmentCount, label: "استخدام ثبت‌شده", color: "text-emerald-300" },
               { icon: Award, value: years, label: "سال سابقه", color: "text-violet-300" },
               { icon: Star, value: Number(institute.rating || 0).toFixed(1), label: "امتیاز کاربران", color: "text-yellow-300" },
-            ].map((item) => <div key={item.label} className="rounded-[18px] border border-white/[0.08] bg-white/[0.045] p-4"><item.icon className={`mb-3 h-5 w-5 ${item.color}`} /><div className="text-2xl font-black">{typeof item.value === "number" ? fa(item.value) : item.value}</div><div className="mt-1 text-[9px] font-bold text-slate-500">{item.label}</div></div>)}
+            ].map((item) => <div key={item.label} className="min-w-0 overflow-hidden rounded-[18px] border border-white/[0.08] bg-white/[0.045] p-4"><item.icon className={`mb-3 h-5 w-5 ${item.color}`} /><div className="text-2xl font-black">{typeof item.value === "number" ? fa(item.value) : item.value}</div><div className="mt-1 text-[9px] font-bold text-slate-500">{item.label}</div></div>)}
           </div>
         </div>
       </section>
