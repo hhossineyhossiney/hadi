@@ -79,9 +79,9 @@ function makeSampleProfile(row: { id: number; name: string; category_name?: stri
   const image = sampleImage(category);
   const shortName = String(row.name).replace(/^آموزشگاه\s+/, "");
   return {
-    version: 1,
+    version: 2,
     slogan: `یادگیری حرفه‌ای ${category} برای ورود مطمئن‌تر به بازار کار`,
-    coverImage: "",
+    coverImage: image,
     introVideoUrl: "",
     virtualTourUrl: "",
     history: `این متن نمونه برای معرفی تاریخچه آموزشگاه ${shortName} است. مدیر آموزشگاه می‌تواند سابقه فعالیت، سال‌های تجربه و مسیر رشد مجموعه را از پنل ویرایش کند.`,
@@ -184,6 +184,21 @@ export async function ensureAdvancedInstituteProfiles() {
       for (const institute of missing) {
         const profile = makeSampleProfile(institute);
         await db.execute(sql`UPDATE institutes SET advanced_profile = ${JSON.stringify(profile)}::jsonb WHERE id = ${institute.id}`);
+      }
+
+      const upgradeResult = await db.execute(sql.raw(`
+        SELECT i.id, i.name, i.phone, i.mobile, i.advanced_profile,
+               (SELECT c.title FROM courses c WHERE c.institute_id = i.id ORDER BY c.created_at LIMIT 1) AS course_title,
+               (SELECT cat.name FROM courses c JOIN categories cat ON cat.id = c.category_id WHERE c.institute_id = i.id ORDER BY c.created_at LIMIT 1) AS category_name
+        FROM institutes i
+        WHERE COALESCE((i.advanced_profile->>'version')::int, 0) < 2
+      `));
+      const upgrades = rowsOf<any>(upgradeResult);
+      for (const institute of upgrades) {
+        const current = normalizeAdvancedProfile(institute.advanced_profile);
+        const sample = makeSampleProfile(institute);
+        const upgraded = { ...current, version: 2, coverImage: current.coverImage || sample.coverImage };
+        await db.execute(sql`UPDATE institutes SET advanced_profile = ${JSON.stringify(upgraded)}::jsonb WHERE id = ${Number(institute.id)}`);
       }
     })().catch((error) => {
       ensurePromise = null;

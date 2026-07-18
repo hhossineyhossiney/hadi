@@ -13,7 +13,8 @@ function rowsOf<T = Record<string, unknown>>(result: unknown): T[] {
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   try {
     await ensureAdvancedInstituteProfiles();
-    const { slug } = await params;
+    const { slug: rawSlug } = await params;
+    const slug = decodeURIComponent(rawSlug);
     const institute = await db.select().from(institutes).where(eq(institutes.slug, slug)).then((items) => items[0]);
     if (!institute) return NextResponse.json({ error: "آموزشگاه یافت نشد" }, { status: 404 });
     const body = await request.json();

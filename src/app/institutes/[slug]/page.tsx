@@ -17,7 +17,8 @@ function rowsOf<T = Record<string, unknown>>(result: unknown): T[] {
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = decodeURIComponent(rawSlug);
   const result = await db.execute(sql`SELECT name, description, profile_photo FROM institutes WHERE slug = ${slug} LIMIT 1`);
   const institute = rowsOf<any>(result)[0];
   if (!institute) return { title: "آموزشگاه یافت نشد | فَنی‌اکسو" };
@@ -32,7 +33,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function InstituteDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = decodeURIComponent(rawSlug);
   await Promise.all([ensureAdvancedInstituteProfiles(), seedSampleReviews()]);
 
   const instituteResult = await db.execute(sql`

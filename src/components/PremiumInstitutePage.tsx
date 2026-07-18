@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -90,6 +90,17 @@ export default function PremiumInstitutePage({ institute, profile, courses, onli
   const [showCompare, setShowCompare] = useState(false);
   const [compareIds, setCompareIds] = useState<number[]>([institute.id]);
 
+  useEffect(() => {
+    const saved = localStorage.getItem(`favorite-institute-${institute.id}`) === "1";
+    queueMicrotask(() => setFavorite(saved));
+  }, [institute.id]);
+
+  const toggleFavorite = () => {
+    const next = !favorite;
+    setFavorite(next);
+    localStorage.setItem(`favorite-institute-${institute.id}`, next ? "1" : "0");
+  };
+
   const allCourses = useMemo(() => [
     ...courses.map((course) => ({ ...course, mode: "inperson" })),
     ...onlineCourses.map((course) => ({ ...course, mode: "online" })),
@@ -165,7 +176,7 @@ export default function PremiumInstitutePage({ institute, profile, courses, onli
               {(institute.mobile || institute.phone) && <a href={`tel:${institute.mobile || institute.phone}`} className="flex items-center gap-2 rounded-[12px] border border-white/15 bg-white/5 px-4 py-3 text-xs font-black"><Phone className="h-4 w-4" /> تماس</a>}
               {whatsapp && <a href={`https://wa.me/${whatsapp.replace(/^0/, "98").replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-[12px] border border-emerald-400/25 bg-emerald-500/10 px-4 py-3 text-xs font-black text-emerald-300"><MessageCircle className="h-4 w-4" /> واتساپ</a>}
               <button type="button" onClick={share} className="rounded-[12px] border border-white/15 bg-white/5 p-3"><Share2 className="h-4 w-4" /></button>
-              <button type="button" onClick={() => setFavorite(!favorite)} className={`rounded-[12px] border p-3 ${favorite ? "border-rose-400/40 bg-rose-500/15 text-rose-300" : "border-white/15 bg-white/5"}`}><Heart className={`h-4 w-4 ${favorite ? "fill-current" : ""}`} /></button>
+              <button type="button" onClick={toggleFavorite} className={`rounded-[12px] border p-3 ${favorite ? "border-rose-400/40 bg-rose-500/15 text-rose-300" : "border-white/15 bg-white/5"}`}><Heart className={`h-4 w-4 ${favorite ? "fill-current" : ""}`} /></button>
             </div>
           </motion.div>
 
