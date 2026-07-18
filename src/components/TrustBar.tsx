@@ -1,13 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Award, ShieldCheck, Star, Zap } from "lucide-react";
+import { FileSpreadsheet, GraduationCap, LayoutDashboard, ShieldCheck } from "lucide-react";
 
 const badges = [
-  { icon: ShieldCheck, label: "مورد تأیید فنی و حرفه‌ای", value: "مرکز ۱۲" },
-  { icon: Award, label: "آموزشگاه فعال", value: "+۱۹" },
-  { icon: Star, label: "میانگین رضایت", value: "۴٫۹/۵" },
-  { icon: Zap, label: "پاسخ پشتیبانی", value: "< ۵ دقیقه" },
+  { icon: LayoutDashboard, label: "امکانات پنل مدیر", value: "۲۲ بخش" },
+  { icon: GraduationCap, label: "خدمات پنل هنرجو", value: "۲۳ ابزار" },
+  { icon: FileSpreadsheet, label: "خروجی مدیریتی", value: "۶ گزارش Excel" },
+  { icon: ShieldCheck, label: "ساختار دسترسی", value: "نقش‌محور" },
 ];
 
 export default function TrustBar() {

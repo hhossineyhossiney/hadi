@@ -10,6 +10,49 @@ interface Faq {
   answer: string;
 }
 
+const MANAGER_FAQS: Faq[] = [
+  {
+    id: 101,
+    question: "حساب مدیر آموزشگاه چگونه فعال می‌شود؟",
+    answer: "حساب مدیر توسط مدیر کل سامانه ساخته و به آموزشگاه مربوط متصل می‌شود. سپس مدیر با شماره موبایل و رمز اختصاصی وارد پنل می‌شود و فقط اطلاعات همان آموزشگاه را مدیریت می‌کند.",
+  },
+  {
+    id: 102,
+    question: "درخواست ثبت‌نام هنرجو کجا نمایش داده می‌شود؟",
+    answer: "پس از ثبت درخواست از صفحه دوره، پرونده در بخش «لیست هنرجویان» با وضعیت در انتظار قرار می‌گیرد. مدیر می‌تواند اطلاعات و مدارک را بررسی و درخواست را تأیید یا رد کند.",
+  },
+  {
+    id: 103,
+    question: "آیا می‌توان شهریه را قسط‌بندی و هزینه‌های جانبی را ثبت کرد؟",
+    answer: "بله. داخل پرونده هر هنرجو امکان تعریف چند قسط با مبلغ و سررسید، هزینه مدرک، آزمون اول، آزمون مجدد، دهک‌بندی دولتی و سایر هزینه‌ها وجود دارد. پرداخت دستی، لغو، بخشودگی و گزارش Excel نیز پشتیبانی می‌شود.",
+  },
+  {
+    id: 104,
+    question: "فروش دوره آنلاین چگونه فعال می‌شود؟",
+    answer: "مدیر کل سامانه مجوز فروش آنلاین، سقف تعداد دوره و درصد کمیسیون را برای آموزشگاه تعیین می‌کند. پس از فعال‌سازی، مدیر می‌تواند دوره ویدئویی، فصل، درس، پیش‌نمایش رایگان، قیمت و وضعیت انتشار را مدیریت کند.",
+  },
+  {
+    id: 105,
+    question: "چه گزارش‌هایی در اختیار مدیر آموزشگاه است؟",
+    answer: "شش خروجی Excel شامل فهرست هنرجویان، دوره‌ها، نمرات و کارنامه‌ها، حضور و غیاب، درآمد فروش آنلاین و شهریه و اقساط قابل دانلود است.",
+  },
+  {
+    id: 106,
+    question: "آیا پنل در موبایل قابل استفاده است؟",
+    answer: "بله. پنل مدیر و هنرجو، منوها، فرم‌ها، چت و صفحات عمومی برای موبایل و دسکتاپ واکنش‌گرا طراحی شده‌اند و در موبایل منوی کشویی اختصاصی دارند.",
+  },
+  {
+    id: 107,
+    question: "اطلاعاتی که مدیر وارد می‌کند کجا دیده می‌شود؟",
+    answer: "مشخصات، تصاویر، گالری، بنر، استوری، دوره‌ها و اطلاعات مدرس در کارت‌ها و صفحه اختصاصی آموزشگاه یا دوره نمایش داده می‌شوند. اطلاعات آموزشی، مالی و ارزیابی فقط در پنل افراد مجاز قابل مشاهده است.",
+  },
+  {
+    id: 108,
+    question: "هوش مصنوعی سامانه چه کمکی به مدیر می‌کند؟",
+    answer: "استودیوی AI برای تولید توضیح حرفه‌ای دوره، پیامک تبلیغاتی، کپشن اینستاگرام و گفت‌وگو با دستیار مدیر در دسترس است. مشاور عمومی سایت نیز بر اساس داده‌های زنده دوره‌ها و آموزشگاه‌ها به هنرجویان پاسخ می‌دهد.",
+  },
+];
+
 const FALLBACK_FAQS: Faq[] = [
   {
     id: 1,
@@ -25,12 +68,14 @@ const FALLBACK_FAQS: Faq[] = [
   },
 ];
 
-export default function FaqSection() {
+export default function FaqSection({ audience = "students" }: { audience?: "students" | "managers" }) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
-  const [faqs, setFaqs] = useState<Faq[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [faqs, setFaqs] = useState<Faq[]>(audience === "managers" ? MANAGER_FAQS : []);
+  const [loading, setLoading] = useState(audience !== "managers");
 
   useEffect(() => {
+    if (audience === "managers") return;
+
     fetch("/api/faqs")
       .then((r) => r.json())
       .then((data) => {
@@ -39,7 +84,7 @@ export default function FaqSection() {
       })
       .catch(() => setFaqs(FALLBACK_FAQS))
       .finally(() => setLoading(false));
-  }, []);
+  }, [audience]);
 
   return (
     <section id="faq" className="py-10 bg-bg-secondary relative overflow-hidden">
@@ -56,7 +101,7 @@ export default function FaqSection() {
             viewport={{ once: true }}
             className="mobile-one-line-title text-3xl lg:text-4xl font-black text-text-primary mb-3"
           >
-            پاسخ به سوالات متداول هنرجویان
+            {audience === "managers" ? "پاسخ به سوالات مدیران آموزشگاه‌ها" : "پاسخ به سوالات متداول هنرجویان"}
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -65,7 +110,9 @@ export default function FaqSection() {
             transition={{ delay: 0.1 }}
             className="text-text-secondary"
           >
-            هر آنچه لازم است درباره مدارک فنی‌وحرفه‌ای، نحوه ثبت‌نام و آموزشگاه‌های زبرخان بدانید.
+            {audience === "managers"
+              ? "پاسخ روشن درباره راه‌اندازی پنل، ثبت‌نام‌ها، امور مالی، فروش آنلاین، گزارش‌ها و هوش مصنوعی."
+              : "هر آنچه لازم است درباره مدارک فنی‌وحرفه‌ای، نحوه ثبت‌نام و آموزشگاه‌های زبرخان بدانید."}
           </motion.p>
         </div>
 

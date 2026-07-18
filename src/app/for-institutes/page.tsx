@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import HeroSection from "@/components/HeroSection";
@@ -9,23 +10,70 @@ import PremiumCTA from "@/components/PremiumCTA";
 import FaqSection from "@/components/FaqSection";
 
 export const dynamic = "force-static";
-export const metadata = {
-  title: "برای مدیران آموزشگاه‌ها | سامانه جامع و هوشمند فَنی‌اکسو",
+
+export const metadata: Metadata = {
+  title: "برای مدیران آموزشگاه‌ها | راهنمای کامل سامانه هوشمند فَنی‌اکسو",
   description:
-    "راهنمای کامل امکانات پنل مدیر آموزشگاه: مدیریت دوره، هنرجو، مدرس، جلسات، حضور، نمرات، کلاس آنلاین، تکلیف، آزمون، فروش آنلاین، چت، هوش مصنوعی، تلگرام و گزارش‌گیری.",
+    "راهنمای حرفه‌ای و جزئی‌به‌جز ۲۲ بخش پنل مدیر آموزشگاه: دوره حضوری و آنلاین، هنرجو، اقساط، مدرس، جلسات، حضور، نمرات، کلاس Live، تکلیف، آزمون، چت، تلگرام، هوش مصنوعی و ۶ گزارش Excel.",
+  keywords: [
+    "پنل مدیریت آموزشگاه",
+    "سامانه آموزشگاه فنی و حرفه‌ای",
+    "مدیریت هنرجویان",
+    "ثبت نام آنلاین آموزشگاه",
+    "فروش دوره آنلاین",
+    "فنی اکسو",
+    "آموزشگاه های زبرخان",
+  ],
   alternates: { canonical: "https://www.fanixo.ir/for-institutes" },
+  openGraph: {
+    type: "website",
+    locale: "fa_IR",
+    url: "https://www.fanixo.ir/for-institutes",
+    siteName: "فَنی‌اکسو",
+    title: "راهنمای کامل مدیران آموزشگاه‌ها | فَنی‌اکسو",
+    description: "معرفی کامل پنل مدیر، پنل هنرجو، فروش آنلاین، آموزش، مالی، ارتباطات، هوش مصنوعی و گزارش‌ها.",
+  },
+};
+
+const softwareJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "سامانه مدیریت آموزشگاه فَنی‌اکسو",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  url: "https://www.fanixo.ir/for-institutes",
+  inLanguage: "fa",
+  description: "سامانه یکپارچه مدیریت آموزشگاه، دوره، هنرجو، آموزش، امور مالی، ارتباطات و فروش دوره آنلاین.",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "IRR",
+    description: "پلن رایگان ۳۰ روزه برای شروع",
+  },
+  featureList: [
+    "مدیریت دوره‌های حضوری و آنلاین",
+    "پرونده یکپارچه هنرجو و مدیریت اقساط",
+    "حضور و غیاب، نمرات، تکالیف و آزمون‌ها",
+    "کلاس آنلاین و گروه‌های پیام‌رسان",
+    "گزارش‌گیری Excel و ربات تلگرام",
+    "استودیوی هوش مصنوعی مدیر",
+  ],
 };
 
 export default function ForInstitutesPage() {
   return (
     <main className="min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareJsonLd) }}
+      />
       <Navbar />
       <HeroSection />
       <TrustBar />
       <ProblemSolution />
       <ManagerPlatformGuide />
       <AITechSection />
-      <FaqSection />
+      <FaqSection audience="managers" />
       <PremiumCTA />
       <Footer />
     </main>

@@ -45,7 +45,7 @@ export default function HeroSection() {
             >
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgb(52_211_153)]" />
               <Bot className="w-4 h-4 text-primary-300" />
-              <span className="text-xs font-black text-white">پلتفرم هوشمند آموزشگاه‌های زبرخان</span>
+              <span className="text-xs font-black text-white">راهنمای حرفه‌ای مدیران آموزشگاه‌های زبرخان</span>
               <span className="px-2 py-0.5 rounded-full bg-gradient-to-l from-amber-400 to-yellow-500 text-slate-900 text-[9px] font-black">AI POWERED</span>
             </motion.div>
 
@@ -56,10 +56,10 @@ export default function HeroSection() {
               className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black leading-[1.05] tracking-tight mb-6"
               style={{ letterSpacing: "-0.03em" }}
             >
-              <span className="text-white">آموزشگاه سنتی؟</span>
+              <span className="text-white">مدیریت آموزشگاه،</span>
               <br />
               <span className="bg-gradient-to-l from-primary-300 via-primary-400 to-secondary-400 bg-clip-text text-transparent">
-                آکادمی هوشمند دیجیتال.
+                دقیق، یکپارچه و هوشمند.
               </span>
             </motion.h1>
 
@@ -69,8 +69,8 @@ export default function HeroSection() {
               transition={{ delay: 0.2 }}
               className="text-base md:text-lg text-slate-300 leading-relaxed mb-8 max-w-xl mx-auto lg:mx-0"
             >
-              اولین سامانه جامع مدیریت، ثبت‌نام آنلاین و بازاریابی آموزشگاه‌های فنی و حرفه‌ای —
-              با هوش مصنوعی، پنل کامل مدیریت، فروش دوره آنلاین و اتصال به میلیون‌ها هنرجو.
+              از معرفی آموزشگاه و جذب هنرجو تا ثبت‌نام، برگزاری کلاس، ارزیابی، امور مالی، ارتباطات،
+              فروش دوره آنلاین و گزارش‌گیری؛ همه فرایندها در یک سامانه متصل به داده‌های واقعی.
             </motion.p>
 
             {/* Search bar */}
@@ -113,13 +113,13 @@ export default function HeroSection() {
               transition={{ delay: 0.4 }}
               className="flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start"
             >
-              <Link
-                href="/register"
+              <a
+                href="#manager-capabilities"
                 className="w-full sm:w-auto px-6 py-3.5 rounded-[14px] bg-white text-slate-900 text-sm font-black flex items-center justify-center gap-2 shadow-2xl hover:shadow-white/25 hover:scale-105 transition-all group"
               >
-                شروع رایگان — ثبت‌نام
+                مشاهده همه امکانات
                 <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              </Link>
+              </a>
               <Link
                 href="/pricing"
                 className="w-full sm:w-auto px-6 py-3.5 rounded-[14px] bg-white/5 backdrop-blur-sm border border-white/20 text-white text-sm font-black flex items-center justify-center gap-2 hover:bg-white/10 transition-all"
@@ -136,11 +136,11 @@ export default function HeroSection() {
               transition={{ delay: 0.5 }}
               className="mt-8 flex flex-wrap items-center gap-4 justify-center lg:justify-start text-[11px] text-slate-400"
             >
-              <div className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> مجوز رسمی</div>
+              <div className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> دسترسی نقش‌محور</div>
               <div className="w-1 h-1 rounded-full bg-slate-600" />
-              <div className="flex items-center gap-1.5"><Award className="w-3.5 h-3.5 text-amber-400" /> مدرک بین‌المللی ISCO-08</div>
+              <div className="flex items-center gap-1.5"><Award className="w-3.5 h-3.5 text-amber-400" /> ۶ گزارش Excel</div>
               <div className="w-1 h-1 rounded-full bg-slate-600" />
-              <div className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-primary-400" /> +۵۰۰ هنرجوی موفق</div>
+              <div className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-primary-400" /> پنل مدیر و هنرجو</div>
             </motion.div>
           </div>
 

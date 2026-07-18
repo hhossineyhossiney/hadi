@@ -6,9 +6,9 @@ import { ArrowLeft, Phone, Rocket, Sparkles, CheckCircle2 } from "lucide-react";
 
 const perks = [
   "۳۰ روز رایگان",
-  "بدون کارت اعتباری",
-  "پشتیبانی ۲۴/۷",
-  "لغو در هر زمان",
+  "تا ۵ دوره حضوری",
+  "تا ۵۰ هنرجو",
+  "امکان ارتقای پلن",
 ];
 
 export default function PremiumCTA() {
@@ -108,8 +108,8 @@ export default function PremiumCTA() {
               transition={{ delay: 0.2 }}
               className="text-base md:text-xl text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed"
             >
-              به بیش از <span className="font-black text-white">۱۹ آموزشگاه فعال</span> در شبکه زبرخان بپیوندید.
-              همه امکانات را ۳۰ روز رایگان امتحان کنید.
+              با <span className="font-black text-white">پلن رایگان ۳۰ روزه</span> پنل مدیریت را راه‌اندازی کنید؛
+              سپس متناسب با ظرفیت دوره‌ها، هنرجویان و فروش آنلاین، پلن مناسب را انتخاب کنید.
             </motion.p>
 
             {/* CTAs */}
@@ -121,12 +121,12 @@ export default function PremiumCTA() {
               className="flex flex-col sm:flex-row items-center gap-3 justify-center mb-10"
             >
               <Link
-                href="/register"
+                href="/pricing"
                 className="group relative w-full sm:w-auto px-10 py-5 rounded-2xl bg-white text-slate-900 text-base font-black flex items-center justify-center gap-2 shadow-2xl hover:shadow-white/40 hover:scale-[1.03] transition-all overflow-hidden"
               >
                 <span className="absolute inset-0 bg-gradient-to-r from-amber-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
                 <Rocket className="w-5 h-5 relative" />
-                <span className="relative">شروع رایگان — همین حالا</span>
+                <span className="relative">مشاهده و انتخاب پلن</span>
                 <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform relative" />
               </Link>
               <a

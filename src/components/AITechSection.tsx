@@ -4,10 +4,21 @@ import { motion } from "framer-motion";
 import { Bot, Sparkles, Zap, TrendingUp, MessageSquare, Wand2 } from "lucide-react";
 
 const AI_FEATURES = [
-  { icon: Wand2, title: "تولید محتوای تبلیغاتی", desc: "متن جذاب برای دوره‌ها با یک کلیک" },
-  { icon: MessageSquare, title: "پاسخ خودکار به سوالات", desc: "چت‌بات هوشمند برای پشتیبانی ۲۴/۷" },
-  { icon: TrendingUp, title: "تحلیل داده و پیشنهاد", desc: "پیشنهاد دوره و مسیر شغلی به هنرجویان" },
-  { icon: Zap, title: "خلاصه و ترجمه محتوا", desc: "خلاصه‌سازی جلسات و ترجمه چند زبانه" },
+  { icon: Wand2, title: "توضیح حرفه‌ای دوره", desc: "تولید متن جذاب و سئوشده برای معرفی دوره" },
+  { icon: MessageSquare, title: "پیامک و کپشن تبلیغاتی", desc: "متن کوتاه، کپشن اینستاگرام، هشتگ و CTA" },
+  { icon: TrendingUp, title: "دستیار مدیر آموزشگاه", desc: "ایده‌پردازی و پاسخ به پرسش‌های مدیریتی" },
+  { icon: Zap, title: "مشاور هوشمند هنرجو", desc: "پاسخ بر اساس دوره‌ها، قیمت‌ها و اطلاعات زنده سایت" },
+];
+
+const PARTICLES = [
+  { top: 24, left: 35, duration: 5.4 },
+  { top: 67, left: 73, duration: 6.8 },
+  { top: 39, left: 62, duration: 7.2 },
+  { top: 74, left: 28, duration: 5.9 },
+  { top: 51, left: 78, duration: 6.3 },
+  { top: 30, left: 48, duration: 7.6 },
+  { top: 63, left: 43, duration: 5.6 },
+  { top: 44, left: 22, duration: 6.9 },
 ];
 
 export default function AITechSection() {
@@ -70,7 +81,7 @@ export default function AITechSection() {
               transition={{ delay: 0.2 }}
               className="text-base md:text-lg text-slate-300 mb-8 leading-relaxed"
             >
-              دستیار هوشمند برای مدیران آموزشگاه و هنرجویان — از تولید محتوا تا پاسخگویی خودکار، پیشنهاد دوره و تحلیل داده.
+              مدیر آموزشگاه برای تولید توضیح دوره، پیامک و کپشن ابزار اختصاصی دارد؛ هنرجو نیز از معلم هوشمند و مشاور متصل به اطلاعات واقعی سایت استفاده می‌کند.
             </motion.p>
 
             {/* Tools and the matte orbital artwork share one compact layer on mobile. */}
@@ -172,15 +183,15 @@ function AIVisualization() {
       </svg>
 
       {/* Floating particles */}
-      {[...Array(8)].map((_, i) => (
+      {PARTICLES.map((particle, i) => (
         <div
           key={i}
           className="absolute w-1 h-1 rounded-full bg-purple-300 animate-float"
           style={{
-            top: `${20 + Math.random() * 60}%`,
-            left: `${20 + Math.random() * 60}%`,
+            top: `${particle.top}%`,
+            left: `${particle.left}%`,
             animationDelay: `${i * 0.3}s`,
-            animationDuration: `${5 + Math.random() * 3}s`,
+            animationDuration: `${particle.duration}s`,
             boxShadow: "0 0 8px rgba(168, 85, 247, 0.8)",
           }}
         />
