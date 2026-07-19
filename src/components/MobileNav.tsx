@@ -33,7 +33,7 @@ export default function MobileNav() {
 
   return (
     <nav
-      className="lg:hidden glass w-[100dvw] max-w-[100dvw] overflow-hidden border-t border-border-default pb-[env(safe-area-inset-bottom)]"
+      className="lg:hidden glass w-[100dvw] max-w-[100dvw] overflow-visible border-t border-border-default pb-[env(safe-area-inset-bottom)]"
       style={{
         position: "fixed",
         bottom: 0,
@@ -52,7 +52,7 @@ export default function MobileNav() {
           const active = item.href === "/" ? pathname === "/" : (item.href === "/my" ? (pathname.startsWith("/dashboard") || pathname.startsWith("/panel") || pathname.startsWith("/admin")) : pathname.startsWith(item.href));
           if ((item as any).primary) {
             return (
-              <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center -mt-5">
+              <Link key={item.href} href={item.href} className="relative z-20 -mt-5 flex flex-col items-center justify-center overflow-visible">
                 <div className="w-12 h-12 rounded-full gradient-button shadow-lg shadow-primary-600/40 flex items-center justify-center animate-pulse-glow">
                   <item.icon className="w-6 h-6 text-white" />
                 </div>
