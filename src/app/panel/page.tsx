@@ -731,6 +731,7 @@ function ShopTab() {
   const [form, setForm] = useState<any>({
     title: "", subtitle: "", description: "", price: "", originalPrice: "",
     level: "beginner", instructor: "", instructorTitle: "", coverImage: "",
+    totalDuration: 0, totalLessons: 0, totalChapters: 0,
     features: [""], requirements: [""], targetAudience: [""],
   });
 
@@ -850,6 +851,14 @@ function ShopTab() {
               <label className="text-[10px] font-black text-slate-400 mb-1 block">قیمت قبل تخفیف</label>
               <MoneyInput value={form.originalPrice} onChange={(v) => setForm({...form, originalPrice: v})} placeholder="اختیاری" />
             </div>
+            <div className="md:col-span-2 rounded-[14px] border border-violet-500/20 bg-violet-500/5 p-4">
+              <div className="mb-3 text-[11px] font-black text-white">آمار نمایشی روی کارت دوره</div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div><label className="text-[10px] font-black text-slate-400 mb-1 block">مدت دوره (ساعت)</label><input type="number" min="0" step="0.25" value={form.totalDuration ? Number(form.totalDuration) / 60 : ""} onChange={(e) => setForm({...form, totalDuration: Math.max(0, Math.round(Number(e.target.value || 0) * 60))})} placeholder="مثلاً ۳۰" className="w-full px-3 py-2.5 rounded-[10px] bg-white/90 text-slate-900 text-sm font-bold" /></div>
+                <div><label className="text-[10px] font-black text-slate-400 mb-1 block">تعداد درس‌ها</label><input type="number" min="0" value={form.totalLessons || ""} onChange={(e) => setForm({...form, totalLessons: Math.max(0, Number(e.target.value || 0))})} placeholder="مثلاً ۵۶" className="w-full px-3 py-2.5 rounded-[10px] bg-white/90 text-slate-900 text-sm font-bold" /></div>
+                <div><label className="text-[10px] font-black text-slate-400 mb-1 block">تعداد فصل‌ها</label><input type="number" min="0" value={form.totalChapters || ""} onChange={(e) => setForm({...form, totalChapters: Math.max(0, Number(e.target.value || 0))})} placeholder="مثلاً ۸" className="w-full px-3 py-2.5 rounded-[10px] bg-white/90 text-slate-900 text-sm font-bold" /></div>
+              </div>
+            </div>
             <div>
               <label className="text-[10px] font-black text-slate-400 mb-1 block">نام مدرس</label>
               <input value={form.instructor} onChange={(e) => setForm({...form, instructor: e.target.value})} className="w-full px-3 py-2.5 rounded-[10px] bg-white/85 text-slate-900 text-sm font-bold" />
@@ -875,7 +884,7 @@ function ShopTab() {
                   requirements: form.requirements.filter((s: string) => s.trim()),
                   targetAudience: form.targetAudience.filter((s: string) => s.trim()),
                 });
-                if (d) { setCreating(false); setMsg("✅ دوره ایجاد شد. حالا فصل‌ها و ویدئوها را اضافه کنید"); setForm({ title: "", subtitle: "", description: "", price: "", originalPrice: "", level: "beginner", instructor: "", instructorTitle: "", coverImage: "", features: [""], requirements: [""], targetAudience: [""] }); }
+                if (d) { setCreating(false); setMsg("✅ دوره ایجاد شد. حالا فصل‌ها و ویدئوها را اضافه کنید"); setForm({ title: "", subtitle: "", description: "", price: "", originalPrice: "", level: "beginner", instructor: "", instructorTitle: "", coverImage: "", totalDuration: 0, totalLessons: 0, totalChapters: 0, features: [""], requirements: [""], targetAudience: [""] }); }
               }}
               className="px-5 py-2.5 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white font-black text-sm"
             >
@@ -1048,6 +1057,17 @@ function ShopCourseEditModal({ course, categories, onClose, onSave }: { course: 
               <div><label className="text-[10px] font-black text-slate-400 mb-1 block">عنوان دوره *</label><input value={form.title || ""} onChange={(event) => setForm({ ...form, title: event.target.value })} className="w-full px-3 py-2.5 rounded-[10px] bg-white/90 text-slate-900 text-sm font-bold" /></div>
               <div><label className="text-[10px] font-black text-slate-400 mb-1 block">رشته</label><select value={form.categoryId || ""} onChange={(event) => setForm({ ...form, categoryId: event.target.value })} className="w-full px-3 py-2.5 rounded-[10px] bg-white/90 text-slate-900 text-sm font-bold"><option value="">بدون رشته</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></div>
               <div className="md:col-span-2"><label className="text-[10px] font-black text-slate-400 mb-1 block">زیرعنوان کارت</label><input value={form.subtitle || ""} onChange={(event) => setForm({ ...form, subtitle: event.target.value })} className="w-full px-3 py-2.5 rounded-[10px] bg-white/90 text-slate-900 text-sm font-bold" /></div>
+              <div className="md:col-span-2 rounded-[14px] border border-violet-500/25 bg-violet-500/[0.07] p-4">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <div><div className="text-[11px] font-black text-white">مدت و تعداد محتوای نمایش‌داده‌شده روی کارت</div><p className="mt-1 text-[9px] leading-5 text-violet-200">این اعداد روی کارت صفحه اصلی، فروشگاه و صفحه دوره نمایش داده می‌شوند.</p></div>
+                  <button type="button" onClick={() => setForm({ ...form, totalDuration: Number(course.actualDuration || 0), totalLessons: Number(course.lessonsCount || 0), totalChapters: Number(course.chaptersCount || 0) })} className="rounded-[8px] border border-violet-400/25 bg-violet-500/15 px-3 py-2 text-[9px] font-black text-violet-200">محاسبه از فصل‌ها و درس‌ها</button>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div><label className="text-[10px] font-black text-slate-300 mb-1 block">مدت دوره (ساعت)</label><input type="number" min="0" step="0.25" inputMode="decimal" value={form.totalDuration ? Number(form.totalDuration) / 60 : ""} onChange={(event) => setForm({ ...form, totalDuration: Math.max(0, Math.round(Number(event.target.value || 0) * 60)) })} placeholder="مثلاً ۳۰" className="w-full px-3 py-2.5 rounded-[10px] bg-white/95 text-slate-900 text-sm font-bold" /><span className="mt-1 block text-[8px] text-slate-500">مجموع ویدئوهای فعلی: {(Number(course.actualDuration || 0) / 60).toLocaleString("fa-IR", { maximumFractionDigits: 2 })} ساعت</span></div>
+                  <div><label className="text-[10px] font-black text-slate-300 mb-1 block">تعداد درس‌ها</label><input type="number" min="0" inputMode="numeric" value={form.totalLessons || ""} onChange={(event) => setForm({ ...form, totalLessons: Math.max(0, Number(event.target.value || 0)) })} placeholder="مثلاً ۵۶" className="w-full px-3 py-2.5 rounded-[10px] bg-white/95 text-slate-900 text-sm font-bold" /><span className="mt-1 block text-[8px] text-slate-500">واقعی فعلی: {Number(course.lessonsCount || 0).toLocaleString("fa-IR")}</span></div>
+                  <div><label className="text-[10px] font-black text-slate-300 mb-1 block">تعداد فصل‌ها</label><input type="number" min="0" inputMode="numeric" value={form.totalChapters || ""} onChange={(event) => setForm({ ...form, totalChapters: Math.max(0, Number(event.target.value || 0)) })} placeholder="مثلاً ۸" className="w-full px-3 py-2.5 rounded-[10px] bg-white/95 text-slate-900 text-sm font-bold" /><span className="mt-1 block text-[8px] text-slate-500">واقعی فعلی: {Number(course.chaptersCount || 0).toLocaleString("fa-IR")}</span></div>
+                </div>
+              </div>
               <div><label className="text-[10px] font-black text-slate-400 mb-1 block">قیمت فروش (تومان)</label><MoneyInput value={String(form.price || "")} onChange={(value) => setForm({ ...form, price: value })} /></div>
               <div><label className="text-[10px] font-black text-slate-400 mb-1 block">قیمت قبل تخفیف</label><MoneyInput value={String(form.originalPrice || "")} onChange={(value) => setForm({ ...form, originalPrice: value })} /></div>
               <div><label className="text-[10px] font-black text-slate-400 mb-1 block">سطح دوره</label><select value={form.level || "beginner"} onChange={(event) => setForm({ ...form, level: event.target.value })} className="w-full px-3 py-2.5 rounded-[10px] bg-white/90 text-slate-900 text-sm font-bold"><option value="beginner">مقدماتی</option><option value="intermediate">متوسط</option><option value="advanced">پیشرفته</option><option value="comprehensive">جامع</option></select></div>

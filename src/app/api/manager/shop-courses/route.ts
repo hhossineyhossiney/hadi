@@ -75,9 +75,11 @@ export async function GET() {
 
     const enriched = await Promise.all(courses.map(async (c: any) => {
       const chs = await db.execute(sql`SELECT COUNT(*)::int AS c FROM sellable_chapters WHERE course_id = ${c.id}`);
-      const les = await db.execute(sql`SELECT COUNT(*)::int AS c FROM sellable_lessons WHERE course_id = ${c.id}`);
+      const les = await db.execute(sql`SELECT COUNT(*)::int AS c, COALESCE(SUM(video_duration), 0)::int AS seconds FROM sellable_lessons WHERE course_id = ${c.id}`);
       const chc = Number(((chs as any).rows || chs)[0]?.c || 0);
-      const lec = Number(((les as any).rows || les)[0]?.c || 0);
+      const lessonStats = ((les as any).rows || les)[0] || {};
+      const lec = Number(lessonStats.c || 0);
+      const actualDuration = Math.ceil(Number(lessonStats.seconds || 0) / 60);
       return {
         id: c.id,
         instituteId: c.institute_id,
@@ -120,6 +122,7 @@ export async function GET() {
         updatedAt: c.updated_at,
         chaptersCount: chc,
         lessonsCount: lec,
+        actualDuration,
       };
     }));
 
@@ -167,7 +170,7 @@ export async function POST(req: Request) {
         title, subtitle, description, price, originalPrice, level, instructor, instructorTitle,
         instructorAvatar, instructorBio, coverImage, trailerVideo, categoryId, language,
         features, requirements, targetAudience, hasSupport, hasCertificate, hasDownload,
-        lifetimeAccess, accessDurationDays,
+        lifetimeAccess, accessDurationDays, totalDuration, totalLessons, totalChapters,
       } = body;
       if (!title || price === undefined || price === null || price === "") return NextResponse.json({ error: "عنوان و قیمت الزامی است" }, { status: 400 });
 
@@ -191,6 +194,9 @@ export async function POST(req: Request) {
         instructorBio: instructorBio || null,
         level: level || "beginner",
         language: language || "fa",
+        totalDuration: Math.max(0, Math.round(Number(totalDuration) || 0)),
+        totalLessons: Math.max(0, Math.round(Number(totalLessons) || 0)),
+        totalChapters: Math.max(0, Math.round(Number(totalChapters) || 0)),
         price: String(price),
         originalPrice: originalPrice ? String(originalPrice) : null,
         discountPercent,
@@ -218,6 +224,7 @@ export async function POST(req: Request) {
         "instructor", "instructorTitle", "instructorAvatar", "instructorBio", "level",
         "price", "originalPrice", "features", "requirements", "targetAudience",
         "hasSupport", "hasCertificate", "hasDownload", "lifetimeAccess", "accessDurationDays",
+        "totalDuration", "totalLessons", "totalChapters",
       ];
       for (const k of allowed) {
         if (rest[k] !== undefined) update[k] = rest[k];
@@ -226,6 +233,9 @@ export async function POST(req: Request) {
       if (update.originalPrice !== undefined) update.originalPrice = update.originalPrice ? String(Math.max(0, Number(update.originalPrice) || 0)) : null;
       if (update.categoryId !== undefined) update.categoryId = update.categoryId ? Number(update.categoryId) : null;
       if (update.accessDurationDays !== undefined) update.accessDurationDays = update.lifetimeAccess ? null : (Number(update.accessDurationDays) || null);
+      for (const field of ["totalDuration", "totalLessons", "totalChapters"]) {
+        if (update[field] !== undefined) update[field] = Math.max(0, Math.round(Number(update[field]) || 0));
+      }
       if (typeof update.coverImage === "string" && update.coverImage.startsWith("data:") && update.coverImage.length > 1_300_000) {
         return NextResponse.json({ error: "حجم تصویر کاور بیشتر از حد مجاز است" }, { status: 400 });
       }
@@ -332,7 +342,7 @@ export async function POST(req: Request) {
       // Update totals
       const totalLessons = await db.select({ c: sql<number>`count(*)::int` }).from(sellableLessons).where(eq(sellableLessons.courseId, c.id)).then(r => r[0]?.c || 0);
       const totalDur = await db.select({ s: sql<number>`coalesce(sum(video_duration), 0)::int` }).from(sellableLessons).where(eq(sellableLessons.courseId, c.id)).then(r => r[0]?.s || 0);
-      await db.update(sellableCourses).set({ totalLessons, totalDuration: Math.floor(totalDur / 60), updatedAt: new Date() }).where(eq(sellableCourses.id, c.id));
+      await db.update(sellableCourses).set({ totalLessons, totalDuration: Math.ceil(totalDur / 60), updatedAt: new Date() }).where(eq(sellableCourses.id, c.id));
       return NextResponse.json({ ok: true, lesson });
     }
 
@@ -347,6 +357,15 @@ export async function POST(req: Request) {
       for (const k of allowed) if (rest[k] !== undefined) update[k] = rest[k];
       if (update.isFree !== undefined) update.isLocked = !update.isFree;
       const [updated] = await db.update(sellableLessons).set(update).where(eq(sellableLessons.id, lesson.id)).returning();
+      const totals = await db.select({
+        count: sql<number>`count(*)::int`,
+        seconds: sql<number>`coalesce(sum(video_duration), 0)::int`,
+      }).from(sellableLessons).where(eq(sellableLessons.courseId, c.id)).then(r => r[0]);
+      await db.update(sellableCourses).set({
+        totalLessons: Number(totals?.count || 0),
+        totalDuration: Math.ceil(Number(totals?.seconds || 0) / 60),
+        updatedAt: new Date(),
+      }).where(eq(sellableCourses.id, c.id));
       return NextResponse.json({ ok: true, lesson: updated });
     }
 
@@ -357,8 +376,15 @@ export async function POST(req: Request) {
       const c = await db.select().from(sellableCourses).where(eq(sellableCourses.id, lesson.courseId)).then(r => r[0]);
       if (!c || c.instituteId !== inst.id) return NextResponse.json({ error: "غیرمجاز" }, { status: 403 });
       await db.delete(sellableLessons).where(eq(sellableLessons.id, lesson.id));
-      const totalLessons = await db.select({ c: sql<number>`count(*)::int` }).from(sellableLessons).where(eq(sellableLessons.courseId, c.id)).then(r => r[0]?.c || 0);
-      await db.update(sellableCourses).set({ totalLessons, updatedAt: new Date() }).where(eq(sellableCourses.id, c.id));
+      const totals = await db.select({
+        count: sql<number>`count(*)::int`,
+        seconds: sql<number>`coalesce(sum(video_duration), 0)::int`,
+      }).from(sellableLessons).where(eq(sellableLessons.courseId, c.id)).then(r => r[0]);
+      await db.update(sellableCourses).set({
+        totalLessons: Number(totals?.count || 0),
+        totalDuration: Math.ceil(Number(totals?.seconds || 0) / 60),
+        updatedAt: new Date(),
+      }).where(eq(sellableCourses.id, c.id));
       return NextResponse.json({ ok: true });
     }
 
