@@ -1,60 +1,81 @@
 "use client";
 
-import { Download, MonitorSmartphone, ShieldCheck, Smartphone, Sparkles, Zap } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { ArrowDownToLine, Download, Rocket, Smartphone, Sparkles } from "lucide-react";
 
 const APK_URL = "/download/android";
 
 export default function AppDownloadSection() {
+  const reducedMotion = useReducedMotion();
+
   return (
-    <section id="download-app" className="relative overflow-hidden py-10 md:py-16">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute right-[8%] top-0 h-72 w-72 rounded-full bg-emerald-500/10 blur-[100px]" />
-        <div className="absolute bottom-0 left-[8%] h-72 w-72 rounded-full bg-primary-500/10 blur-[100px]" />
-      </div>
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-[#071426] via-[#0A2444] to-[#071426] shadow-2xl">
-          <div className="grid items-center gap-7 p-6 md:grid-cols-[1fr_auto] md:p-10 lg:p-12">
-            <div>
-              <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1.5 text-[10px] font-black text-emerald-300">
-                <Sparkles className="h-3.5 w-3.5" /> نسخه رسمی اندروید
+    <section id="download-app" className="relative overflow-hidden py-4 sm:py-6 md:py-8">
+      <div className="relative mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
+        <motion.div
+          initial={reducedMotion ? false : { opacity: 0, y: 16, scale: 0.985 }}
+          whileInView={reducedMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, margin: "-30px" }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="group relative isolate overflow-hidden rounded-[24px] border border-orange-300/20 bg-gradient-to-l from-[#291052] via-[#591b76] to-[#b8325d] shadow-[0_22px_70px_rgba(104,24,111,0.28)] sm:rounded-[30px]"
+        >
+          <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(251,191,36,0.22),transparent_35%),radial-gradient(circle_at_90%_80%,rgba(34,211,238,0.16),transparent_35%)]" />
+          <div aria-hidden="true" className="absolute inset-0 opacity-[0.055]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "19px 19px" }} />
+          <motion.div
+            aria-hidden="true"
+            animate={reducedMotion ? undefined : { x: ["-90%", "170%"] }}
+            transition={{ duration: 5.5, repeat: Infinity, repeatDelay: 2, ease: "easeInOut" }}
+            className="absolute inset-y-0 w-1/4 -skew-x-12 bg-gradient-to-r from-transparent via-white/10 to-transparent blur-lg"
+          />
+
+          <div className="relative z-10 flex flex-col items-center gap-4 p-5 text-center sm:p-7 md:flex-row md:gap-6 md:p-8 md:text-right lg:px-10">
+            <motion.div
+              animate={reducedMotion ? undefined : { y: [0, -6, 0], rotate: [0, -3, 3, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] border border-white/20 bg-white/15 shadow-2xl backdrop-blur md:h-24 md:w-24"
+            >
+              <motion.span
+                aria-hidden="true"
+                animate={reducedMotion ? undefined : { scale: [1, 1.35, 1], opacity: [0.4, 0, 0.4] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: "easeOut" }}
+                className="absolute inset-0 rounded-[24px] border-2 border-amber-300/60"
+              />
+              <Smartphone className="h-9 w-9 text-white md:h-11 md:w-11" />
+              <span className="absolute -left-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-amber-300 text-slate-950 shadow-lg">
+                <Sparkles className="h-4 w-4" />
               </span>
-              <h2 className="text-2xl font-black leading-tight text-white md:text-4xl">اپلیکیشن فَنی‌اکسو را نصب کنید</h2>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
-                دسترسی سریع به آموزشگاه‌ها، دوره‌ها، پنل هنرجو و مدیر، کلاس‌ها، پرداخت‌ها، چت و دستیار هوشمند در یک اپلیکیشن سبک و همیشه به‌روز.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                {[
-                  { icon: ShieldCheck, label: "امضای دیجیتال معتبر" },
-                  { icon: Zap, label: "حجم کمتر از ۲ مگابایت" },
-                  { icon: MonitorSmartphone, label: "Android 5 و بالاتر" },
-                ].map(({ icon: Icon, label }) => (
-                  <span key={label} className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[9px] font-bold text-slate-300">
-                    <Icon className="h-3.5 w-3.5 text-primary-300" /> {label}
-                  </span>
-                ))}
+            </motion.div>
+
+            <div className="min-w-0 flex-1">
+              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-amber-200/30 bg-amber-300 px-3 py-1.5 text-[9px] font-black text-slate-950 shadow-lg sm:text-[10px]">
+                <Rocket className="h-3.5 w-3.5" /> قابلیت جدید فَنی‌اکسو
               </div>
+              <h2 className="text-2xl font-black leading-tight text-white sm:text-3xl md:text-4xl">اپلیکیشن اندروید آماده نصب است!</h2>
+              <p className="mt-2 text-xs font-medium leading-6 text-white/75 sm:text-sm">
+                همین حالا دانلود کنید و فَنی‌اکسو را سریع‌تر و تمام‌صفحه روی موبایل داشته باشید.
+              </p>
             </div>
 
-            <div className="w-full md:w-72">
-              <div className="mb-3 flex items-center gap-3 rounded-[18px] border border-white/10 bg-white/[0.055] p-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] bg-gradient-to-br from-emerald-400 to-primary-600 shadow-lg">
-                  <Smartphone className="h-7 w-7 text-white" />
-                </div>
-                <div>
-                  <div className="text-sm font-black text-white">Fanixo Android</div>
-                  <div className="mt-1 text-[10px] text-slate-400">نسخه ۱.۰.۰ • APK رسمی</div>
-                </div>
-              </div>
-              <a
-                href={APK_URL}
-                className="flex w-full items-center justify-center gap-2 rounded-[14px] bg-white px-5 py-4 text-sm font-black text-slate-900 shadow-xl transition hover:scale-[1.02]"
+            <motion.a
+              href={APK_URL}
+              whileHover={reducedMotion ? undefined : { scale: 1.035 }}
+              whileTap={{ scale: 0.97 }}
+              className="relative flex w-full shrink-0 items-center justify-center gap-2 overflow-hidden rounded-[15px] bg-white px-6 py-4 text-sm font-black text-[#581b74] shadow-[0_16px_35px_rgba(0,0,0,0.25)] sm:w-auto md:min-w-48"
+            >
+              <motion.span
+                aria-hidden="true"
+                animate={reducedMotion ? undefined : { y: [-24, 24] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute left-4 text-orange-400/25"
               >
-                <Download className="h-5 w-5" /> دانلود مستقیم اندروید
-              </a>
-              <p className="mt-2 text-center text-[9px] leading-5 text-slate-500">پس از دانلود، در صورت درخواست اندروید اجازه نصب از مرورگر را فعال کنید.</p>
-            </div>
+                <ArrowDownToLine className="h-9 w-9" />
+              </motion.span>
+              <Download className="relative h-5 w-5" />
+              <span className="relative">دانلود و نصب</span>
+            </motion.a>
           </div>
-        </div>
+
+          <div className="relative z-10 h-1 bg-gradient-to-l from-cyan-300 via-amber-300 to-pink-300" />
+        </motion.div>
       </div>
     </section>
   );
