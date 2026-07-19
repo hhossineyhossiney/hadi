@@ -139,7 +139,7 @@ export default function AutoLoopCarousel<T>({
 
   return (
     <div
-      className="relative w-full min-w-0 max-w-full overflow-hidden [contain:layout_paint]"
+      className="relative isolate w-full min-w-0 max-w-full"
       aria-roledescription="carousel"
       aria-label={ariaLabel}
       onMouseEnter={() => setPaused(true)}
