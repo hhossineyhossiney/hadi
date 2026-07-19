@@ -215,6 +215,34 @@ body {
 
 h1, h2 { letter-spacing: -0.02em; }
 
+/* Public home must remain exactly viewport-wide on phones. Carousels keep their
+   own horizontal scrolling without widening or shifting the document. */
+.home-page-shell {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: clip;
+}
+.home-page-shell,
+.home-page-shell * {
+  box-sizing: border-box;
+}
+.home-page-shell > section {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+@media (max-width: 767px) {
+  .home-page-shell [class*="max-w-"] {
+    min-width: 0;
+  }
+  .home-page-shell img,
+  .home-page-shell video,
+  .home-page-shell iframe,
+  .home-page-shell svg {
+    max-width: 100%;
+  }
+}
+
 /* Premium institute pages must never widen the mobile viewport. Inner rows that
    intentionally scroll (filters/tables) keep their own overflow containers. */
 .premium-institute-page,

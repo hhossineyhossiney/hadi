@@ -140,7 +140,7 @@ export default async function HomePage() {
     .orderBy(institutes.name);
 
   return (
-    <main className="min-h-screen">
+    <main className="home-page-shell min-h-screen w-full max-w-full overflow-x-clip">
       <Navbar />
       <StoriesBar />
       <BrandWelcome />
