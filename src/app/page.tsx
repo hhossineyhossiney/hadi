@@ -11,6 +11,7 @@ import PremiumCTA from "@/components/PremiumCTA";
 import StatsSection from "@/components/StatsSection";
 import FaqSection from "@/components/FaqSection";
 import VerifyLicenseBanner from "@/components/VerifyLicenseBanner";
+import AppDownloadSection from "@/components/AppDownloadSection";
 import { db } from "@/db";
 import { categories, institutes, regions, courses, siteSettings } from "@/db/schema";
 import { eq, count, sql, inArray, and } from "drizzle-orm";
@@ -142,6 +143,7 @@ export default async function HomePage() {
       <Navbar />
       <StoriesBar />
       <PublicHero />
+      <AppDownloadSection />
       <CategoryCards categories={cats} />
       <CoursesShowcase
         courses={latestCourses}

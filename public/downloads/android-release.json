@@ -1,0 +1,12 @@
+{
+  "app": "Fanixo",
+  "platform": "android",
+  "packageId": "ir.fanixo.app",
+  "versionName": "1.0.0",
+  "versionCode": 1,
+  "minSdk": 21,
+  "file": "/downloads/fanixo-android-1.0.0.apk",
+  "size": 1934098,
+  "sha256": "566a6159454ed0e0d9e9b08b00e77486a3d91b57d5405a64b12c0138c245bd25",
+  "releasedAt": "2026-07-19T01:07:00+03:30"
+}

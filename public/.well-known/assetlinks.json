@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "ir.fanixo.app",
+      "sha256_cert_fingerprints": [
+        "2D:F0:65:54:51:94:D5:DF:B1:4C:4F:BC:35:AC:92:3D:15:0F:E1:1C:52:B9:68:44:77:C0:03:B8:8A:6C:E4:3E"
+      ]
+    }
+  }
+]

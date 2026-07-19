@@ -21,6 +21,8 @@
 - [x] Offline Fallback عمومی
 - [x] Install Prompt
 - [x] Viewport و Apple Web App Metadata
+- [x] بسته Android TWA امضاشده برای توزیع عمومی
+- [x] Digital Asset Links و لینک دانلود پایدار
 - [ ] یکپارچه‌سازی Design Token وب و موبایل
 - [ ] Accessibility Audit سراسری
 - [ ] بهینه‌سازی Bundle و Core Web Vitals

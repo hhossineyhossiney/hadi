@@ -1,0 +1,60 @@
+{
+  "packageId": "ir.fanixo.app",
+  "host": "www.fanixo.ir",
+  "name": "فَنی‌اکسو",
+  "launcherName": "فَنی‌اکسو",
+  "display": "standalone",
+  "themeColor": "#071426",
+  "themeColorDark": "#071426",
+  "navigationColor": "#04152A",
+  "navigationColorDark": "#04152A",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#04152A",
+  "enableNotifications": false,
+  "startUrl": "/?source=pwa",
+  "iconUrl": "https://www.fanixo.ir/icons/icon-512.png",
+  "maskableIconUrl": "https://www.fanixo.ir/icons/icon-maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "android.keystore",
+    "alias": "fanixo"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "مشاهده دوره‌ها",
+      "shortName": "دوره‌ها",
+      "url": "https://www.fanixo.ir/courses?source=pwa-shortcut",
+      "chosenIconUrl": "https://www.fanixo.ir/icons/shortcut-courses.png"
+    },
+    {
+      "name": "پنل کاربری",
+      "shortName": "پنل من",
+      "url": "https://www.fanixo.ir/my?source=pwa-shortcut",
+      "chosenIconUrl": "https://www.fanixo.ir/icons/shortcut-panel.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://www.fanixo.ir/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://www.fanixo.ir/",
+  "minSdkVersion": 21,
+  "orientation": "any",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "1.0.0"
+}
