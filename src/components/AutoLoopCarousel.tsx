@@ -156,7 +156,7 @@ export default function AutoLoopCarousel<T>({
         onPointerUp={pauseTemporarily}
         onPointerCancel={pauseTemporarily}
       >
-        <div ref={trackRef} className="flex w-max min-w-full items-stretch gap-4">
+        <div ref={trackRef} className="flex w-full items-stretch gap-4">
           {renderedItems.map(({ item, index, copy }) => (
             <div
               key={`${copy}-${getKey(item)}-${index}`}
