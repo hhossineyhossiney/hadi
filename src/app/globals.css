@@ -937,6 +937,28 @@ html[data-theme="light"] .bg-\[\#082D53\] tbody tr:hover {
     scale: 0.97 1;
     transform-origin: center right;
   }
+
+  /* Short campaign/branding headings stay on one line on phones. */
+  .mobile-nowrap-heading {
+    width: 100%;
+    max-width: 100%;
+    white-space: nowrap !important;
+    font-size: clamp(18px, 6.2vw, 27px) !important;
+    line-height: 1.45 !important;
+    letter-spacing: -0.055em !important;
+    word-spacing: -0.07em !important;
+  }
+
+  .mobile-nowrap-copy {
+    display: inline-block;
+    width: 100%;
+    max-width: 100%;
+    white-space: nowrap !important;
+    font-size: clamp(11px, 3.55vw, 14px) !important;
+    line-height: 1.7 !important;
+    letter-spacing: -0.045em !important;
+    word-spacing: -0.06em !important;
+  }
 }
 
 /* Premium card micro-interactions — subtle, GPU-friendly and accessible. */

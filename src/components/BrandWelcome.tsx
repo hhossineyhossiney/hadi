@@ -54,11 +54,12 @@ export default function BrandWelcome() {
                 <Sparkles className="h-3.5 w-3.5" /> مهارت امروز، آینده فردا
               </motion.div>
 
-              <h2 id="fanixo-welcome-title" className="text-2xl font-black leading-[1.45] text-white sm:text-3xl md:text-4xl lg:text-5xl">
+              <h2 id="fanixo-welcome-title" className="mobile-nowrap-heading text-2xl font-black leading-[1.45] text-white sm:text-3xl md:text-4xl lg:text-5xl">
                 به <span className="bg-gradient-to-l from-cyan-300 via-primary-300 to-fuchsia-300 bg-clip-text text-transparent">فَنی‌اکسو</span> خوش آمدید
               </h2>
-              <p className="mt-2 text-sm font-black leading-7 text-slate-200 sm:text-base md:text-lg">
-                مرجع هوشمند مهارت‌آموزی؛ از انتخاب دوره تا ساخت آینده شغلی
+              <p className="mt-2 font-black leading-7 text-slate-200">
+                <span className="mobile-nowrap-copy md:hidden">مرجع هوشمند مهارت و آینده شغلی</span>
+                <span className="hidden text-lg md:inline">مرجع هوشمند مهارت‌آموزی؛ از انتخاب دوره تا ساخت آینده شغلی</span>
               </p>
               <p className="mx-auto mt-3 max-w-3xl text-xs leading-6 text-slate-400 sm:text-sm sm:leading-7 md:mx-0">
                 آموزشگاه‌ها، دوره‌های حضوری و آنلاین، ثبت‌نام، کلاس، پرداخت و مشاوره هوشمند؛ همه در یک تجربه سریع، شفاف و یکپارچه.
