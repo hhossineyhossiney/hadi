@@ -139,7 +139,7 @@ export default function AutoLoopCarousel<T>({
 
   return (
     <div
-      className="relative"
+      className="relative w-full min-w-0 max-w-full overflow-hidden [contain:layout_paint]"
       aria-roledescription="carousel"
       aria-label={ariaLabel}
       onMouseEnter={() => setPaused(true)}
@@ -150,13 +150,13 @@ export default function AutoLoopCarousel<T>({
       <div
         ref={viewportRef}
         dir="ltr"
-        className="overflow-x-auto scroll-smooth snap-x snap-mandatory overscroll-x-contain overscroll-y-auto touch-auto py-3 px-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="w-full min-w-0 max-w-full overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory overscroll-x-contain touch-auto py-3 px-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         onScroll={handleScroll}
         onPointerDown={pauseTemporarily}
         onPointerUp={pauseTemporarily}
         onPointerCancel={pauseTemporarily}
       >
-        <div ref={trackRef} className="flex items-stretch gap-4 w-full">
+        <div ref={trackRef} className="flex w-max min-w-full items-stretch gap-4">
           {renderedItems.map(({ item, index, copy }) => (
             <div
               key={`${copy}-${getKey(item)}-${index}`}

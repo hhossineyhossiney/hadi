@@ -90,7 +90,7 @@ export default function PublicHero() {
           className="relative max-w-3xl mx-auto"
         >
           {/* Mobile: one compact row for city, query and submit. */}
-          <div className="md:hidden relative rounded-[18px] bg-white/[0.065] backdrop-blur-xl border border-white/15 shadow-xl shadow-primary-900/30 p-2 flex items-center gap-2">
+          <div className="md:hidden relative flex w-full min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-[18px] border border-white/15 bg-white/[0.065] p-2 shadow-xl shadow-primary-900/30 backdrop-blur-xl">
             <div className="relative w-[102px] shrink-0">
               <MapPin className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-primary-300 pointer-events-none" />
               <select

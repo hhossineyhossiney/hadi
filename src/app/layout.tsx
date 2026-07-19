@@ -4,6 +4,7 @@ import Providers from "@/components/Providers";
 import MobileNav from "@/components/MobileNav";
 import AIChatWidget from "@/components/AIChatWidget";
 import PWARegistration from "@/components/PWARegistration";
+import MobileViewportGuard from "@/components/MobileViewportGuard";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -75,6 +76,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <MobileNav />
           <AIChatWidget />
           <PWARegistration />
+          <MobileViewportGuard />
         </Providers>
       </body>
     </html>

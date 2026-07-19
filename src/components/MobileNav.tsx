@@ -33,13 +33,16 @@ export default function MobileNav() {
 
   return (
     <nav
-      className="lg:hidden glass border-t border-border-default pb-[env(safe-area-inset-bottom)]"
+      className="lg:hidden glass w-[100dvw] max-w-[100dvw] overflow-hidden border-t border-border-default pb-[env(safe-area-inset-bottom)]"
       style={{
         position: "fixed",
         bottom: 0,
         left: 0,
         right: 0,
         zIndex: 60,
+        width: "100dvw",
+        maxWidth: "100dvw",
+        margin: 0,
         transform: "translateZ(0)",
         WebkitTransform: "translateZ(0)",
       }}
