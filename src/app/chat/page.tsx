@@ -8,7 +8,9 @@ import {
   MoreVertical, Archive, Trash2, Pin, Ban, Settings2, Bell, BellOff,
   Users, Menu, X, Circle, Smile, Paperclip, Plus, Filter, Clock,
   CheckCheck, Check, ShieldCheck, Download, FileText, Image as ImageIcon,
+  Building2, BadgeCheck,
 } from "lucide-react";
+import { normalizePhone } from "@/lib/phone";
 
 interface Thread {
   id: number;
@@ -22,6 +24,18 @@ interface Thread {
   lastMessage: { body: string; createdAt: string; senderId: number } | null;
   unread: number;
   isOnline: boolean;
+}
+
+interface ChatContact {
+  instituteId: number;
+  instituteName: string;
+  instituteSlug: string;
+  managerUserId: number | null;
+  managerName: string;
+  phone: string | null;
+  avatar: string | null;
+  isVerified: boolean;
+  canChat: boolean;
 }
 
 interface Message {
@@ -115,15 +129,50 @@ function MessageAttachment({ raw, onPreview }: { raw: string | null; onPreview: 
   );
 }
 
+function InstituteContactItem({ contact, onStart, busy, compact = false }: {
+  contact: ChatContact;
+  onStart: (contact: ChatContact) => void;
+  busy: boolean;
+  compact?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onStart(contact)}
+      disabled={!contact.canChat || busy}
+      className={`w-full text-right border border-white/[0.06] hover:border-primary-500/25 hover:bg-white/5 disabled:opacity-55 disabled:cursor-not-allowed flex items-center gap-2.5 transition ${compact ? "rounded-[10px] p-2" : "rounded-[13px] p-3"}`}
+    >
+      <div className={`${compact ? "w-9 h-9" : "w-11 h-11"} rounded-full overflow-hidden bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-white font-black shrink-0`}>
+        {contact.avatar ? <img src={contact.avatar} alt="" className="w-full h-full object-cover" /> : <Building2 className="w-5 h-5" />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className={`${compact ? "text-[11px]" : "text-xs"} font-black text-white truncate`}>{contact.instituteName}</span>
+          {contact.isVerified && <BadgeCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+        </div>
+        <div className="mt-1 text-[9px] text-slate-500 truncate">
+          {contact.canChat ? `${contact.managerName} • آماده گفتگو` : "حساب مدیر هنوز متصل نشده"}
+        </div>
+      </div>
+      {busy ? <Loader2 className="w-4 h-4 animate-spin text-primary-300" /> : <MessageCircle className={`w-4 h-4 ${contact.canChat ? "text-primary-300" : "text-slate-600"}`} />}
+    </button>
+  );
+}
+
 function ChatContent() {
   const { data: session, status } = useSession();
   const user = session?.user as any;
+  const isAdmin = user?.role === "admin" || ["09159513179", "09150000000"].includes(normalizePhone(user?.phone || ""));
   const router = useRouter();
   const searchParams = useSearchParams();
   const withUserId = searchParams.get("with");
   const otherRoleParam = searchParams.get("role") || "institute";
 
   const [threads, setThreads] = useState<Thread[]>([]);
+  const [contacts, setContacts] = useState<ChatContact[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(true);
+  const [contactError, setContactError] = useState("");
+  const [startingContactId, setStartingContactId] = useState<number | null>(null);
   const [activeThreadId, setActiveThreadId] = useState<number | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,7 +196,7 @@ function ChatContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const closeChatPage = () => {
-    const destination = user?.role === "admin"
+    const destination = isAdmin
       ? "/admin"
       : user?.role === "institute"
         ? "/panel"
@@ -203,6 +252,18 @@ function ChatContent() {
     if (status === "authenticated") loadThreads();
     else if (status === "unauthenticated") setLoading(false);
   }, [status, filter, search]);
+
+  useEffect(() => {
+    if (status !== "authenticated" || !isAdmin) return;
+    fetch("/api/chat/contacts", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => {
+        setContacts(Array.isArray(data.contacts) ? data.contacts : []);
+        if (data.error) setContactError(data.error);
+      })
+      .catch(() => setContactError("دریافت فهرست آموزشگاه‌ها انجام نشد"))
+      .finally(() => setContactsLoading(false));
+  }, [status, isAdmin]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -305,6 +366,52 @@ function ChatContent() {
     }
   };
 
+  const startInstituteChat = async (contact: ChatContact) => {
+    if (!contact.managerUserId) {
+      setContactError(`برای «${contact.instituteName}» هنوز حساب مدیر متصل نشده است.`);
+      return;
+    }
+    setStartingContactId(contact.instituteId);
+    setContactError("");
+    try {
+      const response = await fetch("/api/chat/threads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          otherUserId: contact.managerUserId,
+          otherRole: "institute",
+          contextType: "institute",
+          contextId: contact.instituteId,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.thread) throw new Error(result.error || "ایجاد گفتگو انجام نشد");
+      const threadId = Number(result.thread.id);
+      setThreads((current) => current.some((thread) => thread.id === threadId) ? current : [{
+        ...result.thread,
+        id: threadId,
+        other: {
+          id: contact.managerUserId!,
+          name: contact.instituteName,
+          phone: contact.phone || "",
+          avatar: contact.avatar,
+          role: "institute",
+        },
+        otherRole: "institute",
+        lastMessage: null,
+        unread: 0,
+        isOnline: false,
+      }, ...current]);
+      setFilter("active");
+      setActiveThreadId(threadId);
+      setTimeout(loadThreads, 250);
+    } catch (error) {
+      setContactError(error instanceof Error ? error.message : "ایجاد گفتگو انجام نشد");
+    } finally {
+      setStartingContactId(null);
+    }
+  };
+
   const send = async () => {
     if ((!input.trim() && !attachment) || !activeThreadId || sending) return;
     setSending(true);
@@ -363,7 +470,7 @@ function ChatContent() {
           <Lock className="w-12 h-12 mx-auto text-primary-400 mb-3" />
           <h2 className="text-lg font-black mb-2 text-white">ورود لازم است</h2>
           <p className="text-slate-400 text-sm mb-4">برای دسترسی به چت، ابتدا وارد حساب کاربری شوید.</p>
-          <a href="/login" className="inline-block px-5 py-2.5 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white text-sm font-black transition-colors">ورود به حساب</a>
+          <a href="/login?callbackUrl=/my" className="inline-block px-5 py-2.5 rounded-[10px] bg-primary-600 hover:bg-primary-700 text-white text-sm font-black transition-colors">ورود به حساب</a>
         </div>
       </div>
     );
@@ -376,6 +483,10 @@ function ChatContent() {
 
   const active = threads.find((t) => t.id === activeThreadId);
   const teamThreads = threads.filter(t => t.otherRole === "admin");
+  const normalizedSearch = search.trim().toLocaleLowerCase("fa-IR");
+  const filteredContacts = normalizedSearch
+    ? contacts.filter((contact) => `${contact.instituteName} ${contact.managerName} ${contact.phone || ""}`.toLocaleLowerCase("fa-IR").includes(normalizedSearch))
+    : contacts;
 
   return (
     <div
@@ -421,7 +532,7 @@ function ChatContent() {
                 <button
                   onClick={closeChatPage}
                   className="shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg bg-error-500/15 hover:bg-error-500/25 text-error-400 text-[10px] font-black"
-                  aria-label="بستن چت و بازگشت به داشبورد"
+                  aria-label="بستن چت و بازگشت به پنل"
                   title="بستن چت"
                 >
                   <X className="w-4 h-4" />
@@ -529,7 +640,7 @@ function ChatContent() {
                 <button
                   onClick={closeChatPage}
                   className="shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg bg-error-500/15 hover:bg-error-500/25 text-error-400 text-[10px] font-black"
-                  aria-label="بستن چت و بازگشت به داشبورد"
+                  aria-label="بستن چت و بازگشت به پنل"
                   title="بستن چت"
                 >
                   <X className="w-4 h-4" />
@@ -540,42 +651,58 @@ function ChatContent() {
                 </button>
               </div>
 
-              {/* Threads list */}
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-                {threads.length === 0 ? (
-                  <div className="text-center p-10 text-slate-500 text-xs">
-                    <MessageCircle className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                    {filter === "archived" ? "چت بایگانی‌شده‌ای ندارید" : "هنوز گفتگویی ندارید"}
-                  </div>
-                ) : threads.map((t) => (
-                  <button key={t.id} onClick={() => setActiveThreadId(t.id)}
-                    className="w-full text-right p-3 border-b border-white/5 hover:bg-white/5 flex items-center gap-3">
-                    <div className="relative shrink-0">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center text-white font-black">
-                        {t.other?.name?.[0] || "?"}
-                      </div>
-                      {t.isOnline && <div className="absolute bottom-0 left-0 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#111a2e]" />}
-                      {t.isPinned && <Pin className="absolute -top-1 -right-1 w-3.5 h-3.5 text-amber-400" />}
+              {/* Institute directory + conversation list */}
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 space-y-4">
+                {isAdmin && filter === "active" && (
+                  <section>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 text-[11px] font-black text-cyan-200"><Building2 className="w-4 h-4" /> آموزشگاه‌های فعال</div>
+                      <span className="rounded-full bg-primary-500/10 px-2 py-1 text-[9px] font-black text-primary-300">{filteredContacts.length.toLocaleString("fa-IR")}</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <h4 className="font-black text-sm text-white truncate">{t.other?.name || "کاربر"}</h4>
-                        <span className="text-[9px] text-slate-500 shrink-0">
-                          {t.lastMessage ? relativeTime(t.lastMessage.createdAt) : ""}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-2 mt-0.5">
-                        <p className="text-[11px] text-slate-400 truncate flex-1">
-                          {t.isOnline && <span className="text-emerald-400">آنلاین • </span>}
-                          {t.lastMessage?.body || "هنوز پیامی نیست"}
-                        </p>
-                        {t.unread > 0 && (
-                          <span className="text-[9px] font-black bg-primary-500 text-white px-1.5 py-0.5 rounded-full shrink-0">{t.unread}</span>
-                        )}
-                      </div>
+                    <div className="relative mb-2">
+                      <Search className="absolute right-3 top-1/2 w-4 h-4 -translate-y-1/2 text-slate-500" />
+                      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجوی آموزشگاه یا مدیر..." className="w-full rounded-[10px] border border-white/10 bg-[#0B1120] py-2.5 pr-9 pl-3 text-xs text-white outline-none focus:border-primary-500/40" />
                     </div>
-                  </button>
-                ))}
+                    {contactError && <div className="mb-2 rounded-[9px] bg-error-500/10 p-2.5 text-[10px] font-bold text-error-400">{contactError}</div>}
+                    {contactsLoading ? (
+                      <div className="flex justify-center py-7"><Loader2 className="w-6 h-6 animate-spin text-primary-300" /></div>
+                    ) : filteredContacts.length ? (
+                      <div className="space-y-2">
+                        {filteredContacts.map((contact) => (
+                          <InstituteContactItem key={contact.instituteId} contact={contact} onStart={startInstituteChat} busy={startingContactId === contact.instituteId} />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-[10px] border border-dashed border-white/10 py-7 text-center text-[10px] text-slate-500">آموزشگاهی پیدا نشد.</div>
+                    )}
+                  </section>
+                )}
+
+                <section>
+                  <div className="mb-2 flex items-center gap-1.5 text-[11px] font-black text-slate-300"><MessageCircle className="w-4 h-4 text-primary-300" /> {filter === "archived" ? "گفتگوهای بایگانی‌شده" : "گفتگوهای اخیر"}</div>
+                  {threads.length === 0 ? (
+                    <div className="text-center p-8 text-slate-500 text-xs rounded-[10px] border border-dashed border-white/10">
+                      <MessageCircle className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                      {filter === "archived" ? "چت بایگانی‌شده‌ای ندارید" : isAdmin ? "برای شروع، یک آموزشگاه را انتخاب کنید" : "هنوز گفتگویی ندارید"}
+                    </div>
+                  ) : (
+                    <div className="overflow-hidden rounded-[12px] border border-white/[0.06]">
+                      {threads.map((t) => (
+                        <button key={t.id} onClick={() => setActiveThreadId(t.id)} className="w-full text-right p-3 border-b border-white/5 last:border-0 hover:bg-white/5 flex items-center gap-3">
+                          <div className="relative shrink-0">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center text-white font-black">{t.other?.name?.[0] || "?"}</div>
+                            {t.isOnline && <div className="absolute bottom-0 left-0 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#111a2e]" />}
+                            {t.isPinned && <Pin className="absolute -top-1 -right-1 w-3.5 h-3.5 text-amber-400" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2"><h4 className="font-black text-sm text-white truncate">{t.other?.name || "کاربر"}</h4><span className="text-[9px] text-slate-500 shrink-0">{t.lastMessage ? relativeTime(t.lastMessage.createdAt) : ""}</span></div>
+                            <div className="flex items-center justify-between gap-2 mt-0.5"><p className="text-[11px] text-slate-400 truncate flex-1">{t.isOnline && <span className="text-emerald-400">آنلاین • </span>}{t.lastMessage?.body || "هنوز پیامی نیست"}</p>{t.unread > 0 && <span className="text-[9px] font-black bg-primary-500 text-white px-1.5 py-0.5 rounded-full shrink-0">{t.unread}</span>}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </section>
               </div>
 
               {/* Mobile drawer: settings & filters */}
@@ -718,6 +845,24 @@ function ChatContent() {
                   <Archive className="w-4 h-4" /> بایگانی‌شده
                 </button>
               </div>
+              {isAdmin && (
+                <div className="mb-4 border-t border-white/10 pt-3">
+                  <div className="text-[10px] font-black text-cyan-300 uppercase tracking-wider px-2 mb-2 flex items-center justify-between">
+                    <span className="flex items-center gap-1"><Building2 className="w-3.5 h-3.5" /> آموزشگاه‌ها</span>
+                    <span>{filteredContacts.length.toLocaleString("fa-IR")}</span>
+                  </div>
+                  {contactError && <div className="mb-2 rounded-[8px] bg-error-500/10 p-2 text-[9px] text-error-400">{contactError}</div>}
+                  {contactsLoading ? (
+                    <div className="flex justify-center py-5"><Loader2 className="w-5 h-5 animate-spin text-primary-300" /></div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {filteredContacts.map((contact) => (
+                        <InstituteContactItem key={contact.instituteId} contact={contact} onStart={startInstituteChat} busy={startingContactId === contact.instituteId} compact />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               {teamThreads.length > 0 && (
                 <div className="mb-3">
                   <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider px-2 mb-2">چت‌های تیمی</div>

@@ -1,9 +1,12 @@
 import { db } from "@/db";
-import { chatThreads, chatMessages, users } from "@/db/schema";
+import { chatThreads, chatMessages, users, institutes } from "@/db/schema";
 import { eq, or, and, desc, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { normalizePhone } from "@/lib/phone";
+
+const ADMIN_PHONES = new Set(["09159513179", "09150000000"]);
 
 export const dynamic = "force-dynamic";
 
@@ -34,8 +37,24 @@ export async function GET(req: Request) {
     const enriched = await Promise.all(rows.map(async (t) => {
       const otherId = t.participantAId === uid ? t.participantBId : t.participantAId;
       const otherRole = t.participantAId === uid ? t.participantBRole : t.participantARole;
-      const other = await db.select({ id: users.id, name: users.name, phone: users.phone, avatar: users.avatar, role: users.role })
+      let other = await db.select({ id: users.id, name: users.name, phone: users.phone, avatar: users.avatar, role: users.role })
         .from(users).where(eq(users.id, otherId)).then(r => r[0] || null);
+      let instituteInfo: { id: number; name: string; slug: string; profilePhoto: string | null } | null = null;
+      if (otherRole === "institute") {
+        instituteInfo = await db.select({
+          id: institutes.id,
+          name: institutes.name,
+          slug: institutes.slug,
+          profilePhoto: institutes.profilePhoto,
+        }).from(institutes).where(
+          t.contextType === "institute" && t.contextId
+            ? eq(institutes.id, t.contextId)
+            : eq(institutes.userId, otherId),
+        ).then(r => r[0] || null);
+        if (other && instituteInfo) {
+          other = { ...other, name: instituteInfo.name, avatar: instituteInfo.profilePhoto || other.avatar };
+        }
+      }
       const last = await db.select().from(chatMessages)
         .where(eq(chatMessages.threadId, t.id))
         .orderBy(desc(chatMessages.createdAt)).limit(1).then(r => r[0] || null);
@@ -44,7 +63,7 @@ export async function GET(req: Request) {
         .then(r => Number(r[0]?.n || 0));
       // Online: last activity < 5 min ago
       const isOnline = last ? (Date.now() - new Date(last.createdAt as any).getTime()) < 5 * 60 * 1000 : false;
-      return { ...t, other, otherRole, lastMessage: last, unread, isOnline };
+      return { ...t, other, otherRole, institute: instituteInfo, lastMessage: last, unread, isOnline };
     }));
 
     // Search
@@ -61,24 +80,32 @@ export async function POST(req: Request) {
   const u = await currentUser();
   if (!u?.id) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const uid = Number(u.id);
+  const effectiveRole = u.role === "admin" || ADMIN_PHONES.has(normalizePhone(u.phone || "")) ? "admin" : (u.role || "student");
   try {
     const { otherUserId, otherRole, contextType, contextId } = await req.json();
     if (!otherUserId) return NextResponse.json({ error: "otherUserId required" }, { status: 400 });
     const oid = Number(otherUserId);
+    if (!oid || oid === uid) return NextResponse.json({ error: "invalid chat target" }, { status: 400 });
+    const targetUser = await db.select({ id: users.id }).from(users).where(eq(users.id, oid)).then(r => r[0]);
+    if (!targetUser) return NextResponse.json({ error: "chat target not found" }, { status: 404 });
     const existing = await db.select().from(chatThreads)
       .where(or(
         and(eq(chatThreads.participantAId, uid), eq(chatThreads.participantBId, oid)),
         and(eq(chatThreads.participantAId, oid), eq(chatThreads.participantBId, uid)),
       )).then(r => r[0] || null);
     if (existing) {
-      // If it was archived, unarchive it
-      if (existing.isArchived) {
-        await db.update(chatThreads).set({ isArchived: false }).where(eq(chatThreads.id, existing.id));
-      }
-      return NextResponse.json({ ok: true, thread: { ...existing, isArchived: false } });
+      // Re-opening a contact also repairs legacy threads that did not store their institute context.
+      const patch: Partial<typeof chatThreads.$inferInsert> = {};
+      if (existing.isArchived) patch.isArchived = false;
+      if (existing.participantAId === uid && existing.participantARole !== effectiveRole) patch.participantARole = effectiveRole;
+      if (existing.participantBId === uid && existing.participantBRole !== effectiveRole) patch.participantBRole = effectiveRole;
+      if (contextType && !existing.contextType) patch.contextType = contextType;
+      if (contextId && !existing.contextId) patch.contextId = Number(contextId);
+      if (Object.keys(patch).length) await db.update(chatThreads).set(patch).where(eq(chatThreads.id, existing.id));
+      return NextResponse.json({ ok: true, thread: { ...existing, ...patch, isArchived: false } });
     }
     const [row] = await db.insert(chatThreads).values({
-      participantAId: uid, participantARole: u.role || "student",
+      participantAId: uid, participantARole: effectiveRole,
       participantBId: oid, participantBRole: otherRole || "institute",
       contextType: contextType || "general", contextId: contextId || null,
     }).returning();

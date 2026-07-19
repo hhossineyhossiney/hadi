@@ -12,8 +12,10 @@ export default function MobileNav() {
   const u = session?.user as any;
   const isAdmin = u?.role === "admin" || u?.phone === "09159513179" || u?.phone === "09150000000";
 
-  // Smart "پنل من" route: /my routes automatically to admin/panel/dashboard
-  const panelHref = isAuthed ? "/my" : "/login?callbackUrl=/my";
+  // Use the role-aware destination directly so leaving chat never lands on the wrong panel.
+  const panelHref = isAuthed
+    ? (isAdmin ? "/admin" : u?.role === "institute" ? "/panel" : "/dashboard")
+    : "/login?callbackUrl=/my";
   const panelLabel = isAuthed
     ? (isAdmin ? "پنل ادمین" : u?.role === "institute" ? "پنل آموزشگاه" : "پنل من")
     : "ورود";
