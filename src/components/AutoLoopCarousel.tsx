@@ -150,7 +150,7 @@ export default function AutoLoopCarousel<T>({
       <div
         ref={viewportRef}
         dir="ltr"
-        className="overflow-x-auto scroll-smooth snap-x snap-mandatory overscroll-x-contain touch-pan-x py-3 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="overflow-x-auto scroll-smooth snap-x snap-mandatory overscroll-x-contain overscroll-y-auto touch-auto py-3 px-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         onScroll={handleScroll}
         onPointerDown={pauseTemporarily}
         onPointerUp={pauseTemporarily}
