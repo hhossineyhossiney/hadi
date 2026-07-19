@@ -726,6 +726,7 @@ function ShopTab() {
   const [msg, setMsg] = useState("");
   const [creating, setCreating] = useState(false);
   const [editingCourse, setEditingCourse] = useState<any>(null);
+  const [statsCourse, setStatsCourse] = useState<any>(null);
   const [purchasesCourseId, setPurchasesCourseId] = useState<number | null>(null);
   const [managingCourseId, setManagingCourseId] = useState<number | null>(null);
   const [form, setForm] = useState<any>({
@@ -920,12 +921,14 @@ function ShopTab() {
               </div>
               <div className="p-4">
                 <h3 className="font-black text-white text-sm mb-1 line-clamp-2 min-h-[40px]">{c.title}</h3>
-                <div className="flex items-center gap-3 text-[10px] text-slate-400 mb-3">
-                  <span>{c.chaptersCount} فصل</span>
-                  <span>•</span>
-                  <span>{c.lessonsCount} درس</span>
-                  <span>•</span>
-                  <span>{c.studentsCount || 0} خرید</span>
+                <div className="mb-3 space-y-1 text-[10px]">
+                  <div className="flex flex-wrap items-center gap-2 text-cyan-200">
+                    <span className="font-black">نمایش روی کارت:</span>
+                    <span>{Number(c.totalChapters || 0).toLocaleString("fa-IR")} فصل</span><span>•</span>
+                    <span>{Number(c.totalLessons || 0).toLocaleString("fa-IR")} درس</span><span>•</span>
+                    <span>{(Number(c.totalDuration || 0) / 60).toLocaleString("fa-IR", { maximumFractionDigits: 2 })} ساعت</span>
+                  </div>
+                  <div className="text-slate-500">ساختار واقعی: {Number(c.chaptersCount || 0).toLocaleString("fa-IR")} فصل، {Number(c.lessonsCount || 0).toLocaleString("fa-IR")} درس • {Number(c.studentsCount || 0).toLocaleString("fa-IR")} خرید</div>
                 </div>
                 <div className="text-base font-black gradient-text mb-3" dir="ltr">{Number(c.price).toLocaleString("fa-IR")} تومان</div>
                 <div className="grid grid-cols-2 gap-2">
@@ -935,10 +938,13 @@ function ShopTab() {
                   <button onClick={() => setEditingCourse({ ...c })} className="px-3 py-2.5 rounded-[8px] bg-sky-500/20 text-sky-300 text-[11px] font-black flex items-center justify-center gap-1">
                     <Pencil className="w-3 h-3" /> ویرایش کامل
                   </button>
+                  <button onClick={() => setStatsCourse({ ...c })} className="px-3 py-2.5 rounded-[8px] bg-fuchsia-500/20 text-fuchsia-300 text-[11px] font-black flex items-center justify-center gap-1">
+                    <Clock className="w-3 h-3" /> مدت و تعداد درس
+                  </button>
                   <button onClick={() => setPurchasesCourseId(c.id)} className="px-3 py-2.5 rounded-[8px] bg-violet-500/20 text-violet-300 text-[11px] font-black flex items-center justify-center gap-1">
                     <Users className="w-3 h-3" /> خریدها ({Number(c.studentsCount || 0).toLocaleString("fa-IR")})
                   </button>
-                  <div className="flex gap-2">
+                  <div className="col-span-2 flex gap-2">
                     <button onClick={() => act({ action: "publish", courseId: c.id, publish: !c.isPublished })} className={`flex-1 px-3 py-2 rounded-[8px] text-[11px] font-black ${c.isPublished ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400"}`}>
                       {c.isPublished ? "پیش‌نویس" : "انتشار"}
                     </button>
@@ -970,6 +976,16 @@ function ShopTab() {
           }}
         />
       )}
+      {statsCourse && (
+        <ShopCourseStatsModal
+          course={statsCourse}
+          onClose={() => setStatsCourse(null)}
+          onSave={async (payload) => {
+            const result = await act({ action: "update", courseId: statsCourse.id, ...payload });
+            if (result) { setStatsCourse(null); setMsg("✅ مدت و تعداد محتوای روی کارت بروزرسانی شد"); }
+          }}
+        />
+      )}
       {purchasesCourseId && (
         <ShopPurchasesModal
           courseId={purchasesCourseId}
@@ -977,6 +993,56 @@ function ShopTab() {
           onChanged={fetchData}
         />
       )}
+    </div>
+  );
+}
+
+function ShopCourseStatsModal({ course, onClose, onSave }: { course: any; onClose: () => void; onSave: (payload: { totalDuration: number; totalLessons: number; totalChapters: number }) => Promise<void> }) {
+  const [durationHours, setDurationHours] = useState(String(Number(course.totalDuration || 0) / 60 || ""));
+  const [totalLessons, setTotalLessons] = useState(String(Number(course.totalLessons || 0) || ""));
+  const [totalChapters, setTotalChapters] = useState(String(Number(course.totalChapters || 0) || ""));
+  const [saving, setSaving] = useState(false);
+
+  const syncActual = () => {
+    setDurationHours(String(Number(course.actualDuration || 0) / 60 || 0));
+    setTotalLessons(String(Number(course.lessonsCount || 0)));
+    setTotalChapters(String(Number(course.chaptersCount || 0)));
+  };
+
+  const submit = async () => {
+    setSaving(true);
+    await onSave({
+      totalDuration: Math.max(0, Math.round(Number(durationHours || 0) * 60)),
+      totalLessons: Math.max(0, Math.round(Number(totalLessons || 0))),
+      totalChapters: Math.max(0, Math.round(Number(totalChapters || 0))),
+    });
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[240] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-xl overflow-hidden rounded-[22px] border border-fuchsia-500/25 bg-[#0f1a30] shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-white/10 bg-fuchsia-500/[0.07] px-5 py-4">
+          <div><h3 className="flex items-center gap-2 font-black text-white"><Clock className="h-5 w-5 text-fuchsia-300" /> ویرایش مدت و تعداد درس</h3><p className="mt-1 max-w-md truncate text-[10px] text-slate-500">{course.title}</p></div>
+          <button type="button" onClick={onClose} className="rounded-full bg-white/5 p-2 text-slate-400"><X className="h-4 w-4" /></button>
+        </div>
+        <div className="p-5">
+          <div className="mb-4 rounded-[12px] border border-cyan-500/20 bg-cyan-500/10 p-3 text-[10px] leading-5 text-cyan-100">این سه مقدار مستقیماً روی کارت دوره در صفحه اصلی، فروشگاه و صفحه دوره نمایش داده می‌شوند.</div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div><label className="mb-1 block text-[10px] font-black text-slate-300">مدت دوره (ساعت)</label><input type="number" min="0" step="0.25" inputMode="decimal" value={durationHours} onChange={(event) => setDurationHours(event.target.value)} placeholder="۳۰" className="w-full rounded-[10px] bg-white/95 px-3 py-3 text-center text-base font-black text-slate-900" /></div>
+            <div><label className="mb-1 block text-[10px] font-black text-slate-300">تعداد درس‌ها</label><input type="number" min="0" inputMode="numeric" value={totalLessons} onChange={(event) => setTotalLessons(event.target.value)} placeholder="۵۶" className="w-full rounded-[10px] bg-white/95 px-3 py-3 text-center text-base font-black text-slate-900" /></div>
+            <div><label className="mb-1 block text-[10px] font-black text-slate-300">تعداد فصل‌ها</label><input type="number" min="0" inputMode="numeric" value={totalChapters} onChange={(event) => setTotalChapters(event.target.value)} placeholder="۸" className="w-full rounded-[10px] bg-white/95 px-3 py-3 text-center text-base font-black text-slate-900" /></div>
+          </div>
+          <div className="mt-4 flex flex-col justify-between gap-3 rounded-[12px] border border-white/10 bg-white/[0.035] p-3 sm:flex-row sm:items-center">
+            <div className="text-[9px] leading-5 text-slate-400">ساختار واقعی فعلی: {Number(course.chaptersCount || 0).toLocaleString("fa-IR")} فصل، {Number(course.lessonsCount || 0).toLocaleString("fa-IR")} درس، {(Number(course.actualDuration || 0) / 60).toLocaleString("fa-IR", { maximumFractionDigits: 2 })} ساعت ویدئو</div>
+            <button type="button" onClick={syncActual} className="shrink-0 rounded-[9px] bg-violet-500/15 px-3 py-2 text-[9px] font-black text-violet-200">جایگزینی با مقادیر واقعی</button>
+          </div>
+        </div>
+        <div className="flex gap-2 border-t border-white/10 bg-black/10 p-4">
+          <button type="button" onClick={submit} disabled={saving} className="flex flex-1 items-center justify-center gap-2 rounded-[11px] bg-emerald-600 py-3 text-sm font-black text-white disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} ذخیره و بروزرسانی کارت</button>
+          <button type="button" onClick={onClose} className="rounded-[11px] bg-white/5 px-5 py-3 text-xs font-black text-slate-300">انصراف</button>
+        </div>
+      </div>
     </div>
   );
 }
