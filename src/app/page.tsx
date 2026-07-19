@@ -1,6 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StoriesBar from "@/components/StoriesBar";
+import BrandWelcome from "@/components/BrandWelcome";
 import PublicHero from "@/components/PublicHero";
 import CategoryCards from "@/components/CategoryCards";
 import InstitutesShowcase from "@/components/InstitutesShowcase";
@@ -142,6 +143,7 @@ export default async function HomePage() {
     <main className="min-h-screen">
       <Navbar />
       <StoriesBar />
+      <BrandWelcome />
       <PublicHero />
       <AppDownloadSection />
       <CategoryCards categories={cats} />
