@@ -1,14 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, BadgeCheck, BrainCircuit, GraduationCap, Search, Sparkles, Target } from "lucide-react";
-
-const promises = [
-  { icon: Search, label: "انتخاب آگاهانه" },
-  { icon: BadgeCheck, label: "اطلاعات واقعی" },
-  { icon: BrainCircuit, label: "مشاوره هوشمند" },
-];
+import { Sparkles } from "lucide-react";
 
 export default function BrandWelcome() {
   const reducedMotion = useReducedMotion();
@@ -57,37 +50,14 @@ export default function BrandWelcome() {
               <h2 id="fanixo-welcome-title" className="w-full whitespace-nowrap text-[clamp(20px,7vw,29px)] font-black leading-relaxed tracking-[-0.055em] text-white md:whitespace-normal md:text-4xl md:tracking-normal lg:text-5xl">
                 به <span className="bg-gradient-to-l from-cyan-300 via-primary-300 to-fuchsia-300 bg-clip-text text-transparent">فَنی‌اکسو</span> خوش آمدید
               </h2>
-              <p className="mt-1 font-black leading-7 text-slate-200 md:mt-2">
-                <span className="block whitespace-nowrap text-[clamp(12px,3.75vw,15px)] tracking-[-0.045em] md:hidden">هوشمند یاد بگیرید؛ آینده شغلی بسازید</span>
-                <span className="hidden text-lg md:inline">مرجع هوشمند مهارت‌آموزی؛ از انتخاب دوره تا ساخت آینده شغلی</span>
+              <p className="mt-1 font-black leading-7 text-cyan-100 md:mt-2">
+                <span className="block whitespace-nowrap text-[clamp(10.5px,3.35vw,14px)] tracking-[-0.045em] md:hidden">اولین سایت مدیریتی آموزشگاه‌های آزاد کشور</span>
+                <span className="hidden text-lg md:inline">اولین سایت مدیریتی آموزشگاه‌های آزاد کشور</span>
               </p>
               <p className="mx-auto mt-3 max-w-3xl text-xs leading-6 text-slate-400 sm:text-sm sm:leading-7 md:mx-0">
                 آموزشگاه‌ها، دوره‌های حضوری و آنلاین، ثبت‌نام، کلاس، پرداخت و مشاوره هوشمند؛ همه در یک تجربه سریع، شفاف و یکپارچه.
               </p>
 
-              <div className="mt-5 flex flex-wrap justify-center gap-2 md:justify-start">
-                {promises.map((item, index) => (
-                  <motion.span
-                    key={item.label}
-                    initial={reducedMotion ? false : { opacity: 0, y: 8 }}
-                    whileInView={reducedMotion ? undefined : { opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.22 + index * 0.08 }}
-                    className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.055] px-3 py-2 text-[9px] font-bold text-slate-200 backdrop-blur sm:text-[10px]"
-                  >
-                    <item.icon className="h-3.5 w-3.5 text-cyan-300" /> {item.label}
-                  </motion.span>
-                ))}
-              </div>
-
-              <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row md:justify-start">
-                <Link href="/courses" className="inline-flex items-center justify-center gap-2 rounded-[12px] bg-gradient-to-l from-primary-500 to-cyan-500 px-5 py-3 text-xs font-black text-white shadow-lg shadow-primary-500/20 transition hover:scale-[1.02]">
-                  <GraduationCap className="h-4 w-4" /> کشف دوره‌ها <ArrowLeft className="h-3.5 w-3.5" />
-                </Link>
-                <Link href="/search" className="inline-flex items-center justify-center gap-2 rounded-[12px] border border-white/15 bg-white/5 px-5 py-3 text-xs font-black text-white transition hover:bg-white/10">
-                  <Target className="h-4 w-4 text-fuchsia-300" /> پیدا کردن بهترین مسیر
-                </Link>
-              </div>
             </div>
 
             <motion.div
