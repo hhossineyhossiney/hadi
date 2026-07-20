@@ -43,7 +43,7 @@ function getCategoryImage(category: Category, fallback: string) {
 
 export default function CategoryCards({ categories }: { categories: Category[] }) {
   return (
-    <section className="relative py-12 lg:py-16 overflow-hidden">
+    <section className="relative overflow-hidden py-8 sm:py-10 lg:py-12">
       <div className="absolute inset-0 -z-10 pointer-events-none">
         <div className="absolute top-0 left-1/3 w-80 h-80 bg-fuchsia-500/8 rounded-full blur-[100px]" />
         <div className="absolute bottom-0 right-1/3 w-80 h-80 bg-blue-500/8 rounded-full blur-[100px]" />

@@ -107,7 +107,7 @@ export default function CoursesShowcase({
   }, [courses, query, selectedCat, selectedInst, selectedLevel, sortBy]);
 
   return (
-    <section className="py-12 bg-bg-primary relative overflow-hidden">
+    <section className="relative overflow-hidden bg-bg-primary py-8 sm:py-10 md:py-12">
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-secondary-100/20 rounded-full blur-[100px]" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
@@ -332,7 +332,7 @@ export default function CoursesShowcase({
         )}
 
         {showViewAll && (
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:mt-8 sm:flex-row sm:gap-4 md:mt-10">
             {limit && limit > 0 && filtered.length > limit && (
               <p className="text-text-tertiary text-xs">
                 نمایش {limit} از {filtered.length} دوره

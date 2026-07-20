@@ -23,7 +23,7 @@ export default function ShopShowcase() {
   if (!loading && courses.length === 0) return null;
 
   return (
-    <section className="relative py-10 md:py-16 overflow-hidden">
+    <section className="relative overflow-hidden py-8 sm:py-10 md:py-12">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-10 right-[8%] w-80 h-80 rounded-full bg-primary-500/10 blur-[110px]" />
         <div className="absolute bottom-0 left-[5%] w-96 h-96 rounded-full bg-fuchsia-500/10 blur-[120px]" />

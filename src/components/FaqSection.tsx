@@ -87,7 +87,7 @@ export default function FaqSection({ audience = "students" }: { audience?: "stud
   }, [audience]);
 
   return (
-    <section id="faq" className="py-10 bg-bg-secondary relative overflow-hidden">
+    <section id="faq" className="relative overflow-hidden bg-bg-secondary py-8 md:py-10">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-primary-100/30 rounded-full blur-[100px]" />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative">

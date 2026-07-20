@@ -16,7 +16,7 @@ export default function PublicHero() {
   const [city, setCity] = useState("همه شهرها");
 
   return (
-    <section className="relative overflow-hidden pt-24 md:pt-32 lg:pt-40 pb-8 md:pb-16 lg:pb-20">
+    <section className="relative overflow-hidden pt-4 pb-7 sm:pt-6 sm:pb-10 md:pt-12 md:pb-14 lg:pt-16 lg:pb-16">
       {/* Background */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-[#04152A] via-[#0B4F8B]/25 to-[#04152A]" />

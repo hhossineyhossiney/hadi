@@ -23,7 +23,7 @@ const PARTICLES = [
 
 export default function AITechSection() {
   return (
-    <section className="relative py-14 sm:py-20 lg:py-28 overflow-hidden">
+    <section className="relative overflow-hidden py-10 sm:py-14 md:py-16 lg:py-20">
       {/* Futuristic background */}
       <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#04152A] via-[#1a0b3a] to-[#04152A]">
         <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-purple-500/20 blur-[100px] animate-float" />

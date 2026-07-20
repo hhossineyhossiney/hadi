@@ -12,7 +12,7 @@ const stats = [
 
 export default function StatsSection() {
   return (
-    <section className="py-12 relative overflow-hidden">
+    <section className="relative overflow-hidden py-8 md:py-12">
       <div className="absolute inset-0 gradient-hero" />
       <div className="absolute inset-0 opacity-[0.07]">
         <div className="absolute top-0 left-0 w-full h-full" style={{
@@ -22,7 +22,7 @@ export default function StatsSection() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+        <div className="grid grid-cols-2 gap-5 sm:gap-8 lg:grid-cols-4 lg:gap-12">
           {stats.map((stat, index) => (
             <motion.div
               key={stat.label}
@@ -32,10 +32,10 @@ export default function StatsSection() {
               transition={{ delay: index * 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               className="text-center"
             >
-              <div className="w-16 h-16 rounded-[16px] bg-white/10 backdrop-blur-sm flex items-center justify-center mx-auto mb-5 border border-white/10">
-                <stat.icon className="w-8 h-8 text-white" />
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-[14px] border border-white/10 bg-white/10 backdrop-blur-sm sm:mb-5 sm:h-16 sm:w-16 sm:rounded-[16px]">
+                <stat.icon className="h-6 w-6 text-white sm:h-8 sm:w-8" />
               </div>
-              <div className="text-4xl lg:text-5xl font-black text-white mb-2 tracking-tight">
+              <div className="mb-1 text-3xl font-black tracking-tight text-white sm:mb-2 sm:text-4xl lg:text-5xl">
                 {stat.value}
               </div>
               <div className="text-primary-100 text-sm font-medium tracking-wide">
