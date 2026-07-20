@@ -15,13 +15,13 @@
   "startUrl": "/?source=pwa",
   "iconUrl": "https://www.fanixo.ir/icons/icon-512.png",
   "maskableIconUrl": "https://www.fanixo.ir/icons/icon-maskable-512.png",
-  "splashScreenFadeOutDuration": 300,
+  "splashScreenFadeOutDuration": 420,
   "signingKey": {
     "path": "android.keystore",
     "alias": "fanixo"
   },
-  "appVersionName": "1.0.0",
-  "appVersionCode": 1,
+  "appVersionName": "1.1.0",
+  "appVersionCode": 2,
   "shortcuts": [
     {
       "name": "مشاهده دوره‌ها",
@@ -56,5 +56,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "1.0.0"
+  "appVersion": "1.1.0"
 }
