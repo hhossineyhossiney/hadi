@@ -11,12 +11,15 @@ export default function BrandSplashScreen() {
   useEffect(() => {
     const standalone = window.matchMedia("(display-mode: standalone)").matches
       || (navigator as Navigator & { standalone?: boolean }).standalone === true;
-    const isAppLaunch = standalone || new URLSearchParams(window.location.search).get("source") === "pwa";
-    if (!isAppLaunch || sessionStorage.getItem("fanixo-brand-splash") === "shown") return;
+    const storageKey = "fanixo-brand-splash-v2";
+    if (sessionStorage.getItem(storageKey) === "shown") return;
 
-    sessionStorage.setItem("fanixo-brand-splash", "shown");
+    // Show the same premium identity once per browsing/app session everywhere:
+    // desktop web, mobile web, PWA and the Android application.
+    sessionStorage.setItem(storageKey, "shown");
     requestAnimationFrame(() => setVisible(true));
-    const timer = window.setTimeout(() => setVisible(false), reducedMotion ? 900 : 2300);
+    const duration = standalone ? 2300 : 1650;
+    const timer = window.setTimeout(() => setVisible(false), reducedMotion ? 750 : duration);
     return () => clearTimeout(timer);
   }, [reducedMotion]);
 
