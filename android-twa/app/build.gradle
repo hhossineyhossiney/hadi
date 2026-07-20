@@ -24,8 +24,8 @@ def twaManifest = [
     applicationId: 'ir.fanixo.app',
     hostName: 'www.fanixo.ir', // The domain being opened in the TWA.
     launchUrl: '/?source=pwa', // The start path for the TWA. Must be relative to the domain.
-    name: 'فَنی‌اکسو', // The application name.
-    launcherName: 'فَنی‌اکسو', // The name shown on the Android Launcher.
+    name: 'فَنیکسو', // The application name.
+    launcherName: 'فَنیکسو', // The name shown on the Android Launcher.
     themeColor: '#071426', // The color used for the status bar.
     themeColorDark: '#071426', // The color used for the dark status bar.
     navigationColor: '#04152A', // The color used for the navigation bar.
@@ -57,8 +57,8 @@ android {
         applicationId "ir.fanixo.app"
         minSdkVersion 21
         targetSdkVersion 35
-        versionCode 3
-        versionName "1.2.0"
+        versionCode 4
+        versionName "1.3.0"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name

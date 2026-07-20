@@ -2,12 +2,12 @@
   "app": "Fanixo",
   "platform": "android",
   "packageId": "ir.fanixo.app",
-  "versionName": "1.2.0",
-  "versionCode": 3,
+  "versionName": "1.3.0",
+  "versionCode": 4,
   "minSdk": 21,
-  "file": "/downloads/fanixo-android-1.2.0.apk",
-  "size": 1221394,
-  "sha256": "1483e4bca37e791c958be72e0f7d93e85228aaae7acffad745edeb33dcb85cba",
-  "releasedAt": "2026-07-20T13:35:00+03:30",
-  "changes": ["Removed legacy static native logo", "Animated circular Fanixo splash on desktop web, mobile web and Android app", "Faster native splash handoff"]
+  "file": "/downloads/fanixo-android-1.3.0.apk",
+  "size": 1225490,
+  "sha256": "2981dd5b5950087e0cf642f4cf066d5f3b347474ab277b1d60a8f33fcccaff73",
+  "releasedAt": "2026-07-20T16:25:00+03:30",
+  "changes": ["Persian brand name standardized to فَنیکسو across web, PWA and Android", "Same signed package and upgrade path"]
 }

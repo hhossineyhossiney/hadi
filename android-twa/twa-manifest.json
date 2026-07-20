@@ -1,8 +1,8 @@
 {
   "packageId": "ir.fanixo.app",
   "host": "www.fanixo.ir",
-  "name": "فَنی‌اکسو",
-  "launcherName": "فَنی‌اکسو",
+  "name": "فَنیکسو",
+  "launcherName": "فَنیکسو",
   "display": "standalone",
   "themeColor": "#071426",
   "themeColorDark": "#071426",
@@ -20,8 +20,8 @@
     "path": "android.keystore",
     "alias": "fanixo"
   },
-  "appVersionName": "1.2.0",
-  "appVersionCode": 3,
+  "appVersionName": "1.3.0",
+  "appVersionCode": 4,
   "shortcuts": [
     {
       "name": "مشاهده دوره‌ها",
@@ -56,5 +56,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "1.2.0"
+  "appVersion": "1.3.0"
 }

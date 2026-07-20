@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const LATEST_ANDROID_APK = "/downloads/fanixo-android-1.2.0.apk";
+const LATEST_ANDROID_APK = "/downloads/fanixo-android-1.3.0.apk";
 
 export async function GET(request: Request) {
   const target = new URL(LATEST_ANDROID_APK, request.url);

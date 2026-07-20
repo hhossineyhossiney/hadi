@@ -1,14 +1,14 @@
 # Fanixo Android TWA
 
-نسخه رسمی Android فَنی‌اکسو با Trusted Web Activity و پکیج `ir.fanixo.app`.
+نسخه رسمی Android فَنیکسو با Trusted Web Activity و پکیج `ir.fanixo.app`.
 
 ## خروجی عمومی
 
-- APK: `/public/downloads/fanixo-android-1.2.0.apk`
+- APK: `/public/downloads/fanixo-android-1.3.0.apk`
 - لینک پایدار: `https://www.fanixo.ir/download/android`
 - حداقل Android: 5.0 / API 21
 - Target SDK: 35
-- Version: `1.2.0 (3)`
+- Version: `1.3.0 (4)`
 
 ## ساخت مجدد
 
@@ -17,7 +17,7 @@
 - JDK 17
 - Android SDK / Build Tools
 - Bubblewrap CLI
-- Keystore اصلی فَنی‌اکسو (خارج از Git)
+- Keystore اصلی فَنیکسو (خارج از Git)
 
 ```bash
 cd android-twa
