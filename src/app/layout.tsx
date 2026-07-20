@@ -5,6 +5,7 @@ import MobileNav from "@/components/MobileNav";
 import AIChatWidget from "@/components/AIChatWidget";
 import PWARegistration from "@/components/PWARegistration";
 import MobileViewportGuard from "@/components/MobileViewportGuard";
+import BrandSplashScreen from "@/components/BrandSplashScreen";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -77,6 +78,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <AIChatWidget />
           <PWARegistration />
           <MobileViewportGuard />
+          <BrandSplashScreen />
         </Providers>
       </body>
     </html>

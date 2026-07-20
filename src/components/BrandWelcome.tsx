@@ -69,7 +69,7 @@ export default function BrandWelcome() {
               <motion.div animate={reducedMotion ? undefined : { rotate: 360 }} transition={{ duration: 24, repeat: Infinity, ease: "linear" }} className="absolute inset-0 rounded-[42%] border border-cyan-300/20" />
               <motion.div animate={reducedMotion ? undefined : { rotate: -360 }} transition={{ duration: 18, repeat: Infinity, ease: "linear" }} className="absolute inset-5 rounded-[38%] border border-fuchsia-300/20" />
               <div className="absolute inset-9 rounded-[32px] bg-gradient-to-br from-cyan-400/20 to-fuchsia-500/20 blur-xl" />
-              <img src="/images/fanixo-logo.png" alt="" className="relative h-28 w-28 rounded-[28px] border border-white/15 object-cover shadow-2xl lg:h-32 lg:w-32" />
+              <img src="/brand/fanixo-emblem-circle-1024.png" alt="" className="relative h-28 w-28 rounded-full border border-amber-100/25 object-cover shadow-2xl lg:h-32 lg:w-32" />
             </motion.div>
           </div>
 

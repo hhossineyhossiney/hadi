@@ -1,5 +1,5 @@
 /* Fanixo PWA service worker — public shell only, never caches private panels or APIs. */
-const VERSION = "fanixo-pwa-v2";
+const VERSION = "fanixo-pwa-v3";
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 const OFFLINE_URL = "/offline";
@@ -8,6 +8,7 @@ const PRECACHE = [
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/images/fanixo-logo.png",
+  "/brand/fanixo-emblem-circle-1024.png",
 ];
 
 const PRIVATE_PREFIXES = [
