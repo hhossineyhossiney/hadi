@@ -12,7 +12,7 @@ interface Msg {
 const WELCOME: Msg = {
   role: "assistant",
   content:
-    "سلام 👋 من مشاور هوشمند فنی‌اکسو هستم و به اطلاعات زنده آموزشگاه‌ها و دوره‌ها دسترسی دارم. درباره تعداد آموزشگاه‌ها، شهریه، مدرس، آدرس، ثبت‌نام یا انتخاب مسیر یادگیری از من بپرس.",
+    "سلام 👋 من مشاور هوشمند فَنیکسو هستم و به اطلاعات زنده آموزشگاه‌ها و دوره‌ها دسترسی دارم. درباره تعداد آموزشگاه‌ها، شهریه، مدرس، آدرس، ثبت‌نام یا انتخاب مسیر یادگیری از من بپرس.",
 };
 
 function RichMessage({ content }: { content: string }) {
@@ -204,7 +204,7 @@ export default function AIChatWidget() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-black text-white leading-tight">
-                    مشاور هوشمند فنی‌اکسو
+                    مشاور هوشمند فَنیکسو
                   </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -320,7 +320,7 @@ export default function AIChatWidget() {
                   </button>
                 </div>
                 <div className="mt-1.5 text-[9px] text-slate-500 text-center">
-                  متصل به اطلاعات زنده فنی‌اکسو • Enter برای ارسال، Shift+Enter برای خط جدید
+                  متصل به اطلاعات زنده فَنیکسو • Enter برای ارسال، Shift+Enter برای خط جدید
                 </div>
               </div>
             </motion.div>

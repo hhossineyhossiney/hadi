@@ -60,7 +60,7 @@ export default function PWARegistration() {
           <Smartphone className="h-5 w-5" />
         </div>
         <div>
-          <h2 className="text-sm font-black">نصب اپلیکیشن فَنی‌اکسو</h2>
+          <h2 className="text-sm font-black">نصب اپلیکیشن فَنیکسو</h2>
           <p className="mt-1 text-[10px] leading-5 text-slate-400">دسترسی سریع‌تر، اجرای تمام‌صفحه و مشاهده بعضی صفحات عمومی در حالت آفلاین.</p>
         </div>
       </div>

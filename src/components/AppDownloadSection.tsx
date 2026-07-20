@@ -47,14 +47,14 @@ export default function AppDownloadSection() {
 
             <div className="min-w-0 flex-1">
               <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-amber-200/30 bg-amber-300 px-3 py-1.5 text-[9px] font-black text-slate-950 shadow-lg sm:text-[10px]">
-                <Rocket className="h-3.5 w-3.5" /> قابلیت جدید فَنی‌اکسو
+                <Rocket className="h-3.5 w-3.5" /> قابلیت جدید فَنیکسو
               </div>
               <h2 className="w-full whitespace-nowrap text-[clamp(17px,5.3vw,23px)] font-black leading-relaxed tracking-[-0.05em] text-white md:whitespace-normal md:text-4xl md:tracking-normal">
                 <span className="md:hidden">اپ اندروید آماده نصب است!</span>
                 <span className="hidden md:inline">اپلیکیشن اندروید آماده نصب است!</span>
               </h2>
               <p className="mt-2 text-xs font-medium leading-6 text-white/75 sm:text-sm">
-                همین حالا دانلود کنید و فَنی‌اکسو را سریع‌تر و تمام‌صفحه روی موبایل داشته باشید.
+                همین حالا دانلود کنید و فَنیکسو را سریع‌تر و تمام‌صفحه روی موبایل داشته باشید.
               </p>
             </div>
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BookOpen, Home, RefreshCw, WifiOff } from "lucide-react";
 
-export const metadata = { title: "اتصال اینترنت برقرار نیست | فَنی‌اکسو" };
+export const metadata = { title: "اتصال اینترنت برقرار نیست | فَنیکسو" };
 
 export default function OfflinePage() {
   return (

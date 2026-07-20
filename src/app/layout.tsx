@@ -13,11 +13,11 @@ export const metadata: Metadata = {
   description: "سامانه رسمی معرفی، مقایسه و ثبت‌نام آنلاین آموزشگاه‌های آزاد مرکز فنی و حرفه‌ای شهرستان زبرخان (شماره ۱۲). کامپیوتر، خیاطی، آرایشگری، آشپزی و زبان با مدرک رسمی.",
   keywords: "آموزشگاه فنی حرفه‌ای, زبرخان, مرکز شماره 12, خیاطی, آرایشگری, کامپیوتر, آشپزی, ثبت‌نام آنلاین",
   manifest: "/manifest.webmanifest",
-  applicationName: "فَنی‌اکسو",
+  applicationName: "فَنیکسو",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "فَنی‌اکسو",
+    title: "فَنیکسو",
   },
   formatDetection: { telephone: false },
   icons: {

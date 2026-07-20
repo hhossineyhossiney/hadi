@@ -3,8 +3,8 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "فَنی‌اکسو | سامانه آموزش و مدیریت آموزشگاه",
-    short_name: "فَنی‌اکسو",
+    name: "فَنیکسو | سامانه آموزش و مدیریت آموزشگاه",
+    short_name: "فَنیکسو",
     description: "آموزش آنلاین، ثبت‌نام دوره‌های مهارتی و مدیریت یکپارچه آموزشگاه‌های فنی و حرفه‌ای زبرخان",
     start_url: "/?source=pwa",
     scope: "/",

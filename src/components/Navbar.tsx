@@ -46,7 +46,7 @@ export default function Navbar() {
             <div className="relative w-11 h-11 lg:w-12 lg:h-12 rounded-[12px] overflow-hidden shrink-0 bg-[#071a33] border border-amber-400/35 shadow-[0_6px_22px_rgba(20,184,166,0.2)] group-hover:scale-105 transition-transform duration-300">
               <img
                 src="/images/fanixo-logo.png"
-                alt="لوگوی فَنی‌اکسو"
+                alt="لوگوی فَنیکسو"
                 className="w-full h-full object-contain"
               />
             </div>

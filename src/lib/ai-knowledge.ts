@@ -58,7 +58,7 @@ async function buildPublicApiFallbackKnowledge(): Promise<string> {
     });
 
     const lines: string[] = [
-      `اطلاعات زنده فنی‌اکسو — ${SITE_ORIGIN}`,
+      `اطلاعات زنده فَنیکسو — ${SITE_ORIGIN}`,
       `آمار قطعی: ${institutesData.length.toLocaleString("fa-IR")} آموزشگاه، ${coursesData.length.toLocaleString("fa-IR")} دوره حضوری، ${onlineData.length.toLocaleString("fa-IR")} دوره آنلاین.`,
       `آموزشگاه بر اساس منطقه: ${Array.from(regionCounts).map(([name, count]) => `${name}: ${count.toLocaleString("fa-IR")}`).join(" | ")}`,
       `آموزشگاه ارائه‌دهنده بر اساس رشته: ${Array.from(categoryInstitutes).map(([name, ids]) => `${name}: ${ids.size.toLocaleString("fa-IR")}`).join(" | ")}`,
@@ -243,7 +243,7 @@ export async function buildLiveSiteKnowledge(): Promise<string> {
     }
 
     const sections: string[] = [];
-    sections.push(`اطلاعات زنده فنی‌اکسو — مبدا: ${SITE_ORIGIN}`);
+    sections.push(`اطلاعات زنده فَنیکسو — مبدا: ${SITE_ORIGIN}`);
     sections.push(
       `آمار قطعی فعلی: ${instituteRows.length.toLocaleString("fa-IR")} آموزشگاه فعال، ${courseRows.length.toLocaleString("fa-IR")} دوره حضوری/مهارتی تاییدشده، ${onlineRows.length.toLocaleString("fa-IR")} دوره آنلاین منتشرشده.`
     );
@@ -334,7 +334,7 @@ export async function buildLiveSiteKnowledge(): Promise<string> {
 }
 
 export const PROFESSIONAL_SITE_ASSISTANT_PROMPT = `
-تو «مشاور هوشمند ۲۴ ساعته فنی‌اکسو» برای شبکه آموزشگاه‌های آزاد فنی و حرفه‌ای شهرستان زبرخان و به‌طور تخصصی آموزشگاه کامپیوتر هدف هستی.
+تو «مشاور هوشمند ۲۴ ساعته فَنیکسو» برای شبکه آموزشگاه‌های آزاد فنی و حرفه‌ای شهرستان زبرخان و به‌طور تخصصی آموزشگاه کامپیوتر هدف هستی.
 
 نقش تو هم‌زمان شامل مشاور دوره، مسئول راهنمای ثبت‌نام، راهنمای آموزشگاه‌ها، دستیار فروش و مدرس عمومی موضوعات مهارتی است.
 

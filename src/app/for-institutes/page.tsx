@@ -12,7 +12,7 @@ import FaqSection from "@/components/FaqSection";
 export const dynamic = "force-static";
 
 export const metadata: Metadata = {
-  title: "برای مدیران آموزشگاه‌ها | راهنمای کامل سامانه هوشمند فَنی‌اکسو",
+  title: "برای مدیران آموزشگاه‌ها | راهنمای کامل سامانه هوشمند فَنیکسو",
   description:
     "راهنمای حرفه‌ای و جزئی‌به‌جز ۲۳ بخش پنل مدیر آموزشگاه: ویرایش کامل دوره حضوری و آنلاین، مدیریت نظرات و خریدها، هنرجو، اقساط، مدرس، جلسات، حضور، نمرات، چت، تلگرام، هوش مصنوعی و ۶ گزارش Excel.",
   keywords: [
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     "مدیریت هنرجویان",
     "ثبت نام آنلاین آموزشگاه",
     "فروش دوره آنلاین",
-    "فنی اکسو",
+    "فَنیکسو",
     "آموزشگاه های زبرخان",
   ],
   alternates: { canonical: "https://www.fanixo.ir/for-institutes" },
@@ -29,8 +29,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "fa_IR",
     url: "https://www.fanixo.ir/for-institutes",
-    siteName: "فَنی‌اکسو",
-    title: "راهنمای کامل مدیران آموزشگاه‌ها | فَنی‌اکسو",
+    siteName: "فَنیکسو",
+    title: "راهنمای کامل مدیران آموزشگاه‌ها | فَنیکسو",
     description: "معرفی کامل پنل مدیر، پنل هنرجو، فروش آنلاین، آموزش، مالی، ارتباطات، هوش مصنوعی و گزارش‌ها.",
   },
 };
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
 const softwareJsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "سامانه مدیریت آموزشگاه فَنی‌اکسو",
+  name: "سامانه مدیریت آموزشگاه فَنیکسو",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   url: "https://www.fanixo.ir/for-institutes",

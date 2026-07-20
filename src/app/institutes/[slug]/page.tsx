@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const slug = decodeURIComponent(rawSlug);
   const result = await db.execute(sql`SELECT name, description, profile_photo FROM institutes WHERE slug = ${slug} LIMIT 1`);
   const institute = rowsOf<any>(result)[0];
-  if (!institute) return { title: "آموزشگاه یافت نشد | فَنی‌اکسو" };
+  if (!institute) return { title: "آموزشگاه یافت نشد | فَنیکسو" };
   const title = `${institute.name} | دوره‌ها، اساتید، نظرات و ثبت‌نام`;
   const description = institute.description || `پروفایل حرفه‌ای ${institute.name} شامل دوره‌ها، اساتید، امکانات، نظرات، تقویم کلاس‌ها و ثبت‌نام سریع.`;
   return {

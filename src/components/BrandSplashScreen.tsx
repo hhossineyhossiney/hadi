@@ -34,7 +34,7 @@ export default function BrandSplashScreen() {
           transition={{ duration: reducedMotion ? 0.15 : 0.45 }}
           className="fixed inset-0 z-[1000] flex min-h-[100dvh] items-center justify-center overflow-hidden bg-[#031326] px-6 text-white"
           role="status"
-          aria-label="در حال آماده‌سازی فَنی‌اکسو"
+          aria-label="در حال آماده‌سازی فَنیکسو"
         >
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-400/10 blur-[110px]" />
@@ -61,7 +61,7 @@ export default function BrandSplashScreen() {
                 transition={{ duration: 2.1, repeat: Infinity, ease: "easeInOut" }}
                 className="relative h-40 w-40 overflow-hidden rounded-full border border-amber-100/40 bg-[#061a31] p-1.5 shadow-[0_0_45px_rgba(237,203,128,0.3)] sm:h-44 sm:w-44"
               >
-                <img src="/brand/fanixo-emblem-circle-1024.png" alt="نشان فَنی‌اکسو" className="h-full w-full rounded-full object-cover" />
+                <img src="/brand/fanixo-emblem-circle-1024.png" alt="نشان فَنیکسو" className="h-full w-full rounded-full object-cover" />
               </motion.div>
               <motion.span
                 animate={reducedMotion ? undefined : { rotate: 360 }}
@@ -75,7 +75,7 @@ export default function BrandSplashScreen() {
             </div>
 
             <motion.h1 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-6 text-3xl font-black tracking-tight sm:text-4xl">
-              فَنی‌اکسو
+              فَنیکسو
             </motion.h1>
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }} className="mt-2 text-xs font-bold text-cyan-100/75 sm:text-sm">
               آموزش هوشمند، مدیریت حرفه‌ای

@@ -48,7 +48,7 @@ export default function BrandWelcome() {
               </motion.div>
 
               <h2 id="fanixo-welcome-title" className="w-full whitespace-nowrap text-[clamp(20px,7vw,29px)] font-black leading-relaxed tracking-[-0.055em] text-white md:whitespace-normal md:text-4xl md:tracking-normal lg:text-5xl">
-                به <span className="bg-gradient-to-l from-cyan-300 via-primary-300 to-fuchsia-300 bg-clip-text text-transparent">فَنی‌اکسو</span> خوش آمدید
+                به <span className="bg-gradient-to-l from-cyan-300 via-primary-300 to-fuchsia-300 bg-clip-text text-transparent">فَنیکسو</span> خوش آمدید
               </h2>
               <p className="mt-1 font-black leading-7 text-cyan-100 md:mt-2">
                 <span className="block whitespace-nowrap text-[clamp(10.5px,3.35vw,14px)] tracking-[-0.045em] md:hidden">اولین سایت مدیریتی آموزشگاه‌های آزاد کشور</span>

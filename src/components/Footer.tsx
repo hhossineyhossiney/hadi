@@ -47,7 +47,7 @@ export default function Footer() {
           <div className="lg:col-span-4 space-y-5">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-[12px] overflow-hidden shrink-0 bg-[#071a33] border border-amber-400/20 shadow-lg shadow-primary-500/20">
-                <img src="/images/fanixo-logo.png" alt="لوگوی فَنی‌اکسو" className="w-full h-full object-contain" />
+                <img src="/images/fanixo-logo.png" alt="لوگوی فَنیکسو" className="w-full h-full object-contain" />
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-sm font-black leading-snug whitespace-nowrap">آموزشگاه‌های آزاد فنی و حرفه‌ای زبرخان</span>
