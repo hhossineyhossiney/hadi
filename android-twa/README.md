@@ -4,11 +4,11 @@
 
 ## خروجی عمومی
 
-- APK: `/public/downloads/fanixo-android-1.1.0.apk`
+- APK: `/public/downloads/fanixo-android-1.2.0.apk`
 - لینک پایدار: `https://www.fanixo.ir/download/android`
 - حداقل Android: 5.0 / API 21
 - Target SDK: 35
-- Version: `1.1.0 (2)`
+- Version: `1.2.0 (3)`
 
 ## ساخت مجدد
 

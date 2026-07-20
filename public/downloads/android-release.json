@@ -2,12 +2,12 @@
   "app": "Fanixo",
   "platform": "android",
   "packageId": "ir.fanixo.app",
-  "versionName": "1.1.0",
-  "versionCode": 2,
+  "versionName": "1.2.0",
+  "versionCode": 3,
   "minSdk": 21,
-  "file": "/downloads/fanixo-android-1.1.0.apk",
-  "size": 2933522,
-  "sha256": "3e3edbdcf51b390a632727cd0448fb8ed4e9aa3ecb85b8b492b0b85eaa6e166c",
-  "releasedAt": "2026-07-20T06:45:00+03:30",
-  "changes": ["4K circular luxury emblem", "new adaptive Android icon", "animated rotating-light web splash", "refined native splash"]
+  "file": "/downloads/fanixo-android-1.2.0.apk",
+  "size": 1221394,
+  "sha256": "1483e4bca37e791c958be72e0f7d93e85228aaae7acffad745edeb33dcb85cba",
+  "releasedAt": "2026-07-20T13:35:00+03:30",
+  "changes": ["Removed legacy static native logo", "Animated circular Fanixo splash on desktop web, mobile web and Android app", "Faster native splash handoff"]
 }
