@@ -19,7 +19,6 @@ import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import AIToolPanel from "@/components/AIToolPanel";
 import { useMobilePanelDrawer } from "@/components/panel/useMobilePanelDrawer";
-import { normalizePhone } from "@/lib/phone";
 import PersianDatePicker from "@/components/PersianDatePicker";
 
 interface StudentReg {
@@ -99,61 +98,80 @@ const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
 ];
 
 function StudentDashboardContent() {
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const sessionUser = session?.user as any;
   const searchParams = useSearchParams();
-  const phoneParam = searchParams.get("phone") || "";
-  const defaultPhone = sessionUser?.phone || phoneParam || "";
+  const activePhone = sessionUser?.phone || "";
 
-  const [inputPhone, setInputPhone] = useState(defaultPhone);
-  const [activePhone, setActivePhone] = useState(defaultPhone);
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [dashboardError, setDashboardError] = useState(false);
   const tabParam = searchParams.get("tab") || "";
   const validTabs: TabKey[] = ["dashboard","courses","shop","live","assignments","quizzes","grades","attendance","progress","schedule","tickets","chat","groups","notifications","certificates","wallet","fees","favorites","portfolio","profile","security","activity"];
   const [tab, setTab] = useState<TabKey>((validTabs.includes(tabParam as TabKey) ? (tabParam as TabKey) : "dashboard"));
   const { open: drawerOpen, setOpen: setDrawerOpen } = useMobilePanelDrawer();
 
   useEffect(() => {
-    if (sessionUser?.phone) {
-      setInputPhone(sessionUser.phone);
-      setActivePhone(sessionUser.phone);
-    }
-  }, [sessionUser?.phone]);
+    if (sessionStatus !== "authenticated" || !sessionUser?.id) return;
+    const controller = new AbortController();
+    const frame = window.requestAnimationFrame(() => {
+      setLoading(true);
+      setDashboardError(false);
+      fetch("/api/student/dashboard", { signal: controller.signal })
+        .then((r) => {
+          if (!r.ok) throw new Error("dashboard request failed");
+          return r.json();
+        })
+        .then((d) => { setData(d); setLoading(false); })
+        .catch((requestError) => {
+          if (requestError instanceof DOMException && requestError.name === "AbortError") return;
+          setDashboardError(true);
+          setLoading(false);
+        });
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      controller.abort();
+    };
+  }, [sessionStatus, sessionUser?.id]);
 
-  useEffect(() => {
-    if (!activePhone) return;
-    setLoading(true);
-    fetch(`/api/student/dashboard?phone=${encodeURIComponent(normalizePhone(activePhone))}`)
-      .then((r) => r.json())
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [activePhone]);
+  if (sessionStatus === "loading") {
+    return <div className="pt-28 pb-20 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500" /></div>;
+  }
 
-  // Not logged in yet
-  if (!activePhone) {
+  // Private student information is available only after a real account login.
+  if (sessionStatus !== "authenticated" || !sessionUser?.id) {
     return (
       <div className="pt-28 pb-20 max-w-md mx-auto px-4">
         <div className="bg-[#0f172a] rounded-[24px] border border-white/10 p-8 text-white text-center">
           <div className="w-16 h-16 mx-auto rounded-[16px] bg-primary-600 flex items-center justify-center mb-4">
             <Lock className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-black mb-2">پنل هنرجو</h2>
-          <p className="text-slate-400 text-sm mb-6">برای مشاهده اطلاعات، شماره موبایل خود را وارد کنید یا از حساب کاربری وارد شوید.</p>
-          <input value={inputPhone} onChange={(e) => setInputPhone(e.target.value)}
-            placeholder="09159999999" dir="ltr"
-            className="w-full px-4 py-3 rounded-[12px] bg-[#1e293b] border border-white/10 text-center text-white mb-3" />
-          <button onClick={() => setActivePhone(inputPhone)}
-            className="w-full py-3 rounded-[12px] bg-primary-600 hover:bg-primary-700 text-white font-black cursor-pointer">
-            ورود به پنل هنرجو
-          </button>
-          <Link href="/login" className="block mt-4 text-primary-300 text-xs font-bold">ورود با حساب کاربری &larr;</Link>
+          <h2 className="text-xl font-black mb-2">ورود امن به پنل هنرجو</h2>
+          <p className="text-slate-400 text-sm mb-6">برای حفظ حریم خصوصی، اطلاعات پنل فقط بعد از ورود با شماره موبایل و رمز عبور نمایش داده می‌شود.</p>
+          <Link href={`/login?callbackUrl=${encodeURIComponent("/dashboard")}`}
+            className="block w-full py-3 rounded-[12px] bg-primary-600 hover:bg-primary-700 text-white font-black">
+            ورود به حساب هنرجویی
+          </Link>
         </div>
       </div>
     );
   }
 
-  if (loading) {
+  if (dashboardError) {
+    return (
+      <div className="pt-28 pb-20 max-w-md mx-auto px-4 text-center text-white">
+        <div className="rounded-[20px] border border-error-500/25 bg-error-500/10 p-6">
+          <p className="text-sm font-black">دریافت اطلاعات پنل با خطا روبه‌رو شد.</p>
+          <button type="button" onClick={() => window.location.reload()} className="mt-4 rounded-[10px] bg-white px-5 py-2.5 text-xs font-black text-slate-900">
+            تلاش دوباره
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading || !data) {
     return <div className="pt-28 pb-20 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500" /></div>;
   }
 

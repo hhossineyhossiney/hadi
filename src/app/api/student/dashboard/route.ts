@@ -5,25 +5,30 @@ import {
 } from "@/db/schema";
 import { eq, or, desc, and, sql, inArray, count as sqlCount } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { normalizePhone } from "@/lib/phone";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const rawPhone = searchParams.get("phone");
-
-  if (!rawPhone) {
-    return NextResponse.json({ error: "شماره موبایل الزامی است" }, { status: 400 });
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  const sessionUser = session?.user as { id?: string } | undefined;
+  if (!sessionUser?.id) {
+    return NextResponse.json({ error: "برای مشاهده پنل باید وارد حساب کاربری شوید" }, { status: 401 });
   }
-
-  const cleanPhone = normalizePhone(rawPhone);
 
   const user = await db
     .select()
     .from(users)
-    .where(or(eq(users.phone, cleanPhone), eq(users.email, cleanPhone)))
+    .where(eq(users.id, Number(sessionUser.id)))
     .then((res) => res[0]);
+
+  if (!user) {
+    return NextResponse.json({ error: "حساب کاربری پیدا نشد" }, { status: 404 });
+  }
+
+  const cleanPhone = normalizePhone(user.phone || "");
 
   const userRegs = await db
     .select({
@@ -63,9 +68,9 @@ export async function GET(request: Request) {
     .leftJoin(institutes, eq(registrations.instituteId, institutes.id))
     .leftJoin(categories, eq(courses.categoryId, categories.id))
     .where(
-      user
+      cleanPhone
         ? or(eq(registrations.userId, user.id), eq(registrations.phone, cleanPhone))
-        : eq(registrations.phone, cleanPhone)
+        : eq(registrations.userId, user.id)
     )
     .orderBy(desc(registrations.createdAt));
 

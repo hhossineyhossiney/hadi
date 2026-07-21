@@ -191,7 +191,7 @@ export default function Navbar() {
                       </Link>
                     ) : (
                       <Link
-                        href={`/dashboard?phone=${encodeURIComponent(user.phone || "")}`}
+                        href="/dashboard"
                         onClick={() => setIsOpen(false)}
                         className="text-center px-4 py-2.5 rounded-[12px] text-xs font-bold text-white gradient-button"
                       >
@@ -325,6 +325,7 @@ function UserMenuMobile({ user, isAdmin }: { user: any; isAdmin: boolean }) {
   const roleLabel = isAdmin ? "مدیر کل" : user.role === "institute" ? "مدیر آموزشگاه" : "هنرجو";
   const roleColor = isAdmin ? "from-purple-500 to-fuchsia-500" : user.role === "institute" ? "from-amber-500 to-orange-500" : "from-primary-500 to-secondary-500";
   const roleEmoji = isAdmin ? "👑" : user.role === "institute" ? "🏢" : "🎓";
+  const shortName = String(user.name || "کاربر").trim().split(/\s+/)[0] || "کاربر";
 
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
@@ -336,11 +337,15 @@ function UserMenuMobile({ user, isAdmin }: { user: any; isAdmin: boolean }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className={`relative w-9 h-9 rounded-full bg-gradient-to-br ${roleColor} flex items-center justify-center text-white font-black text-sm shrink-0 shadow-lg`}
+        className="flex h-10 max-w-[92px] shrink-0 items-center gap-1.5 rounded-xl border border-primary-400/25 bg-primary-600 px-1.5 pl-2 text-white shadow-lg shadow-primary-900/20"
         title={user.name || "پنل من"}
+        aria-label={`حساب کاربری ${user.name || "کاربر"}`}
       >
-        {user.name ? user.name.charAt(0) : "U"}
-        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[var(--bg-canvas)]" />
+        <span className={`relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${roleColor} text-xs font-black`}>
+          {user.name ? user.name.charAt(0) : "U"}
+          <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-primary-600 bg-emerald-400" />
+        </span>
+        <span className="min-w-0 truncate text-[10px] font-black">{shortName}</span>
       </button>
 
       {open && (

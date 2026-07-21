@@ -11,7 +11,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useSession } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { normalizePhone } from "@/lib/phone";
 
 interface CourseOpt {
@@ -34,7 +34,7 @@ const STEPS_LOGGED = [
 ];
 
 function RegistrationWizard() {
-  const { data: session, status: sessionStatus } = useSession();
+  const { data: session, status: sessionStatus, update: updateSession } = useSession();
   const sessionUser = session?.user as any;
   const isLoggedIn = sessionStatus === "authenticated" && !!sessionUser?.id;
 
@@ -56,6 +56,8 @@ function RegistrationWizard() {
   const [otpTimer, setOtpTimer] = useState(0);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [autoLoginSucceeded, setAutoLoginSucceeded] = useState(false);
+  const [autoLoginFailed, setAutoLoginFailed] = useState(false);
   const [error, setError] = useState("");
   const [showInfoValidation, setShowInfoValidation] = useState(false);
 
@@ -219,8 +221,28 @@ function RegistrationWizard() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (res.ok) setSuccess(true);
-      else {
+      if (res.ok) {
+        if (!isLoggedIn) {
+          try {
+            const loginResult = await signIn("credentials", {
+              phone: cleanPhone,
+              password: form.password,
+              redirect: false,
+              callbackUrl: "/dashboard",
+            });
+
+            if (loginResult?.error) {
+              setAutoLoginFailed(true);
+            } else {
+              setAutoLoginSucceeded(true);
+              await updateSession();
+            }
+          } catch {
+            setAutoLoginFailed(true);
+          }
+        }
+        setSuccess(true);
+      } else {
         const d = await res.json();
         if (d.requiresLogin) {
           setError("این شماره قبلاً ثبت‌شده. لطفاً وارد حساب کاربری خود شوید.");
@@ -235,6 +257,7 @@ function RegistrationWizard() {
   };
 
   const STEPS = isLoggedIn ? STEPS_LOGGED : STEPS_GUEST;
+  const accountSessionReady = isLoggedIn || autoLoginSucceeded;
 
   if (success) {
     return (
@@ -249,17 +272,22 @@ function RegistrationWizard() {
             <p className="text-text-secondary text-sm mb-2">
               دوره <b className="text-text-primary">{selectedCourse?.title}</b> برای شما رزرو شد.
             </p>
-            <p className="text-text-tertiary text-xs mb-8">
+            <p className="text-text-tertiary text-xs mb-3">
               {isLoggedIn
                 ? "درخواست شما در انتظار تأیید مدیر آموزشگاه است. می‌توانید در پنل هنرجو وضعیت را پیگیری کنید."
-                : (
-                  <>شماره <span dir="ltr" className="font-bold text-text-primary">{cleanPhone}</span> تأیید پیامکی شد و حساب شما فعال است.</>
-                )}
+                : accountSessionReady
+                  ? (<>شماره <span dir="ltr" className="font-bold text-text-primary">{cleanPhone}</span> تأیید شد و اکنون با حساب هنرجویی خود وارد سامانه هستید.</>)
+                  : (<>شماره <span dir="ltr" className="font-bold text-text-primary">{cleanPhone}</span> تأیید شد و حساب شما ساخته شد.</>)}
             </p>
+            {autoLoginFailed && (
+              <div className="mb-5 rounded-[12px] border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs font-bold text-amber-600">
+                حساب با موفقیت ساخته شد؛ برای ورود به پنل، یک‌بار شماره موبایل و رمز عبور خود را وارد کنید.
+              </div>
+            )}
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href={isLoggedIn ? "/dashboard" : `/dashboard?phone=${encodeURIComponent(cleanPhone)}`}
+              <Link href={accountSessionReady ? "/dashboard" : `/login?callbackUrl=${encodeURIComponent("/dashboard")}`}
                 className="px-8 py-3.5 rounded-[14px] text-white gradient-button font-bold text-sm shadow-lg shadow-primary-600/25">
-                {isLoggedIn ? "بازگشت به داشبورد" : "ورود به پنل هنرجو"}
+                {accountSessionReady ? "ورود به پنل هنرجو" : "ورود امن به حساب"}
               </Link>
               <Link href="/courses" className="px-8 py-3.5 rounded-[14px] text-text-primary bg-surface border border-border-default font-bold text-sm">
                 ثبت‌نام دوره دیگر
