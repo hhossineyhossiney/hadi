@@ -16,6 +16,7 @@ import { normalizePhone } from "@/lib/phone";
 
 interface CourseOpt {
   id: number; slug: string; title: string; instituteName: string;
+  categoryName: string; categorySlug: string;
   price: string | null; duration?: string | null;
   capacity?: number; enrolledCount?: number;
   registrationClosed?: boolean; registrationEnded?: boolean;
@@ -44,6 +45,7 @@ function RegistrationWizard() {
   const [step, setStep] = useState(1);
   const [courses, setCourses] = useState<CourseOpt[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [instituteFilter, setInstituteFilter] = useState("");
   const [form, setForm] = useState({
     fullName: "", phone: "", password: "", passwordConfirm: "",
@@ -91,16 +93,28 @@ function RegistrationWizard() {
     fetch("/api/courses")
       .then((r) => r.json())
       .then((data) => {
-        setCourses(data.map((c: any) => ({
+        const mappedCourses: CourseOpt[] = data.map((c: any) => ({
           id: c.id, slug: c.slug, title: c.title,
-          instituteName: c.instituteName, price: c.price, duration: c.duration,
+          instituteName: c.instituteName || "آموزشگاه نامشخص",
+          categoryName: c.categoryName || "سایر رشته‌ها",
+          categorySlug: c.categorySlug || "other",
+          price: c.price, duration: c.duration,
           capacity: c.capacity, enrolledCount: c.enrolledCount,
           registrationClosed: c.registrationClosed, registrationEnded: c.registrationEnded,
-        })));
+        }));
+        setCourses(mappedCourses);
+
+        if (preselectedCourse) {
+          const preselected = mappedCourses.find((course) => course.slug === preselectedCourse);
+          if (preselected) {
+            setCategoryFilter(preselected.categoryName);
+            setInstituteFilter(preselected.instituteName);
+          }
+        }
         setLoadingCourses(false);
       })
       .catch(() => setLoadingCourses(false));
-  }, []);
+  }, [preselectedCourse]);
 
   useEffect(() => {
     if (otpTimer <= 0) return;
@@ -108,15 +122,40 @@ function RegistrationWizard() {
     return () => clearInterval(t);
   }, [otpTimer]);
 
-  const institutes = Array.from(new Set(courses.map((c) => c.instituteName))).filter(Boolean);
+  const categories = Array.from(new Set(courses.map((course) => course.categoryName)))
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b, "fa"));
 
-  // If a specific course is preselected (user came from course page),
-  // show ONLY that course in the list to avoid confusion.
-  const filteredCourses = preselectedCourse
-    ? courses.filter((c) => c.slug === preselectedCourse)
-    : instituteFilter
-      ? courses.filter((c) => c.instituteName === instituteFilter)
-      : courses;
+  const coursesInCategory = categoryFilter
+    ? courses.filter((course) => course.categoryName === categoryFilter)
+    : [];
+
+  const targetInstituteName = "آموزشگاه هدف";
+  const institutes = Array.from(new Set(coursesInCategory.map((course) => course.instituteName)))
+    .filter(Boolean)
+    .sort((a, b) => {
+      const aIsTarget = a.trim() === targetInstituteName;
+      const bIsTarget = b.trim() === targetInstituteName;
+      if (aIsTarget !== bIsTarget) return aIsTarget ? -1 : 1;
+      return a.localeCompare(b, "fa");
+    });
+
+  const filteredCourses = categoryFilter && instituteFilter
+    ? courses.filter((course) => course.categoryName === categoryFilter && course.instituteName === instituteFilter)
+    : [];
+
+  const handleCategoryChange = (value: string) => {
+    setCategoryFilter(value);
+    setInstituteFilter("");
+    setForm((previous) => ({ ...previous, courseSlug: "" }));
+    setError("");
+  };
+
+  const handleInstituteChange = (value: string) => {
+    setInstituteFilter(value);
+    setForm((previous) => ({ ...previous, courseSlug: "" }));
+    setError("");
+  };
 
   const selectedCourse = courses.find((c) => c.slug === form.courseSlug);
 
@@ -354,18 +393,69 @@ function RegistrationWizard() {
               <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1.5 text-[9px] font-black text-cyan-200">
                 <BookOpen className="h-3.5 w-3.5" /> مسیر آموزشی خود را انتخاب کنید
               </div>
-              <h2 className="mb-1 text-2xl font-black text-text-primary">انتخاب آموزشگاه و دوره</h2>
-              <p className="mb-6 text-xs font-medium leading-6 text-text-tertiary">از میان دوره‌های فعال، گزینهٔ مناسب خود را انتخاب کنید.</p>
-              <div className="relative mb-5">
-                <Building2 className="pointer-events-none absolute right-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-cyan-300" />
-                <select value={instituteFilter} onChange={(e) => setInstituteFilter(e.target.value)}
-                  className="register-field w-full cursor-pointer rounded-[15px] border py-3.5 pl-4 pr-12 text-sm font-bold">
-                  <option value="">همه آموزشگاه‌ها</option>
-                  {institutes.map((inst) => <option key={inst} value={inst}>{inst}</option>)}
-                </select>
+              <h2 className="mb-1 text-2xl font-black text-text-primary">انتخاب رشته، آموزشگاه و دوره</h2>
+              <p className="mb-5 text-xs font-medium leading-6 text-text-tertiary">ابتدا رشته را انتخاب کنید تا فقط آموزشگاه‌های مرتبط همان رشته نمایش داده شوند.</p>
+
+              <div className="mb-5 space-y-3">
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                    <label htmlFor="registration-category" className="flex items-center gap-2 text-xs font-black text-cyan-100">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-cyan-300 text-[10px] text-[#032238]">۱</span>
+                      انتخاب رشته
+                    </label>
+                    <span className="text-[9px] font-bold text-slate-400">{categories.length.toLocaleString("fa-IR")} رشته فعال</span>
+                  </div>
+                  <div className="relative">
+                    <BookOpen className="pointer-events-none absolute right-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-cyan-300" />
+                    <select id="registration-category" value={categoryFilter} onChange={(e) => handleCategoryChange(e.target.value)}
+                      className="register-field w-full cursor-pointer rounded-[15px] border py-3.5 pl-4 pr-12 text-sm font-bold">
+                      <option value="" disabled hidden>رشته موردنظر را انتخاب کنید</option>
+                      {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                    <label htmlFor="registration-institute" className={`flex items-center gap-2 text-xs font-black ${categoryFilter ? "text-emerald-100" : "text-slate-500"}`}>
+                      <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] ${categoryFilter ? "bg-emerald-300 text-[#03251d]" : "bg-slate-700 text-slate-400"}`}>۲</span>
+                      انتخاب آموزشگاه
+                    </label>
+                    {categoryFilter && <span className="text-[9px] font-bold text-emerald-300">{institutes.length.toLocaleString("fa-IR")} آموزشگاه مرتبط</span>}
+                  </div>
+                  <div className="relative">
+                    <Building2 className={`pointer-events-none absolute right-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 ${categoryFilter ? "text-emerald-300" : "text-slate-600"}`} />
+                    <select id="registration-institute" value={instituteFilter} onChange={(e) => handleInstituteChange(e.target.value)}
+                      disabled={!categoryFilter || institutes.length === 0}
+                      className="register-field w-full cursor-pointer rounded-[15px] border py-3.5 pl-4 pr-12 text-sm font-bold disabled:cursor-not-allowed">
+                      <option value="" disabled hidden>{categoryFilter ? "آموزشگاه را انتخاب کنید" : "ابتدا رشته را انتخاب کنید"}</option>
+                      {institutes.map((institute) => (
+                        <option key={institute} value={institute}>
+                          {institute.trim() === targetInstituteName ? `⭐ ${institute}` : institute}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
               {loadingCourses ? (
                 <div className="space-y-2">{[1, 2, 3].map((i) => <div key={i} className="skeleton h-16" />)}</div>
+              ) : !categoryFilter ? (
+                <div className="register-filter-hint rounded-[16px] border p-5 text-center">
+                  <BookOpen className="mx-auto h-8 w-8 text-cyan-300" />
+                  <p className="mt-2 text-xs font-black text-cyan-100">مرحله اول: رشته موردنظر را انتخاب کنید</p>
+                  <p className="mt-1 text-[10px] leading-5 text-slate-400">بعد از انتخاب رشته، فهرست کوتاه آموزشگاه‌های مرتبط نمایش داده می‌شود.</p>
+                </div>
+              ) : !instituteFilter ? (
+                <div className="register-filter-hint rounded-[16px] border p-5 text-center">
+                  <Building2 className="mx-auto h-8 w-8 text-emerald-300" />
+                  <p className="mt-2 text-xs font-black text-emerald-100">مرحله دوم: آموزشگاه را انتخاب کنید</p>
+                  <p className="mt-1 text-[10px] leading-5 text-slate-400">آموزشگاه هدف در صورت ارائه این رشته، اولین گزینهٔ فهرست است.</p>
+                </div>
+              ) : filteredCourses.length === 0 ? (
+                <div className="register-filter-hint rounded-[16px] border p-5 text-center text-xs font-bold text-slate-300">
+                  در این آموزشگاه برای رشته انتخاب‌شده دوره فعالی وجود ندارد.
+                </div>
               ) : (
                 <div className="max-h-[23rem] space-y-3 overflow-y-auto pl-1 pr-0.5">
                   {filteredCourses.map((c) => {
