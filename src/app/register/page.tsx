@@ -57,6 +57,7 @@ function RegistrationWizard() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [showInfoValidation, setShowInfoValidation] = useState(false);
 
   // Courses that this user has already registered for
   const [alreadyRegistered, setAlreadyRegistered] = useState<Array<{ courseId: number; courseSlug: string; courseTitle: string; status: string }>>([]);
@@ -123,12 +124,26 @@ function RegistrationWizard() {
     : null;
 
   const cleanPhone = normalizePhone(form.phone);
+  const fullNameValid = form.fullName.trim().length >= 3;
   const phoneValid = /^09\d{9}$/.test(cleanPhone);
   const passValid = form.password.length >= 6;
-  const passMatch = form.password === form.passwordConfirm && form.passwordConfirm.length > 0;
+  const passwordsEqual = form.passwordConfirm.length > 0 && form.password === form.passwordConfirm;
+  const passMatch = passValid && passwordsEqual;
+  const passwordCharactersRemaining = Math.max(0, 6 - form.password.length);
+
+  const infoValidationIssues = [
+    !fullNameValid ? "نام و نام خانوادگی را حداقل با ۳ کاراکتر وارد کنید." : null,
+    !phoneValid ? "شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود." : null,
+    !passValid ? `رمز عبور باید حداقل ۶ کاراکتر باشد${form.password.length > 0 ? `؛ ${passwordCharactersRemaining} کاراکتر دیگر لازم است.` : "."}` : null,
+    form.passwordConfirm.length === 0
+      ? "تکرار رمز عبور را وارد کنید."
+      : !passwordsEqual
+        ? "رمز عبور و تکرار آن یکسان نیستند."
+        : null,
+  ].filter((issue): issue is string => Boolean(issue));
 
   const canNext1 = !!form.courseSlug && !duplicateReg;
-  const canNext2 = form.fullName.trim().length >= 3 && phoneValid && passValid && passMatch;
+  const canNext2 = infoValidationIssues.length === 0;
 
   // Course availability check
   const getCourseBlockReason = (c?: CourseOpt): string | null => {
@@ -159,6 +174,14 @@ function RegistrationWizard() {
       }
     } catch { setError("خطا در ارتباط با سرور"); }
     finally { setLoading(false); }
+  };
+
+  const continueToOtp = async () => {
+    setShowInfoValidation(true);
+    setError("");
+    if (!canNext2) return;
+    setStep(3);
+    await sendOtp();
   };
 
   const verifyOtp = async () => {
@@ -432,9 +455,14 @@ function RegistrationWizard() {
                 <label className="block text-xs font-bold text-text-primary mb-1.5">نام و نام خانوادگی *</label>
                 <div className="relative">
                   <input type="text" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-                    className="w-full px-4 py-3.5 pr-11 rounded-[14px] border border-border-default bg-white/70 text-sm font-semibold" placeholder="مثلاً: علی رضایی" />
+                    className={`w-full px-4 py-3.5 pr-11 rounded-[14px] border bg-white/70 text-sm font-semibold ${
+                      (showInfoValidation || form.fullName.length > 0) && !fullNameValid ? "border-error-500" : "border-border-default"}`}
+                    placeholder="مثلاً: علی رضایی" autoComplete="name" aria-invalid={(showInfoValidation || form.fullName.length > 0) && !fullNameValid} />
                   <User className="w-5 h-5 text-text-tertiary absolute right-3.5 top-1/2 -translate-y-1/2" />
                 </div>
+                {(showInfoValidation || form.fullName.length > 0) && !fullNameValid && (
+                  <p className="text-[10px] text-error-500 font-bold mt-1">نام و نام خانوادگی باید حداقل ۳ کاراکتر باشد</p>
+                )}
               </div>
 
               <div>
@@ -442,12 +470,13 @@ function RegistrationWizard() {
                 <div className="relative">
                   <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
                     className={`w-full px-4 py-3.5 pr-11 rounded-[14px] border bg-white/70 text-sm font-semibold ${
-                      form.phone && !phoneValid ? "border-error-500" : "border-border-default"}`}
-                    placeholder="09123456789" dir="ltr" maxLength={11} />
+                      (showInfoValidation || form.phone.length > 0) && !phoneValid ? "border-error-500" : "border-border-default"}`}
+                    placeholder="09123456789" dir="ltr" maxLength={11} inputMode="numeric" autoComplete="tel"
+                    aria-invalid={(showInfoValidation || form.phone.length > 0) && !phoneValid} />
                   <Phone className="w-5 h-5 text-text-tertiary absolute right-3.5 top-1/2 -translate-y-1/2" />
                   {phoneValid && <CheckCircle className="w-5 h-5 text-success-500 absolute left-3.5 top-1/2 -translate-y-1/2" />}
                 </div>
-                {form.phone && !phoneValid && (
+                {(showInfoValidation || form.phone.length > 0) && !phoneValid && (
                   <p className="text-[10px] text-error-500 font-bold mt-1">شماره باید ۱۱ رقم و با ۰۹ شروع شود</p>
                 )}
               </div>
@@ -457,10 +486,18 @@ function RegistrationWizard() {
                 <div className="relative">
                   <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
                     className={`w-full px-4 py-3.5 pr-11 rounded-[14px] border bg-white/70 text-sm font-semibold ${
-                      form.password && !passValid ? "border-error-500" : "border-border-default"}`}
-                    placeholder="••••••" dir="ltr" />
+                      (showInfoValidation || form.password.length > 0) && !passValid ? "border-error-500" : "border-border-default"}`}
+                    placeholder="••••••" dir="ltr" autoComplete="new-password"
+                    aria-invalid={(showInfoValidation || form.password.length > 0) && !passValid} />
                   <Lock className="w-5 h-5 text-text-tertiary absolute right-3.5 top-1/2 -translate-y-1/2" />
                 </div>
+                {(showInfoValidation || form.password.length > 0) && !passValid && (
+                  <p className="text-[10px] text-error-500 font-bold mt-1">
+                    {form.password.length === 0
+                      ? "رمز عبور را وارد کنید؛ حداقل ۶ کاراکتر"
+                      : `رمز کوتاه است؛ ${passwordCharactersRemaining.toLocaleString("fa-IR")} کاراکتر دیگر وارد کنید`}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -468,14 +505,19 @@ function RegistrationWizard() {
                 <div className="relative">
                   <input type="password" value={form.passwordConfirm} onChange={(e) => setForm({ ...form, passwordConfirm: e.target.value })}
                     className={`w-full px-4 py-3.5 pr-11 rounded-[14px] border bg-white/70 text-sm font-semibold ${
-                      form.passwordConfirm && !passMatch ? "border-error-500" : passMatch ? "border-success-500" : "border-border-default"}`}
-                    placeholder="••••••" dir="ltr" />
+                      (showInfoValidation && form.passwordConfirm.length === 0) || (form.passwordConfirm.length > 0 && !passwordsEqual)
+                        ? "border-error-500"
+                        : passMatch ? "border-success-500" : "border-border-default"}`}
+                    placeholder="••••••" dir="ltr" autoComplete="new-password"
+                    aria-invalid={(showInfoValidation && form.passwordConfirm.length === 0) || (form.passwordConfirm.length > 0 && !passwordsEqual)} />
                   <ShieldCheck className="w-5 h-5 text-text-tertiary absolute right-3.5 top-1/2 -translate-y-1/2" />
                   {passMatch && <CheckCircle className="w-5 h-5 text-success-500 absolute left-3.5 top-1/2 -translate-y-1/2" />}
                 </div>
-                {form.passwordConfirm && !passMatch && (
+                {showInfoValidation && form.passwordConfirm.length === 0 ? (
+                  <p className="text-[10px] text-error-500 font-bold mt-1">تکرار رمز عبور را وارد کنید</p>
+                ) : form.passwordConfirm.length > 0 && !passwordsEqual ? (
                   <p className="text-[10px] text-error-500 font-bold mt-1">رمزهای عبور یکسان نیستند</p>
-                )}
+                ) : null}
               </div>
 
               <div>
@@ -484,15 +526,24 @@ function RegistrationWizard() {
                   className="w-full px-4 py-3 rounded-[14px] border border-border-default bg-white/70 text-sm resize-none" />
               </div>
 
+              {showInfoValidation && !canNext2 && (
+                <div role="alert" className="rounded-[14px] border border-error-500/35 bg-error-500/10 p-3.5 text-right">
+                  <p className="text-xs font-black text-error-600">برای ادامه این موارد را اصلاح کنید:</p>
+                  <ul className="mt-2 space-y-1 text-[10px] font-bold leading-5 text-error-600">
+                    {infoValidationIssues.map((issue) => <li key={issue}>• {issue}</li>)}
+                  </ul>
+                </div>
+              )}
+
               <div className="flex gap-3 pt-1">
                 <button onClick={() => setStep(1)}
                   className="px-5 py-3.5 rounded-[14px] text-sm font-bold text-text-secondary bg-white/60 border border-border-default flex items-center gap-1.5 cursor-pointer">
                   <ArrowRight className="w-4 h-4" /> قبلی
                 </button>
-                <button disabled={!canNext2 || loading}
-                  onClick={async () => { setStep(3); await sendOtp(); }}
-                  className="flex-1 py-3.5 rounded-[14px] text-sm font-black text-white gradient-button disabled:opacity-40 shadow-lg shadow-primary-600/25 flex items-center justify-center gap-2 cursor-pointer">
-                  <MessageSquare className="w-4 h-4" /> ارسال کد تأیید پیامکی
+                <button disabled={loading} onClick={continueToOtp}
+                  className="flex-1 py-3.5 rounded-[14px] text-sm font-black text-white gradient-button disabled:cursor-wait disabled:opacity-50 shadow-lg shadow-primary-600/25 flex items-center justify-center gap-2 cursor-pointer">
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageSquare className="w-4 h-4" />}
+                  {loading ? "در حال ارسال..." : "ارسال کد تأیید پیامکی"}
                 </button>
               </div>
             </div>
