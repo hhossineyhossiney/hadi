@@ -1,12 +1,18 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowDownToLine, Download, Rocket, Smartphone, Sparkles } from "lucide-react";
-
-const APK_URL = "/download/android";
+import { ArrowDownToLine, Download, Rocket, ShieldCheck, Smartphone, Sparkles } from "lucide-react";
+import { usePWAInstall } from "@/components/PWAInstallProvider";
 
 export default function AppDownloadSection() {
   const reducedMotion = useReducedMotion();
+  const { canInstall, isStandalone, install } = usePWAInstall();
+
+  const handleInstall = async () => {
+    if (isStandalone) return;
+    const outcome = await install();
+    if (outcome === "unavailable") window.location.assign("/install-app");
+  };
 
   return (
     <section id="download-app" className="relative overflow-hidden py-4 sm:py-6 md:py-8">
@@ -54,27 +60,31 @@ export default function AppDownloadSection() {
                 <span className="hidden md:inline">اپلیکیشن اندروید آماده نصب است!</span>
               </h2>
               <p className="mt-2 text-xs font-medium leading-6 text-white/75 sm:text-sm">
-                همین حالا دانلود کنید و فَنیکسو را سریع‌تر و تمام‌صفحه روی موبایل داشته باشید.
+                نصب مستقیم توسط مرورگر؛ بدون دریافت فایل APK و بدون هشدار برنامه ناشناس.
               </p>
             </div>
 
-            <motion.a
-              href={APK_URL}
-              whileHover={reducedMotion ? undefined : { scale: 1.035 }}
-              whileTap={{ scale: 0.97 }}
-              className="relative flex w-full shrink-0 items-center justify-center gap-2 overflow-hidden rounded-[15px] bg-white px-6 py-4 text-sm font-black text-[#581b74] shadow-[0_16px_35px_rgba(0,0,0,0.25)] sm:w-auto md:min-w-48"
+            <motion.button
+              type="button"
+              onClick={handleInstall}
+              disabled={isStandalone}
+              whileHover={reducedMotion || isStandalone ? undefined : { scale: 1.035 }}
+              whileTap={isStandalone ? undefined : { scale: 0.97 }}
+              className="relative flex w-full shrink-0 items-center justify-center gap-2 overflow-hidden rounded-[15px] bg-white px-6 py-4 text-sm font-black text-[#581b74] shadow-[0_16px_35px_rgba(0,0,0,0.25)] disabled:cursor-default disabled:bg-emerald-50 disabled:text-emerald-800 sm:w-auto md:min-w-48"
             >
               <motion.span
                 aria-hidden="true"
-                animate={reducedMotion ? undefined : { y: [-24, 24] }}
+                animate={reducedMotion || isStandalone ? undefined : { y: [-24, 24] }}
                 transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute left-4 text-orange-400/25"
               >
                 <ArrowDownToLine className="h-9 w-9" />
               </motion.span>
-              <Download className="relative h-5 w-5" />
-              <span className="relative">دانلود و نصب</span>
-            </motion.a>
+              {isStandalone ? <ShieldCheck className="relative h-5 w-5" /> : <Download className="relative h-5 w-5" />}
+              <span className="relative">
+                {isStandalone ? "اپ نصب شده است" : canInstall ? "نصب امن و مستقیم" : "نصب امن اپ"}
+              </span>
+            </motion.button>
           </div>
 
           <div className="relative z-10 h-1 bg-gradient-to-l from-cyan-300 via-amber-300 to-pink-300" />

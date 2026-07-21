@@ -4,6 +4,7 @@ import Providers from "@/components/Providers";
 import MobileNav from "@/components/MobileNav";
 import AIChatWidget from "@/components/AIChatWidget";
 import PWARegistration from "@/components/PWARegistration";
+import { PWAInstallProvider } from "@/components/PWAInstallProvider";
 import MobileViewportGuard from "@/components/MobileViewportGuard";
 import BrandSplashScreen from "@/components/BrandSplashScreen";
 import "./globals.css";
@@ -60,11 +61,22 @@ const themeInitScript = `
   })();
 `;
 
+// Capture Chrome's one-time install event before React hydration so the install button is always reliable.
+const pwaInstallCaptureScript = `
+  (function(){
+    window.addEventListener('beforeinstallprompt', function(event) {
+      event.preventDefault();
+      window.__fanixoDeferredInstallPrompt = event;
+    });
+  })();
+`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fa" dir="rtl" data-theme="dark">
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script dangerouslySetInnerHTML={{ __html: pwaInstallCaptureScript }} />
         <link
           href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css"
           rel="stylesheet"
@@ -73,12 +85,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className="bg-bg-primary text-text-primary antialiased min-h-screen pb-16 lg:pb-0">
         <Providers>
-          {children}
-          <MobileNav />
-          <AIChatWidget />
-          <PWARegistration />
-          <MobileViewportGuard />
-          <BrandSplashScreen />
+          <PWAInstallProvider>
+            {children}
+            <MobileNav />
+            <AIChatWidget />
+            <PWARegistration />
+            <MobileViewportGuard />
+            <BrandSplashScreen />
+          </PWAInstallProvider>
         </Providers>
       </body>
     </html>
