@@ -261,10 +261,10 @@ function RegistrationWizard() {
 
   if (success) {
     return (
-      <div className="pt-28 pb-20">
-        <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="register-content pt-28 pb-20">
+        <div className="max-w-xl mx-auto px-3 sm:px-6 lg:px-8">
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-            className="glass-card rounded-[24px] p-10 text-center">
+            className="register-wizard-card rounded-[28px] p-7 text-center sm:p-10">
             <div className="w-20 h-20 rounded-full bg-success-50 flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-10 h-10 text-success-600" />
             </div>
@@ -300,8 +300,8 @@ function RegistrationWizard() {
   }
 
   return (
-    <div className="pt-28 pb-20">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="register-content pt-28 pb-20">
+      <div className="max-w-2xl mx-auto px-3 sm:px-6 lg:px-8">
         <Link href="/" className="inline-flex items-center gap-2 text-text-secondary hover:text-primary-600 mb-6 font-medium text-sm">
           <ArrowLeft className="w-4 h-4" /> بازگشت به صفحه اصلی
         </Link>
@@ -324,78 +324,93 @@ function RegistrationWizard() {
         )}
 
         {/* Stepper */}
-        <div className="flex items-center justify-between mb-8 px-1">
+        <div className="register-stepper mb-7 flex items-center justify-between px-1 sm:mb-8">
           {STEPS.map((s, i) => (
-            <div key={s.n} className="flex items-center flex-1 last:flex-none">
-              <div className="flex flex-col items-center gap-1.5">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-black transition-all duration-500 ${
-                  step > s.n ? "bg-success-500 text-white"
-                  : step === s.n ? "gradient-button text-white shadow-lg shadow-primary-600/30 scale-110"
-                  : "bg-surface text-text-tertiary border border-border-default"
+            <div key={s.n} className="flex flex-1 items-center last:flex-none">
+              <div className="flex flex-col items-center gap-2">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-black transition-all duration-500 ${
+                  step > s.n ? "register-step register-step--done"
+                  : step === s.n ? "register-step register-step--active scale-110"
+                  : "register-step register-step--future"
                 }`}>
-                  {step > s.n ? <Check className="w-4 h-4" /> : s.n}
+                  {step > s.n ? <Check className="w-4 h-4" /> : s.n.toLocaleString("fa-IR")}
                 </div>
-                <span className={`text-[9px] font-bold whitespace-nowrap ${step >= s.n ? "text-text-primary" : "text-text-tertiary"}`}>{s.title}</span>
+                <span className={`whitespace-nowrap text-[9px] font-black sm:text-[10px] ${step >= s.n ? "register-step-label--active" : "register-step-label--future"}`}>{s.title}</span>
               </div>
               {i < STEPS.length - 1 && (
-                <div className={`flex-1 h-0.5 mx-1.5 mb-5 rounded-full transition-all duration-500 ${step > s.n ? "bg-success-500" : "bg-border-default"}`} />
+                <div className={`mx-2 mb-6 h-0.5 flex-1 rounded-full transition-all duration-500 ${step > s.n ? "register-step-line--done" : "register-step-line--future"}`} />
               )}
             </div>
           ))}
         </div>
 
         <motion.div key={step} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.35 }}
-          className="glass-card rounded-[24px] overflow-hidden">
+          className="register-wizard-card overflow-hidden rounded-[28px]">
           {error && <div className="m-6 mb-0 p-4 rounded-[14px] bg-error-50 text-error-600 text-sm font-bold">{error}</div>}
 
           {/* STEP 1 — Course selection (always) */}
           {step === 1 && (
-            <div className="p-7">
-              <h2 className="text-xl font-black text-text-primary mb-1">انتخاب آموزشگاه و دوره</h2>
-              <p className="text-text-tertiary text-xs mb-6">دوره مورد نظر خود را انتخاب نمایید</p>
-              <select value={instituteFilter} onChange={(e) => setInstituteFilter(e.target.value)}
-                className="w-full px-4 py-3 mb-4 rounded-[14px] border border-border-default bg-white/70 text-sm font-semibold cursor-pointer">
-                <option value="">همه آموزشگاه‌ها</option>
-                {institutes.map((inst) => <option key={inst} value={inst}>{inst}</option>)}
-              </select>
+            <div className="p-5 sm:p-7">
+              <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1.5 text-[9px] font-black text-cyan-200">
+                <BookOpen className="h-3.5 w-3.5" /> مسیر آموزشی خود را انتخاب کنید
+              </div>
+              <h2 className="mb-1 text-2xl font-black text-text-primary">انتخاب آموزشگاه و دوره</h2>
+              <p className="mb-6 text-xs font-medium leading-6 text-text-tertiary">از میان دوره‌های فعال، گزینهٔ مناسب خود را انتخاب کنید.</p>
+              <div className="relative mb-5">
+                <Building2 className="pointer-events-none absolute right-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-cyan-300" />
+                <select value={instituteFilter} onChange={(e) => setInstituteFilter(e.target.value)}
+                  className="register-field w-full cursor-pointer rounded-[15px] border py-3.5 pl-4 pr-12 text-sm font-bold">
+                  <option value="">همه آموزشگاه‌ها</option>
+                  {institutes.map((inst) => <option key={inst} value={inst}>{inst}</option>)}
+                </select>
+              </div>
               {loadingCourses ? (
                 <div className="space-y-2">{[1, 2, 3].map((i) => <div key={i} className="skeleton h-16" />)}</div>
               ) : (
-                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                <div className="max-h-[23rem] space-y-3 overflow-y-auto pl-1 pr-0.5">
                   {filteredCourses.map((c) => {
                     const blockReason = getCourseBlockReason(c);
                     const alreadyReg = alreadyRegistered.find((r) => r.courseSlug === c.slug);
                     const cFull = !!blockReason;
                     const disabled = cFull || !!alreadyReg;
+                    const selected = form.courseSlug === c.slug;
                     return (
                       <button key={c.slug} type="button" onClick={() => !disabled && setForm({ ...form, courseSlug: c.slug })} disabled={disabled}
-                        className={`w-full text-right p-4 rounded-[14px] border transition-all ${
+                        aria-pressed={selected}
+                        className={`register-course-option w-full rounded-[17px] border p-4 text-right transition-all sm:p-5 ${
                           disabled
-                            ? "opacity-60 cursor-not-allowed border-border-default bg-white/40"
-                            : form.courseSlug === c.slug
-                              ? "border-primary-500 bg-primary-50/80 shadow-md shadow-primary-500/10 cursor-pointer"
-                              : "border-border-default bg-white/60 hover:border-primary-200 cursor-pointer"
+                            ? "register-course-option--disabled cursor-not-allowed"
+                            : selected
+                              ? "register-course-option--selected cursor-pointer"
+                              : "register-course-option--available cursor-pointer"
                         }`}>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-sm font-black text-text-primary flex items-center gap-2 flex-wrap">
-                              {c.title}
-                              {blockReason && <span className="text-[9px] font-black bg-error-500/20 text-error-600 px-2 py-0.5 rounded-full">{blockReason}</span>}
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className={`flex flex-wrap items-center gap-2 text-sm font-black ${
+                              disabled ? "register-course-title--disabled" : selected ? "register-course-title--selected" : "register-course-title--available"
+                            }`}>
+                              <span>{c.title}</span>
+                              {blockReason && <span className="rounded-full border border-amber-300/20 bg-amber-400/10 px-2 py-0.5 text-[9px] font-black text-amber-200">{blockReason}</span>}
                               {alreadyReg && (
-                                <span className="text-[9px] font-black bg-primary-500/20 text-primary-700 px-2 py-0.5 rounded-full">
+                                <span className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2 py-0.5 text-[9px] font-black text-emerald-200">
                                   ✓ قبلاً ثبت‌نام شده
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-text-tertiary mt-0.5">{c.instituteName}</div>
+                            <div className={`mt-1 text-[11px] font-bold ${disabled ? "text-slate-500" : selected ? "text-cyan-100/80" : "text-slate-400"}`}>{c.instituteName}</div>
                           </div>
-                          <div className="flex items-center gap-2.5">
-                            <span className="text-xs font-black text-primary-600">
+                          <div className="flex shrink-0 items-center gap-2.5">
+                            <span className={`whitespace-nowrap text-xs font-black ${disabled ? "text-slate-500" : selected ? "text-cyan-100" : "text-emerald-300"}`}>
                               {c.price ? Number(c.price).toLocaleString("fa-IR") + " ت" : "رایگان"}
                             </span>
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              form.courseSlug === c.slug ? "border-primary-500 bg-primary-500" : "border-border-strong"}`}>
-                              {form.courseSlug === c.slug && <Check className="w-3 h-3 text-white" />}
+                            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition ${
+                              selected
+                                ? "border-cyan-200 bg-cyan-300 text-[#04223a] shadow-[0_0_18px_rgba(103,232,249,0.4)]"
+                                : disabled
+                                  ? "border-slate-600 bg-slate-800/60 text-slate-500"
+                                  : "border-slate-500 bg-slate-900/30 text-transparent"
+                            }`}>
+                              {selected ? <Check className="h-4 w-4" /> : alreadyReg ? <CheckCircle className="h-4 w-4" /> : null}
                             </div>
                           </div>
                         </div>
@@ -405,7 +420,7 @@ function RegistrationWizard() {
                 </div>
               )}
               {duplicateReg && (
-                <div className="mt-4 p-4 rounded-[12px] bg-primary-500/10 border-2 border-primary-500/40 text-primary-700 text-xs font-bold flex items-start gap-2">
+                <div className="mt-4 flex items-start gap-2 rounded-[14px] border border-cyan-300/25 bg-cyan-300/10 p-4 text-xs font-bold text-cyan-100">
                   <CheckCircle className="w-5 h-5 shrink-0 mt-0.5" />
                   <div>
                     <div className="font-black mb-1">شما قبلاً در دوره «{duplicateReg.courseTitle}» ثبت‌نام کرده‌اید</div>
@@ -425,15 +440,15 @@ function RegistrationWizard() {
                 </div>
               )}
               <button disabled={!canNext1 || isCourseFull} onClick={() => setStep(2)}
-                className="mt-6 w-full py-3.5 rounded-[14px] text-sm font-black text-white gradient-button disabled:opacity-40 shadow-lg shadow-primary-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
-                ادامه <ArrowLeft className="w-4 h-4" />
+                className="register-primary-action mt-6 flex w-full cursor-pointer items-center justify-center gap-2 rounded-[15px] py-4 text-sm font-black transition-all disabled:cursor-not-allowed disabled:opacity-40">
+                ادامه <ArrowLeft className="h-4 w-4" />
               </button>
             </div>
           )}
 
           {/* ================= LOGGED-IN FLOW: STEP 2 = FINAL CONFIRM ================= */}
           {isLoggedIn && step === 2 && (
-            <div className="p-7">
+            <div className="p-5 sm:p-7">
               <div className="flex items-center gap-2 mb-1">
                 <h2 className="text-xl font-black text-text-primary">تأیید نهایی ثبت‌نام</h2>
                 <span className="text-[10px] font-black text-success-600 bg-success-50 px-2.5 py-1 rounded-full flex items-center gap-1">
@@ -441,7 +456,7 @@ function RegistrationWizard() {
                 </span>
               </div>
               <p className="text-text-tertiary text-xs mb-6">بدون نیاز به تأیید پیامکی — فقط اطلاعات را بررسی و ثبت نهایی کنید</p>
-              <div className="rounded-[16px] bg-white/70 border border-border-light p-5 space-y-3.5 text-sm mb-6">
+              <div className="register-info-panel mb-6 space-y-3.5 rounded-[18px] border p-5 text-sm">
                 <div className="flex justify-between"><span className="text-text-tertiary">دوره:</span><b>{selectedCourse?.title}</b></div>
                 <div className="flex justify-between"><span className="text-text-tertiary">آموزشگاه:</span><b>{selectedCourse?.instituteName}</b></div>
                 <div className="flex justify-between"><span className="text-text-tertiary">شهریه:</span><b className="text-primary-600">{selectedCourse?.price ? Number(selectedCourse.price).toLocaleString("fa-IR") + " تومان" : "رایگان"}</b></div>
@@ -451,11 +466,11 @@ function RegistrationWizard() {
               <div>
                 <label className="block text-xs font-bold text-text-primary mb-1.5">توضیحات (اختیاری)</label>
                 <textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  className="w-full px-4 py-3 rounded-[14px] border border-border-default bg-white/70 text-sm resize-none mb-4" />
+                  className="register-field mb-4 w-full resize-none rounded-[14px] border px-4 py-3 text-sm" />
               </div>
               <div className="flex gap-3">
                 <button onClick={() => setStep(1)}
-                  className="px-5 py-3.5 rounded-[14px] text-sm font-bold text-text-secondary bg-white/60 border border-border-default flex items-center gap-1.5 cursor-pointer">
+                  className="register-secondary-action flex cursor-pointer items-center gap-1.5 rounded-[14px] border px-5 py-3.5 text-sm font-bold">
                   <ArrowRight className="w-4 h-4" /> قبلی
                 </button>
                 <button disabled={loading} onClick={handleSubmit}
@@ -468,7 +483,7 @@ function RegistrationWizard() {
 
           {/* ================= GUEST FLOW: STEP 2 - Info + password ================= */}
           {!isLoggedIn && step === 2 && (
-            <div className="p-7 space-y-4">
+            <div className="space-y-4 p-5 sm:p-7">
               <div>
                 <h2 className="text-xl font-black text-text-primary mb-1">اطلاعات هنرجو و رمز عبور</h2>
                 <p className="text-text-tertiary text-xs">شماره موبایل واقعی وارد کنید — کد تأیید پیامکی ارسال می‌شود</p>
@@ -483,7 +498,7 @@ function RegistrationWizard() {
                 <label className="block text-xs font-bold text-text-primary mb-1.5">نام و نام خانوادگی *</label>
                 <div className="relative">
                   <input type="text" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-                    className={`w-full px-4 py-3.5 pr-11 rounded-[14px] border bg-white/70 text-sm font-semibold ${
+                    className={`register-field w-full rounded-[14px] border px-4 py-3.5 pr-11 text-sm font-semibold ${
                       (showInfoValidation || form.fullName.length > 0) && !fullNameValid ? "border-error-500" : "border-border-default"}`}
                     placeholder="مثلاً: علی رضایی" autoComplete="name" aria-invalid={(showInfoValidation || form.fullName.length > 0) && !fullNameValid} />
                   <User className="w-5 h-5 text-text-tertiary absolute right-3.5 top-1/2 -translate-y-1/2" />
@@ -497,7 +512,7 @@ function RegistrationWizard() {
                 <label className="block text-xs font-bold text-text-primary mb-1.5">شماره موبایل (دقیقاً ۱۱ رقم) *</label>
                 <div className="relative">
                   <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    className={`w-full px-4 py-3.5 pr-11 rounded-[14px] border bg-white/70 text-sm font-semibold ${
+                    className={`register-field w-full rounded-[14px] border px-4 py-3.5 pr-11 text-sm font-semibold ${
                       (showInfoValidation || form.phone.length > 0) && !phoneValid ? "border-error-500" : "border-border-default"}`}
                     placeholder="09123456789" dir="ltr" maxLength={11} inputMode="numeric" autoComplete="tel"
                     aria-invalid={(showInfoValidation || form.phone.length > 0) && !phoneValid} />
@@ -513,7 +528,7 @@ function RegistrationWizard() {
                 <label className="block text-xs font-bold text-text-primary mb-1.5">رمز عبور (حداقل ۶ کاراکتر) *</label>
                 <div className="relative">
                   <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    className={`w-full px-4 py-3.5 pr-11 rounded-[14px] border bg-white/70 text-sm font-semibold ${
+                    className={`register-field w-full rounded-[14px] border px-4 py-3.5 pr-11 text-sm font-semibold ${
                       (showInfoValidation || form.password.length > 0) && !passValid ? "border-error-500" : "border-border-default"}`}
                     placeholder="••••••" dir="ltr" autoComplete="new-password"
                     aria-invalid={(showInfoValidation || form.password.length > 0) && !passValid} />
@@ -532,10 +547,10 @@ function RegistrationWizard() {
                 <label className="block text-xs font-bold text-text-primary mb-1.5">تکرار رمز عبور *</label>
                 <div className="relative">
                   <input type="password" value={form.passwordConfirm} onChange={(e) => setForm({ ...form, passwordConfirm: e.target.value })}
-                    className={`w-full px-4 py-3.5 pr-11 rounded-[14px] border bg-white/70 text-sm font-semibold ${
+                    className={`register-field w-full rounded-[14px] border px-4 py-3.5 pr-11 text-sm font-semibold ${
                       (showInfoValidation && form.passwordConfirm.length === 0) || (form.passwordConfirm.length > 0 && !passwordsEqual)
                         ? "border-error-500"
-                        : passMatch ? "border-success-500" : "border-border-default"}`}
+                        : passMatch ? "register-field--valid" : "border-border-default"}`}
                     placeholder="••••••" dir="ltr" autoComplete="new-password"
                     aria-invalid={(showInfoValidation && form.passwordConfirm.length === 0) || (form.passwordConfirm.length > 0 && !passwordsEqual)} />
                   <ShieldCheck className="w-5 h-5 text-text-tertiary absolute right-3.5 top-1/2 -translate-y-1/2" />
@@ -551,7 +566,7 @@ function RegistrationWizard() {
               <div>
                 <label className="block text-xs font-bold text-text-primary mb-1.5">توضیحات (اختیاری)</label>
                 <textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  className="w-full px-4 py-3 rounded-[14px] border border-border-default bg-white/70 text-sm resize-none" />
+                  className="register-field w-full resize-none rounded-[14px] border px-4 py-3 text-sm" />
               </div>
 
               {showInfoValidation && !canNext2 && (
@@ -565,7 +580,7 @@ function RegistrationWizard() {
 
               <div className="flex gap-3 pt-1">
                 <button onClick={() => setStep(1)}
-                  className="px-5 py-3.5 rounded-[14px] text-sm font-bold text-text-secondary bg-white/60 border border-border-default flex items-center gap-1.5 cursor-pointer">
+                  className="register-secondary-action flex cursor-pointer items-center gap-1.5 rounded-[14px] border px-5 py-3.5 text-sm font-bold">
                   <ArrowRight className="w-4 h-4" /> قبلی
                 </button>
                 <button disabled={loading} onClick={continueToOtp}
@@ -579,7 +594,7 @@ function RegistrationWizard() {
 
           {/* GUEST STEP 3: OTP */}
           {!isLoggedIn && step === 3 && (
-            <div className="p-7 text-center">
+            <div className="p-5 text-center sm:p-7">
               <div className="w-16 h-16 rounded-[18px] bg-primary-50 flex items-center justify-center mx-auto mb-4">
                 <MessageSquare className="w-8 h-8 text-primary-600" />
               </div>
@@ -594,7 +609,7 @@ function RegistrationWizard() {
               )}
               <div className="max-w-[220px] mx-auto my-5">
                 <input type="tel" value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                  className="w-full text-center text-2xl font-black tracking-[0.5em] px-4 py-4 rounded-[16px] border-2 border-primary-200 bg-white/80"
+                  className="register-field w-full rounded-[16px] border-2 px-4 py-4 text-center text-2xl font-black tracking-[0.5em]"
                   placeholder="─────" dir="ltr" maxLength={5} autoFocus />
               </div>
               <div className="flex items-center justify-center gap-4 mb-6 text-xs">
@@ -609,7 +624,7 @@ function RegistrationWizard() {
               </div>
               <div className="flex gap-3">
                 <button onClick={() => { setStep(2); setOtpSent(false); setDevCode(""); }}
-                  className="px-5 py-3.5 rounded-[14px] text-sm font-bold text-text-secondary bg-white/60 border border-border-default flex items-center gap-1.5 cursor-pointer">
+                  className="register-secondary-action flex cursor-pointer items-center gap-1.5 rounded-[14px] border px-5 py-3.5 text-sm font-bold">
                   <ArrowRight className="w-4 h-4" /> ویرایش شماره
                 </button>
                 <button disabled={otpCode.length !== 5 || loading} onClick={verifyOtp}
@@ -623,7 +638,7 @@ function RegistrationWizard() {
 
           {/* GUEST STEP 4: Final confirm */}
           {!isLoggedIn && step === 4 && (
-            <div className="p-7">
+            <div className="p-5 sm:p-7">
               <div className="flex items-center gap-2 mb-1">
                 <h2 className="text-xl font-black text-text-primary">تأیید نهایی</h2>
                 <span className="text-[10px] font-black text-success-600 bg-success-50 px-2.5 py-1 rounded-full flex items-center gap-1">
@@ -631,7 +646,7 @@ function RegistrationWizard() {
                 </span>
               </div>
               <p className="text-text-tertiary text-xs mb-6">اطلاعات را بررسی و ثبت‌نام را قطعی کنید</p>
-              <div className="rounded-[16px] bg-white/70 border border-border-light p-5 space-y-3.5 text-sm mb-6">
+              <div className="register-info-panel mb-6 space-y-3.5 rounded-[18px] border p-5 text-sm">
                 <div className="flex justify-between"><span className="text-text-tertiary">دوره:</span><b>{selectedCourse?.title}</b></div>
                 <div className="flex justify-between"><span className="text-text-tertiary">آموزشگاه:</span><b>{selectedCourse?.instituteName}</b></div>
                 <div className="flex justify-between"><span className="text-text-tertiary">شهریه:</span><b className="text-primary-600">{selectedCourse?.price ? Number(selectedCourse.price).toLocaleString("fa-IR") + " تومان" : "رایگان"}</b></div>
@@ -652,7 +667,7 @@ function RegistrationWizard() {
 
 export default function RegistrationPage() {
   return (
-    <main className="min-h-screen bg-bg-primary">
+    <main className="register-page min-h-screen bg-bg-primary">
       <Navbar />
       <Suspense fallback={<div className="pt-28 pb-20 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary-600" /></div>}>
         <RegistrationWizard />
