@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { categories, courses, faqs, institutes, regions, sellableCourses } from "@/db/schema";
 import { and, asc, eq } from "drizzle-orm";
+import { getEitaaNewsFeed } from "@/lib/eitaa-news";
 
 const SITE_ORIGIN = "https://www.fanixo.ir";
 
@@ -115,7 +116,7 @@ async function buildPublicApiFallbackKnowledge(): Promise<string> {
 
 export async function buildLiveSiteKnowledge(): Promise<string> {
   try {
-    const [instituteRows, courseRows, onlineRows, faqRows] = await Promise.all([
+    const [instituteRows, courseRows, onlineRows, faqRows, newsFeed] = await Promise.all([
       db
         .select({
           id: institutes.id,
@@ -218,6 +219,7 @@ export async function buildLiveSiteKnowledge(): Promise<string> {
         .from(faqs)
         .where(eq(faqs.isActive, true))
         .orderBy(asc(faqs.sortOrder), asc(faqs.id)),
+      getEitaaNewsFeed(),
     ]);
 
     const instituteCourseCounts = new Map<number, number>();
@@ -250,6 +252,12 @@ export async function buildLiveSiteKnowledge(): Promise<string> {
     sections.push(`تعداد آموزشگاه بر اساس منطقه: ${Array.from(regionCounts.entries()).map(([name, count]) => `${name}: ${count.toLocaleString("fa-IR")}`).join(" | ") || "داده‌ای نیست"}`);
     sections.push(`تعداد دوره حضوری بر اساس رشته: ${Array.from(categoryCounts.entries()).map(([name, count]) => `${name}: ${count.toLocaleString("fa-IR")}`).join(" | ") || "داده‌ای نیست"}`);
     sections.push(`تعداد آموزشگاه ارائه‌دهنده بر اساس رشته: ${Array.from(categoryInstituteIds.entries()).map(([name, ids]) => `${name}: ${ids.size.toLocaleString("fa-IR")}`).join(" | ") || "داده‌ای نیست"}`);
+
+    sections.push("\n=== ۱۰ خبر و اطلاعیه آخر منبع رسمی ===");
+    for (const item of newsFeed.items.slice(0, 10)) {
+      sections.push(`خبر: ${clean(item.title, 180)} | تاریخ: ${item.dateLabel} | متن: ${clean(item.body, 600)} | منبع: ${item.sourceUrl}`);
+    }
+    sections.push(`صفحه اخبار: ${SITE_ORIGIN}/news`);
 
     sections.push("\n=== آموزشگاه‌های فعال ===");
     for (const institute of instituteRows) {

@@ -1,5 +1,5 @@
 /* Fanixo PWA service worker — public shell only, never caches private panels or APIs. */
-const VERSION = "fanixo-pwa-v4";
+const VERSION = "fanixo-pwa-v5";
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 const OFFLINE_URL = "/offline";
@@ -32,6 +32,7 @@ const PUBLIC_PREFIXES = [
   "/for-institutes",
   "/pricing",
   "/search",
+  "/news",
   OFFLINE_URL,
 ];
 

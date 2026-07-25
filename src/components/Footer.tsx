@@ -8,6 +8,7 @@ const QUICK_LINKS = [
   { href: "/", label: "صفحه اصلی سامانه" },
   { href: "/institutes", label: "آموزشگاه‌های برتر" },
   { href: "/courses", label: "دوره‌های مهارتی" },
+  { href: "/news", label: "آخرین اخبار مهارت" },
   { href: "/search", label: "جستجوی هوشمند" },
   { href: "/#faq", label: "سوالات متداول" },
 ];

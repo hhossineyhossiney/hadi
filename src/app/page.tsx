@@ -13,6 +13,8 @@ import StatsSection from "@/components/StatsSection";
 import FaqSection from "@/components/FaqSection";
 import VerifyLicenseBanner from "@/components/VerifyLicenseBanner";
 import AppDownloadSection from "@/components/AppDownloadSection";
+import LatestNewsSection from "@/components/LatestNewsSection";
+import { getEitaaNewsFeed } from "@/lib/eitaa-news";
 import { db } from "@/db";
 import { categories, institutes, regions, courses, siteSettings } from "@/db/schema";
 import { eq, count, sql, inArray, and } from "drizzle-orm";
@@ -39,7 +41,9 @@ export default async function HomePage() {
 
   const settingsRows = await db.select().from(siteSettings);
   const settingsMap: Record<string, number[]> = {};
-  settingsRows.forEach((r) => (settingsMap[r.key] = (r.value as number[]) || []));
+  settingsRows.forEach((row) => {
+    if (Array.isArray(row.value)) settingsMap[row.key] = row.value as number[];
+  });
   const featuredInstituteIds = settingsMap["featured_institutes"] || [];
   const featuredCourseIds = settingsMap["featured_courses"] || [];
 
@@ -139,6 +143,8 @@ export default async function HomePage() {
     .where(eq(institutes.status, "approved"))
     .orderBy(institutes.name);
 
+  const newsFeed = await getEitaaNewsFeed();
+
   return (
     <main className="home-page-shell min-h-screen w-full max-w-full overflow-x-clip">
       <Navbar />
@@ -146,6 +152,7 @@ export default async function HomePage() {
       <BrandWelcome />
       <PublicHero />
       <AppDownloadSection />
+      <LatestNewsSection feed={newsFeed} />
       <CategoryCards categories={cats} />
       <CoursesShowcase
         courses={latestCourses}
