@@ -3095,10 +3095,10 @@ function StudentFeesModal({ registrationId, studentName, courseTitle, onClose }:
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#0B1120] rounded-[24px] border border-white/10 w-full max-w-3xl max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-2 backdrop-blur-sm sm:p-4" onClick={onClose}>
+      <div className="max-h-[calc(100dvh-1rem)] w-full max-w-3xl overflow-x-hidden overflow-y-auto rounded-[22px] border border-white/10 bg-[#0B1120] sm:max-h-[92vh] sm:rounded-[24px]" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-gradient-to-l from-primary-500/20 via-primary-500/10 to-transparent border-b border-white/10 p-5 flex items-center justify-between backdrop-blur-lg">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-gradient-to-l from-primary-500/20 via-primary-500/10 to-transparent p-4 backdrop-blur-lg sm:p-5">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Wallet className="w-5 h-5 text-amber-400" />
@@ -3111,7 +3111,7 @@ function StudentFeesModal({ registrationId, studentName, courseTitle, onClose }:
           <button onClick={onClose} className="p-2 rounded-[10px] bg-white/10 hover:bg-white/20"><X className="w-4 h-4 text-white" /></button>
         </div>
 
-        <div className="p-5">
+        <div className="p-3 sm:p-5">
           {msg && (
             <div className={`mb-4 p-3 rounded-[10px] text-xs font-bold ${msg.type === "ok" ? "bg-emerald-500/15 text-emerald-300" : "bg-error-500/15 text-error-400"}`}>{msg.text}</div>
           )}
@@ -3144,16 +3144,42 @@ function StudentFeesModal({ registrationId, studentName, courseTitle, onClose }:
                 <div className="text-xs font-black text-slate-300 mb-3">اقساط را وارد کنید:</div>
                 <div className="space-y-2 mb-3">
                   {installmentRows.map((row, i) => (
-                    <div key={i} className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 items-start">
-                      <div className="w-8 h-10 rounded-[8px] bg-primary-500/20 text-primary-300 flex items-center justify-center text-xs font-black">
-                        {toPersian(i + 1)}
+                    <div key={i} className="min-w-0 rounded-[14px] border border-white/10 bg-[#0B1120]/55 p-3">
+                      <div className="mb-3 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-primary-500/20 text-xs font-black text-primary-300">
+                            {toPersian(i + 1)}
+                          </div>
+                          <span className="text-[11px] font-black text-slate-300">قسط {toPersian(i + 1)}</span>
+                        </div>
+                        <button onClick={() => removeInstallmentRow(i)} disabled={installmentRows.length === 1}
+                          aria-label={`حذف قسط ${i + 1}`}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-error-500/15 text-error-400 disabled:opacity-30">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
-                      <MoneyInput value={row.amount} onChange={(v) => updateInstallmentRow(i, "amount", v)} placeholder={`مبلغ قسط ${i + 1}`} showWord={false} />
-                      <PersianDatePicker value={row.dueDate} onChange={(v) => updateInstallmentRow(i, "dueDate", v)} placeholder="تاریخ سررسید" />
-                      <button onClick={() => removeInstallmentRow(i)} disabled={installmentRows.length === 1}
-                        className="w-10 h-10 rounded-[8px] bg-error-500/15 text-error-400 disabled:opacity-30 flex items-center justify-center">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+
+                      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="min-w-0">
+                          <label className="mb-1.5 block text-[10px] font-black text-emerald-300">مبلغ قسط به تومان</label>
+                          <MoneyInput
+                            value={row.amount}
+                            onChange={(v) => updateInstallmentRow(i, "amount", v)}
+                            placeholder={`مبلغ قسط ${i + 1}`}
+                            showWord
+                            className="min-w-0 text-base"
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <label className="mb-1.5 block text-[10px] font-black text-primary-300">تاریخ سررسید</label>
+                          <PersianDatePicker
+                            value={row.dueDate}
+                            onChange={(v) => updateInstallmentRow(i, "dueDate", v)}
+                            placeholder="انتخاب تاریخ سررسید"
+                            className="min-w-0"
+                          />
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>

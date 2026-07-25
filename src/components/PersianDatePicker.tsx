@@ -171,14 +171,14 @@ export default function PersianDatePicker({
   };
 
   return (
-    <div ref={wrapperRef} className={`relative w-full ${className}`}>
+    <div ref={wrapperRef} className={`relative w-full min-w-0 ${className}`}>
       <div
         onClick={() => !disabled && setOpen(!open)}
-        className={`w-full px-4 py-3 pr-11 rounded-[12px] border border-white/10 bg-[#0B1120] text-sm font-bold text-white cursor-pointer flex items-center justify-between gap-2 ${disabled ? "opacity-50 cursor-not-allowed" : "hover:border-primary-500/50"}`}
+        className={`flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-between gap-2 overflow-hidden rounded-[12px] border border-white/10 bg-[#0B1120] px-4 py-3 pr-11 text-sm font-bold text-white ${disabled ? "opacity-50 cursor-not-allowed" : "hover:border-primary-500/50"}`}
       >
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <Calendar className="w-4 h-4 text-primary-400 shrink-0" />
-          <span className={displayValue ? "text-white" : "text-slate-500"}>
+          <span className={`min-w-0 truncate ${displayValue ? "text-white" : "text-slate-500"}`}>
             {displayValue || placeholder}
           </span>
         </div>
@@ -204,8 +204,12 @@ export default function PersianDatePicker({
 
       {open && !disabled && (
         <div
-          className="absolute z-[100] top-full mt-2 right-0 bg-[#111a2e] border border-white/20 rounded-[16px] shadow-2xl p-3 w-[290px]"
-          style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.6)" }}
+          className="absolute right-0 top-full z-[100] mt-2 rounded-[16px] border border-white/20 bg-[#111a2e] p-3 shadow-2xl"
+          style={{
+            width: "min(290px, calc(100vw - 4rem))",
+            maxWidth: "calc(100vw - 4rem)",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+          }}
         >
           {/* Header — year/month nav */}
           <div className="flex items-center justify-between mb-3">

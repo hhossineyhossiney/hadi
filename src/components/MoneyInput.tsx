@@ -1,5 +1,4 @@
 "use client";
-import { useState, useEffect } from "react";
 import { Wallet } from "lucide-react";
 
 // Convert Persian/Arabic digits to English for internal storage
@@ -56,32 +55,30 @@ export default function MoneyInput({
   disabled,
   showWord = true,
 }: Props) {
-  const [display, setDisplay] = useState(() => formatMoney(String(value || "")));
-
-  useEffect(() => {
-    setDisplay(formatMoney(String(value || "")));
-  }, [value]);
+  const display = formatMoney(String(value || ""));
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = toEnglishDigits(e.target.value).replace(/[^0-9]/g, "");
-    setDisplay(formatMoney(raw));
     onChange(raw); // store clean English digits
   };
 
   const word = showWord && value ? formatMoneyWord(value) : "";
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full min-w-0">
       <input
         type="text"
         inputMode="numeric"
         value={display}
         onChange={handleChange}
+        onFocus={(event) => event.currentTarget.select()}
         placeholder={placeholder}
+        aria-label={placeholder}
+        autoComplete="off"
         required={required}
         disabled={disabled}
         dir="ltr"
-        className={`w-full pr-4 pl-20 py-3 rounded-[12px] border text-sm font-bold text-white bg-[#0B1120] border-white/10 placeholder:text-slate-500 text-right ${className}`}
+        className={`h-12 w-full min-w-0 rounded-[12px] border border-white/10 bg-[#0B1120] py-3 pr-4 pl-16 text-right text-sm font-bold text-white placeholder:text-slate-500 sm:pl-20 ${className}`}
         style={{ fontFamily: "Vazirmatn, Tahoma, sans-serif" }}
       />
       <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none">
