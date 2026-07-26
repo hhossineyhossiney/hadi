@@ -7,7 +7,7 @@ import type { EitaaNewsFeed, EitaaNewsItem } from "@/lib/eitaa-news-types";
 
 const CHANNEL_USERNAME = "AmoFan12";
 const CHANNEL_URL = `https://eitaa.com/${CHANNEL_USERNAME}`;
-const CACHE_KEY = "eitaa_news_amofan12_v2";
+const CACHE_KEY = "eitaa_news_amofan12_v3";
 const MAX_ITEMS = 10;
 const MIN_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const CHANNEL_NAME = "اطلاع‌رسانی آموزش فنی و حرفه‌ای زبرخان";
@@ -209,7 +209,7 @@ async function fetchPostImage(postId: string) {
   ];
   for (const url of urls) {
     try {
-      const html = await fetchText(url, { Referer: CHANNEL_URL, Connection: "close" });
+      const html = await fetchText(url, { Referer: CHANNEL_URL });
       const imageUrl = extractPostImage(html, postId);
       if (imageUrl) return imageUrl;
     } catch {
@@ -269,7 +269,6 @@ async function fetchLatestEitaaItems() {
   try {
     const html = await fetchText(CHANNEL_URL, {
       Referer: CHANNEL_URL,
-      Connection: "close",
     });
     const items = parseEitaaHtml(html);
     if (items.length >= 3) return attachPostImages(items);
