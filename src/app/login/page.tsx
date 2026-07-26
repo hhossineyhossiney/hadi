@@ -5,12 +5,12 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { ArrowLeft, Eye, EyeOff, Loader2, Phone, Lock, GraduationCap, Building2, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Loader2, Phone, Lock, GraduationCap, Building2, ShieldCheck, Sparkles, ClipboardCheck } from "lucide-react";
 import { normalizePhone } from "@/lib/phone";
 import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
 
-type Role = "student" | "manager";
+type Role = "student" | "manager" | "expert";
 
 function LoginPageContent() {
   const router = useRouter();
@@ -77,7 +77,7 @@ function LoginPageContent() {
               </div>
               <h1 className="text-xl font-black text-white mb-1">ورود به سامانه زبرخان</h1>
               <p className="text-[11px] text-slate-300">
-                {step === "role" ? "نوع حساب کاربری خود را انتخاب کنید" : role === "student" ? "ورود به حساب هنرجو" : "ورود به حساب مدیر آموزشگاه"}
+                {step === "role" ? "نوع حساب کاربری خود را انتخاب کنید" : role === "student" ? "ورود به حساب هنرجو" : role === "expert" ? "ورود به حساب کارشناس رتبه‌بندی" : "ورود به حساب مدیر آموزشگاه"}
               </p>
             </div>
 
@@ -115,6 +115,22 @@ function LoginPageContent() {
                   </div>
                 </button>
 
+                <button
+                  onClick={() => selectRole("expert")}
+                  className="w-full p-5 rounded-[16px] bg-gradient-to-br from-cyan-500/20 to-emerald-500/5 border-2 border-cyan-500/40 hover:border-cyan-400 hover:shadow-lg hover:shadow-cyan-500/25 transition-all group text-right"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-[14px] bg-gradient-to-br from-cyan-500 to-emerald-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                      <ClipboardCheck className="w-7 h-7 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-lg font-black text-white mb-1">🧾 کارشناس رتبه‌بندی</div>
+                      <div className="text-[11px] text-slate-300 leading-relaxed">ورود به پرونده‌های ارزیابی، امتیازدهی و تایید رتبه آموزشگاه‌ها</div>
+                    </div>
+                    <ArrowLeft className="w-5 h-5 text-cyan-300 group-hover:-translate-x-1 transition-transform" />
+                  </div>
+                </button>
+
                 <div className="pt-4 border-t border-white/5 text-center">
                   <p className="text-[11px] text-slate-400 mb-2">حساب ندارید؟</p>
                   <Link href="/register" className="inline-flex items-center gap-1 text-primary-300 text-sm font-black hover:text-primary-200">
@@ -126,13 +142,13 @@ function LoginPageContent() {
 
             {step === "credentials" && (
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                <div className={`flex items-center gap-3 p-3 rounded-[12px] ${role === "student" ? "bg-primary-500/15 border border-primary-500/30" : "bg-amber-500/15 border border-amber-500/30"}`}>
-                  <div className={`w-10 h-10 rounded-[10px] flex items-center justify-center ${role === "student" ? "bg-primary-500" : "bg-amber-500"}`}>
-                    {role === "student" ? <GraduationCap className="w-5 h-5 text-white" /> : <Building2 className="w-5 h-5 text-white" />}
+                <div className={`flex items-center gap-3 p-3 rounded-[12px] ${role === "student" ? "bg-primary-500/15 border border-primary-500/30" : role === "expert" ? "bg-cyan-500/15 border border-cyan-500/30" : "bg-amber-500/15 border border-amber-500/30"}`}>
+                  <div className={`w-10 h-10 rounded-[10px] flex items-center justify-center ${role === "student" ? "bg-primary-500" : role === "expert" ? "bg-cyan-500" : "bg-amber-500"}`}>
+                    {role === "student" ? <GraduationCap className="w-5 h-5 text-white" /> : role === "expert" ? <ClipboardCheck className="w-5 h-5 text-white" /> : <Building2 className="w-5 h-5 text-white" />}
                   </div>
                   <div className="flex-1">
                     <div className="text-xs font-black text-white">
-                      {role === "student" ? "ورود به عنوان هنرجو" : "ورود به عنوان مدیر آموزشگاه"}
+                      {role === "student" ? "ورود به عنوان هنرجو" : role === "expert" ? "ورود به عنوان کارشناس رتبه‌بندی" : "ورود به عنوان مدیر آموزشگاه"}
                     </div>
                     <button type="button" onClick={() => setStep("role")} className="text-[10px] text-primary-300 hover:underline">
                       تغییر نقش
@@ -193,10 +209,12 @@ function LoginPageContent() {
                   className={`w-full py-3.5 rounded-[14px] text-sm font-black text-white flex items-center justify-center gap-2 shadow-lg transition-all ${
                     role === "student"
                       ? "gradient-button hover:gradient-button-hover shadow-primary-500/30"
-                      : "bg-gradient-to-l from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-amber-500/30"
+                      : role === "expert"
+                        ? "bg-gradient-to-l from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 shadow-cyan-500/30"
+                        : "bg-gradient-to-l from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-amber-500/30"
                   } disabled:opacity-60`}
                 >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (role === "student" ? <GraduationCap className="w-5 h-5" /> : <Building2 className="w-5 h-5" />)}
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (role === "student" ? <GraduationCap className="w-5 h-5" /> : role === "expert" ? <ClipboardCheck className="w-5 h-5" /> : <Building2 className="w-5 h-5" />)}
                   {loading ? "در حال ورود..." : "ورود به پنل"}
                 </button>
 
