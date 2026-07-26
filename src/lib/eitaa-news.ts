@@ -7,7 +7,7 @@ import type { EitaaNewsFeed, EitaaNewsItem } from "@/lib/eitaa-news-types";
 
 const CHANNEL_USERNAME = "AmoFan12";
 const CHANNEL_URL = `https://eitaa.com/${CHANNEL_USERNAME}`;
-const CACHE_KEY = "eitaa_news_amofan12";
+const CACHE_KEY = "eitaa_news_amofan12_v2";
 const MAX_ITEMS = 10;
 const MIN_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const CHANNEL_NAME = "اطلاع‌رسانی آموزش فنی و حرفه‌ای زبرخان";
@@ -134,20 +134,34 @@ export function parseEitaaReaderMarkdown(markdown: string): EitaaNewsItem[] {
     : markdown;
   const marker = /^\[_!\[Image\s+(\d+)\].*$/gm;
   const matches = [...content.matchAll(marker)];
-  const parsed: EitaaNewsItem[] = [];
-
-  matches.forEach((match, index) => {
+  const postIdPattern = new RegExp(`https://eitaa\\.com/s/${CHANNEL_USERNAME}/(\\d+)`, "i");
+  const segments = matches.map((match, index) => {
     const start = (match.index || 0) + match[0].length;
     const end = index + 1 < matches.length ? (matches[index + 1].index || content.length) : content.length;
-    const rawSegment = content.slice(start, end).trim();
-    const postIdPattern = new RegExp(`https://eitaa\\.com/s/${CHANNEL_USERNAME}/(\\d+)`, "i");
-    const postId = rawSegment.match(postIdPattern)?.[1];
+    const raw = content.slice(start, end).trim();
+    const previewIndex = Number(match[1]);
+    const explicitPostId = raw.match(postIdPattern)?.[1];
+    return { raw, previewIndex, explicitPostId };
+  });
+
+  const offsetCounts = new Map<number, number>();
+  segments.forEach((segment) => {
+    if (!segment.explicitPostId) return;
+    const offset = Number(segment.explicitPostId) - segment.previewIndex;
+    offsetCounts.set(offset, (offsetCounts.get(offset) || 0) + 1);
+  });
+  const inferredOffset = [...offsetCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .find(([, count]) => count >= 2)?.[0];
+
+  const parsed: EitaaNewsItem[] = [];
+  segments.forEach(({ raw: rawSegment, previewIndex, explicitPostId }) => {
+    const postId = explicitPostId || (inferredOffset !== undefined ? String(previewIndex + inferredOffset) : undefined);
     const lines = rawSegment.split("\n").map((line) => line.trim()).filter(Boolean);
     const dateIndex = lines.findLastIndex((line) => /^[۰-۹]{1,2}\s+[آ-ی]+(?:\s+۱۴۰[۰-۹])?$/u.test(line));
     const dateLabel = dateIndex >= 0 ? lines[dateIndex] : "تاریخ درج‌شده در ایتا";
     const bodyLines = lines.filter((_, lineIndex) => lineIndex !== dateIndex);
     const body = cleanMarkdown(bodyLines.join("\n"));
-    const previewIndex = Number(match[1]);
     const syntheticId = `preview-${String(previewIndex).padStart(3, "0")}`;
 
     parsed.push({
@@ -161,6 +175,78 @@ export function parseEitaaReaderMarkdown(markdown: string): EitaaNewsItem[] {
   });
 
   return parsed.reverse().slice(0, MAX_ITEMS);
+}
+
+function extractPostImage(html: string, postId: string) {
+  const $ = load(html);
+  const message = $(`[data-post$="/${postId}"]`).first();
+  const scope = message.length ? message : $(".js-widget_message").first();
+  let imageUrl: string | undefined;
+
+  scope.find("[style*='background-image']").each((_, media) => {
+    if (imageUrl) return;
+    const style = $(media).attr("style") || "";
+    const match = style.match(/background-image\s*:\s*url\((['"]?)(.*?)\1\)/i);
+    const candidate = normalizeImageUrl(match?.[2]);
+    if (candidate?.includes("eitaa.com/download_")) imageUrl = candidate;
+  });
+  if (!imageUrl) {
+    scope.find("img, video").each((_, media) => {
+      if (imageUrl) return;
+      const candidate = normalizeImageUrl(
+        $(media).attr("poster") || $(media).attr("src") || $(media).attr("data-src")
+      );
+      if (candidate?.includes("eitaa.com/download_")) imageUrl = candidate;
+    });
+  }
+  return imageUrl;
+}
+
+async function fetchPostImage(postId: string) {
+  const urls = [
+    `${CHANNEL_URL}/${postId}?embed=1`,
+    `${CHANNEL_URL}/${postId}`,
+  ];
+  for (const url of urls) {
+    try {
+      const html = await fetchText(url, { Referer: CHANNEL_URL, Connection: "close" });
+      const imageUrl = extractPostImage(html, postId);
+      if (imageUrl) return imageUrl;
+    } catch {
+      // Try the next public post URL. Text remains available even when media lookup fails.
+    }
+  }
+  return undefined;
+}
+
+async function attachPostImages(items: EitaaNewsItem[]) {
+  const enriched = await Promise.all(items.slice(0, MAX_ITEMS).map(async (item) => {
+    if (item.imageUrl || !/^\d+$/.test(item.id)) return item;
+    const imageUrl = await fetchPostImage(item.id);
+    return imageUrl ? { ...item, imageUrl } : item;
+  }));
+
+  const pathCounts = new Map<string, number>();
+  enriched.forEach((item) => {
+    if (!item.imageUrl) return;
+    try {
+      const path = new URL(item.imageUrl).pathname;
+      pathCounts.set(path, (pathCounts.get(path) || 0) + 1);
+    } catch {}
+  });
+
+  return enriched.map((item) => {
+    if (!item.imageUrl) return item;
+    try {
+      const path = new URL(item.imageUrl).pathname;
+      if ((pathCounts.get(path) || 0) >= 3) {
+        const withoutRepeatedChannelAvatar = { ...item };
+        delete withoutRepeatedChannelAvatar.imageUrl;
+        return withoutRepeatedChannelAvatar;
+      }
+    } catch {}
+    return item;
+  });
 }
 
 async function fetchText(url: string, headers: HeadersInit = {}) {
@@ -186,7 +272,7 @@ async function fetchLatestEitaaItems() {
       Connection: "close",
     });
     const items = parseEitaaHtml(html);
-    if (items.length >= 3) return items;
+    if (items.length >= 3) return attachPostImages(items);
   } catch (error) {
     console.error("Direct Eitaa news fetch failed:", error);
   }
@@ -198,7 +284,7 @@ async function fetchLatestEitaaItems() {
   });
   const items = parseEitaaReaderMarkdown(markdown);
   if (items.length < 3) throw new Error("Eitaa reader returned too few posts");
-  return items;
+  return attachPostImages(items);
 }
 
 function isNewsFeed(value: unknown): value is EitaaNewsFeed {
