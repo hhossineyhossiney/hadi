@@ -17,6 +17,15 @@ function cookieHeader(headers: Headers) {
   return values.map((value) => value.split(";", 1)[0]).filter(Boolean).join("; ");
 }
 
+function detectedImageType(bytes: Uint8Array, declared: string) {
+  if (declared.startsWith("image/")) return declared.split(";", 1)[0];
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png";
+  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return "image/gif";
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return "image/webp";
+  return null;
+}
+
 function escapeXml(value: string) {
   return value.replace(/[&<>"']/g, (character) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&apos;",
@@ -125,11 +134,12 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
         ...(cookies ? { Cookie: cookies } : {}),
       },
     });
-    const contentType = upstream.headers.get("content-type") || "";
-    if (!upstream.ok || !contentType.startsWith("image/")) return fallback(request, item);
+    if (!upstream.ok) return fallback(request, item);
 
     const bytes = await upstream.arrayBuffer();
     if (bytes.byteLength === 0 || bytes.byteLength > 8 * 1024 * 1024) return fallback(request, item);
+    const contentType = detectedImageType(new Uint8Array(bytes.slice(0, 16)), upstream.headers.get("content-type") || "");
+    if (!contentType) return fallback(request, item);
 
     return new Response(bytes, {
       status: 200,
