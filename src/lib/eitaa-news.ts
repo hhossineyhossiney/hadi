@@ -7,7 +7,7 @@ import type { EitaaNewsFeed, EitaaNewsItem } from "@/lib/eitaa-news-types";
 
 const CHANNEL_USERNAME = "AmoFan12";
 const CHANNEL_URL = `https://eitaa.com/${CHANNEL_USERNAME}`;
-const CACHE_KEY = "eitaa_news_amofan12_v3";
+const CACHE_KEY = "eitaa_news_amofan12_v4";
 const MAX_ITEMS = 10;
 const MIN_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const CHANNEL_NAME = "اطلاع‌رسانی آموزش فنی و حرفه‌ای زبرخان";
@@ -73,8 +73,8 @@ export function parseEitaaHtml(html: string): EitaaNewsItem[] {
   const $ = load(html);
   const byId = new Map<string, EitaaNewsItem>();
 
-  $(".js-widget_message_wrap").each((_, wrapper) => {
-    const message = $(wrapper).find(".js-widget_message").first();
+  $(".js-widget_message").each((_, element) => {
+    const message = $(element);
     const dataPost = message.attr("data-post") || "";
     const id = dataPost.split("/").pop()?.replace(/\D/g, "");
     if (!id) return;
