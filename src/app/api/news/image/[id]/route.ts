@@ -85,7 +85,6 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   const feed = await getEitaaNewsFeed();
   const item = feed.items.find((news) => news.id === decodeURIComponent(id));
   if (!item) return fallback(request);
-  if (!item.imageUrl || !item.imageUrl.startsWith("https://eitaa.com/download_")) return fallback(request, item);
 
   try {
     let sourceImageUrl = item.imageUrl;
@@ -109,6 +108,10 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
       }
     } catch {
       // Continue with the stored public media URL when bootstrap is temporarily unavailable.
+    }
+
+    if (!sourceImageUrl || !sourceImageUrl.startsWith("https://eitaa.com/download_")) {
+      return fallback(request, item);
     }
 
     const upstream = await fetch(sourceImageUrl, {

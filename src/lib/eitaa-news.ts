@@ -98,13 +98,6 @@ export function parseEitaaHtml(html: string): EitaaNewsItem[] {
       if (candidate?.includes("eitaa.com/download_")) imageUrl = candidate;
     });
     if (!imageUrl) {
-      message.find("img").each((__, media) => {
-        if (imageUrl) return;
-        const candidate = normalizeImageUrl($(media).attr("src") || $(media).attr("data-src"));
-        if (candidate?.includes("eitaa.com/download_")) imageUrl = candidate;
-      });
-    }
-    if (!imageUrl) {
       const poster = normalizeImageUrl(message.find("video").first().attr("poster"));
       if (poster?.includes("eitaa.com/download_")) imageUrl = poster;
     }
@@ -191,13 +184,8 @@ function extractPostImage(html: string, postId: string) {
     if (candidate?.includes("eitaa.com/download_")) imageUrl = candidate;
   });
   if (!imageUrl) {
-    scope.find("img, video").each((_, media) => {
-      if (imageUrl) return;
-      const candidate = normalizeImageUrl(
-        $(media).attr("poster") || $(media).attr("src") || $(media).attr("data-src")
-      );
-      if (candidate?.includes("eitaa.com/download_")) imageUrl = candidate;
-    });
+    const poster = normalizeImageUrl(scope.find("video").first().attr("poster"));
+    if (poster?.includes("eitaa.com/download_")) imageUrl = poster;
   }
   return imageUrl;
 }
