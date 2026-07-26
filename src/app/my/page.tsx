@@ -23,6 +23,7 @@ export default async function MyRouterPage() {
   if (u.role === "admin" || ADMIN_PHONES.includes(phone)) {
     redirect("/admin");
   }
+  if (u.role === "expert") redirect("/expert");
 
   // Check institute manager
   let isManager = false;

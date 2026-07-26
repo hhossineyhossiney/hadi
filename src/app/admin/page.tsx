@@ -14,11 +14,13 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import { useMobilePanelDrawer } from "@/components/panel/useMobilePanelDrawer";
 import { normalizePhone } from "@/lib/phone";
 import ReviewManagementPanel from "@/components/panel/ReviewManagementPanel";
+import RankingAdminPanel from "@/components/ranking/RankingAdminPanel";
 
-type TabKey = "dashboard" | "analytics" | "tickets" | "plans" | "institutes" | "awards" | "managers" | "registrations" | "reviews" | "finance" | "chat" | "categories" | "regions" | "faqs" | "homepage" | "telegram" | "shop_perms";
+type TabKey = "dashboard" | "rankings" | "analytics" | "tickets" | "plans" | "institutes" | "awards" | "managers" | "registrations" | "reviews" | "finance" | "chat" | "categories" | "regions" | "faqs" | "homepage" | "telegram" | "shop_perms";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد مدیریتی", icon: LayoutDashboard },
+  { key: "rankings", label: "🏆 رتبه‌بندی آموزشگاه‌ها", icon: Award },
   { key: "analytics", label: "نمودارها و گزارش‌ها", icon: TrendingUp },
   { key: "tickets", label: "تیکت‌های پشتیبانی", icon: HelpCircle },
   { key: "plans", label: "پلن‌ها و اشتراک", icon: Award },
@@ -185,6 +187,7 @@ export default function AdminPage() {
         {/* Content Area (dark) */}
         <div className="flex-1 bg-[#0B1120] text-white p-4 lg:p-8">
           {tab === "dashboard" && <DashboardTab />}
+          {tab === "rankings" && <RankingAdminPanel />}
           {tab === "institutes" && <InstitutesTab />}
           {tab === "awards" && <AwardsTab />}
           {tab === "managers" && <ManagersTab />}

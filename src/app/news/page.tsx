@@ -72,7 +72,7 @@ export default async function NewsPage() {
 
                 <div className="relative mb-5 aspect-video w-full overflow-hidden rounded-[16px] border border-white/10 bg-[#031426] sm:max-h-[460px]">
                   <Image
-                    src={`/api/news/image/${encodeURIComponent(item.id)}`}
+                    src={`/api/news/image/${encodeURIComponent(item.id)}?v=${encodeURIComponent(feed.refreshedAt)}`}
                     alt={`تصویر خبر: ${item.title}`}
                     fill
                     unoptimized

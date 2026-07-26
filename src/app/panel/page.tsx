@@ -25,11 +25,13 @@ import { calculateCourseSchedule, formatScheduleDays } from "@/lib/schedule";
 import ReviewManagementPanel from "@/components/panel/ReviewManagementPanel";
 import ShopPurchasesModal from "@/components/panel/ShopPurchasesModal";
 import PremiumProfileEditor from "@/components/panel/PremiumProfileEditor";
+import InstituteRankingPanel, { InstituteRankSummary } from "@/components/ranking/InstituteRankingPanel";
 
-type TabKey = "dashboard" | "ai_studio" | "courses" | "shop" | "students" | "reviews" | "sessions" | "progress" | "live" | "assignments" | "quizzes" | "grades" | "instructors" | "attendance" | "groups" | "reports" | "subscription" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
+type TabKey = "dashboard" | "ranking" | "ai_studio" | "courses" | "shop" | "students" | "reviews" | "sessions" | "progress" | "live" | "assignments" | "quizzes" | "grades" | "instructors" | "attendance" | "groups" | "reports" | "subscription" | "chat" | "notifications" | "gallery" | "banner" | "profile" | "telegram";
 
 const NAV_ITEMS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "داشبورد", icon: LayoutDashboard },
+  { key: "ranking", label: "🏆 رتبه‌بندی آموزشگاه", icon: Award },
   { key: "ai_studio", label: "🤖 استودیوی AI", icon: Sparkles },
   { key: "subscription", label: "پلن اشتراک من", icon: Award },
   { key: "courses", label: "مدیریت دوره‌ها", icon: BookOpen },
@@ -62,6 +64,12 @@ export default function ManagerPanelPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabKey>("dashboard");
   const { open: drawerOpen, setOpen: setDrawerOpen } = useMobilePanelDrawer();
+
+  useEffect(() => {
+    const openRanking = () => setTab("ranking");
+    window.addEventListener("open-ranking-tab", openRanking);
+    return () => window.removeEventListener("open-ranking-tab", openRanking);
+  }, []);
 
   // login form
   const [lp, setLp] = useState({ phone: "", password: "" });
@@ -222,6 +230,7 @@ export default function ManagerPanelPage() {
         {/* Content Area (dark) */}
         <div className="flex-1 bg-[#0B1120] text-white p-4 lg:p-8">
           {tab === "dashboard" && <DashboardTab data={data} />}
+          {tab === "ranking" && <InstituteRankingPanel />}
           {tab === "ai_studio" && <AIStudioTab />}
           {tab === "courses" && <CoursesTab data={data} refresh={fetchData} />}
           {tab === "students" && <StudentsTab data={data} refresh={fetchData} />}
@@ -1418,6 +1427,7 @@ function DashboardTab({ data }: { data: any }) {
   ];
   return (
     <div>
+      <InstituteRankSummary />
       <h2 className="text-2xl font-black mb-1">داشبورد آموزشگاه</h2>
       <p className="text-slate-400 text-sm mb-6">نمای کلی عملکرد {institute.name}</p>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">

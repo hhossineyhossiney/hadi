@@ -11,7 +11,7 @@ import {
   pgEnum,
 } from "drizzle-orm/pg-core";
 
-export const roleEnum = pgEnum("role", ["student", "institute", "admin"]);
+export const roleEnum = pgEnum("role", ["student", "institute", "expert", "admin"]);
 export const statusEnum = pgEnum("status", ["pending", "approved", "rejected"]);
 export const documentValidityEnum = pgEnum("document_validity", ["valid", "expired", "pending_review"]);
 
@@ -794,5 +794,95 @@ export const groupMessages = pgTable("group_messages", {
   replyToId: integer("reply_to_id"),
   isPinned: boolean("is_pinned").default(false),
   isDeleted: boolean("is_deleted").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   V6 — سیستم هوشمند رتبه‌بندی و اعتبارسنجی آموزشگاه‌ها
+   ═══════════════════════════════════════════════════════════════ */
+export const rankingCriteria = pgTable("ranking_criteria", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 60 }).notNull().unique(),
+  title: varchar("title", { length: 255 }).notNull(),
+  maxScore: decimal("max_score", { precision: 6, scale: 2 }).notNull(),
+  weight: decimal("weight", { precision: 6, scale: 2 }).default("1"),
+  groupCode: varchar("group_code", { length: 50 }).notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const academyRankings = pgTable("academy_rankings", {
+  id: serial("id").primaryKey(),
+  academyId: integer("academy_id").references(() => institutes.id, { onDelete: "cascade" }).notNull(),
+  year: integer("year").notNull(),
+  score: decimal("score", { precision: 6, scale: 2 }).default("0"),
+  rank: varchar("rank", { length: 10 }),
+  rankLabel: varchar("rank_label", { length: 60 }),
+  status: varchar("status", { length: 30 }).default("draft"),
+  expertId: integer("expert_id").references(() => users.id),
+  strengths: jsonb("strengths").default([]),
+  improvements: jsonb("improvements").default([]),
+  submittedAt: timestamp("submitted_at"),
+  reviewedAt: timestamp("reviewed_at"),
+  publishedAt: timestamp("published_at"),
+  validUntil: timestamp("valid_until"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const rankingScores = pgTable("ranking_scores", {
+  id: serial("id").primaryKey(),
+  rankingId: integer("ranking_id").references(() => academyRankings.id, { onDelete: "cascade" }).notNull(),
+  criteriaId: integer("criteria_id").references(() => rankingCriteria.id).notNull(),
+  systemScore: decimal("system_score", { precision: 6, scale: 2 }).default("0"),
+  expertScore: decimal("expert_score", { precision: 6, scale: 2 }).default("0"),
+  expertComment: text("expert_comment"),
+  deductionReason: text("deduction_reason"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const selfDeclarations = pgTable("self_declarations", {
+  id: serial("id").primaryKey(),
+  academyId: integer("academy_id").references(() => institutes.id, { onDelete: "cascade" }).notNull(),
+  year: integer("year").notNull(),
+  physical: jsonb("physical").default({}),
+  books: jsonb("books").default([]),
+  seminars: jsonb("seminars").default([]),
+  honors: jsonb("honors").default([]),
+  contentActivities: jsonb("content_activities").default([]),
+  documents: jsonb("documents").default([]),
+  status: varchar("status", { length: 30 }).default("draft"),
+  submittedAt: timestamp("submitted_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const rankingDocuments = pgTable("ranking_documents", {
+  id: serial("id").primaryKey(),
+  academyId: integer("academy_id").references(() => institutes.id, { onDelete: "cascade" }).notNull(),
+  rankingId: integer("ranking_id").references(() => academyRankings.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 60 }).notNull(),
+  filePath: text("file_path").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const rankingAssignments = pgTable("ranking_assignments", {
+  id: serial("id").primaryKey(),
+  academyId: integer("academy_id").references(() => institutes.id, { onDelete: "cascade" }).notNull(),
+  expertId: integer("expert_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  year: integer("year").notNull(),
+  assignedBy: integer("assigned_by").references(() => users.id),
+  status: varchar("status", { length: 30 }).default("assigned"),
+  assignedAt: timestamp("assigned_at").defaultNow(),
+});
+
+export const rankingAuditLogs = pgTable("ranking_audit_logs", {
+  id: serial("id").primaryKey(),
+  rankingId: integer("ranking_id").references(() => academyRankings.id, { onDelete: "set null" }),
+  academyId: integer("academy_id").references(() => institutes.id, { onDelete: "set null" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+  action: varchar("action", { length: 100 }).notNull(),
+  details: jsonb("details").default({}),
   createdAt: timestamp("created_at").defaultNow(),
 });

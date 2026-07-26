@@ -30,6 +30,9 @@ export default function Navbar() {
 
   const user = session?.user as any;
   const isAdmin = user?.role === "admin" || user?.phone === "09159513179" || user?.phone === "09150000000";
+  const mobileRoleLabel = isAdmin ? "مدیر کل" : user?.role === "expert" ? "کارشناس" : user?.role === "institute" ? "مدیر آموزشگاه" : "هنرجو";
+  const mobilePanelHref = isAdmin ? "/admin" : user?.role === "expert" ? "/expert" : user?.role === "institute" ? "/panel" : "/dashboard";
+  const mobilePanelLabel = isAdmin ? "پنل مدیریت" : user?.role === "expert" ? "پنل کارشناسی" : user?.role === "institute" ? "پنل آموزشگاه" : "پنل هنرجو";
 
   return (
     <nav
@@ -169,35 +172,19 @@ export default function Navbar() {
                       <p className="text-xs font-bold text-text-primary">{user.name}</p>
                       <p className="text-[10px] text-text-tertiary" dir="ltr">{user.phone}</p>
                     </div>
-                    {isAdmin ? (
-                      <span className="text-[10px] font-black text-secondary-700 bg-secondary-100 px-2.5 py-1 rounded-full">
-                        مدیر کل
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-black text-primary-700 bg-primary-100 px-2.5 py-1 rounded-full">
-                        هنرجو
-                      </span>
-                    )}
+                    <span className="text-[10px] font-black text-primary-700 bg-primary-100 px-2.5 py-1 rounded-full">
+                      {mobileRoleLabel}
+                    </span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
-                    {isAdmin ? (
-                      <Link
-                        href="/admin"
-                        onClick={() => setIsOpen(false)}
-                        className="text-center px-4 py-2.5 rounded-[12px] text-xs font-bold text-white bg-secondary-600"
-                      >
-                        پنل مدیریت
-                      </Link>
-                    ) : (
-                      <Link
-                        href="/dashboard"
-                        onClick={() => setIsOpen(false)}
-                        className="text-center px-4 py-2.5 rounded-[12px] text-xs font-bold text-white gradient-button"
-                      >
-                        پنل هنرجو
-                      </Link>
-                    )}
+                    <Link
+                      href={mobilePanelHref}
+                      onClick={() => setIsOpen(false)}
+                      className="text-center px-4 py-2.5 rounded-[12px] text-xs font-bold text-white gradient-button"
+                    >
+                      {mobilePanelLabel}
+                    </Link>
                     <button
                       onClick={() => {
                         setIsOpen(false);
@@ -231,9 +218,9 @@ export default function Navbar() {
 /* ═════════ USER MENU (desktop) — Dropdown with panel + logout ═════════ */
 function UserMenu({ user, isAdmin }: { user: any; isAdmin: boolean }) {
   const [open, setOpen] = useState(false);
-  const roleLabel = isAdmin ? "مدیر کل سامانه" : user.role === "institute" ? "مدیر آموزشگاه" : "هنرجو";
-  const roleColor = isAdmin ? "from-purple-500 to-fuchsia-500" : user.role === "institute" ? "from-amber-500 to-orange-500" : "from-primary-500 to-secondary-500";
-  const roleEmoji = isAdmin ? "👑" : user.role === "institute" ? "🏢" : "🎓";
+  const roleLabel = isAdmin ? "مدیر کل سامانه" : user.role === "expert" ? "کارشناس رتبه‌بندی" : user.role === "institute" ? "مدیر آموزشگاه" : "هنرجو";
+  const roleColor = isAdmin ? "from-purple-500 to-fuchsia-500" : user.role === "expert" ? "from-cyan-500 to-emerald-500" : user.role === "institute" ? "from-amber-500 to-orange-500" : "from-primary-500 to-secondary-500";
+  const roleEmoji = isAdmin ? "👑" : user.role === "expert" ? "🧾" : user.role === "institute" ? "🏢" : "🎓";
   const panelHref = "/my";
 
   useEffect(() => {
@@ -322,9 +309,9 @@ function UserMenu({ user, isAdmin }: { user: any; isAdmin: boolean }) {
 /* ═════════ USER MENU (mobile) — bottom-sheet style ═════════ */
 function UserMenuMobile({ user, isAdmin }: { user: any; isAdmin: boolean }) {
   const [open, setOpen] = useState(false);
-  const roleLabel = isAdmin ? "مدیر کل" : user.role === "institute" ? "مدیر آموزشگاه" : "هنرجو";
-  const roleColor = isAdmin ? "from-purple-500 to-fuchsia-500" : user.role === "institute" ? "from-amber-500 to-orange-500" : "from-primary-500 to-secondary-500";
-  const roleEmoji = isAdmin ? "👑" : user.role === "institute" ? "🏢" : "🎓";
+  const roleLabel = isAdmin ? "مدیر کل" : user.role === "expert" ? "کارشناس رتبه‌بندی" : user.role === "institute" ? "مدیر آموزشگاه" : "هنرجو";
+  const roleColor = isAdmin ? "from-purple-500 to-fuchsia-500" : user.role === "expert" ? "from-cyan-500 to-emerald-500" : user.role === "institute" ? "from-amber-500 to-orange-500" : "from-primary-500 to-secondary-500";
+  const roleEmoji = isAdmin ? "👑" : user.role === "expert" ? "🧾" : user.role === "institute" ? "🏢" : "🎓";
   const shortName = String(user.name || "کاربر").trim().split(/\s+/)[0] || "کاربر";
 
   useEffect(() => {

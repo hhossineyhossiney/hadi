@@ -62,7 +62,7 @@ export default function LatestNewsSection({ feed }: { feed: EitaaNewsFeed }) {
 
                 <div className="relative mb-3 aspect-video overflow-hidden rounded-[14px] border border-white/10 bg-[#031426]">
                   <Image
-                    src={`/api/news/image/${encodeURIComponent(item.id)}`}
+                    src={`/api/news/image/${encodeURIComponent(item.id)}?v=${encodeURIComponent(feed.refreshedAt)}`}
                     alt={`تصویر خبر: ${item.title}`}
                     fill
                     unoptimized
