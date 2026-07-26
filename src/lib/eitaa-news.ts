@@ -7,7 +7,7 @@ import type { EitaaNewsFeed, EitaaNewsItem } from "@/lib/eitaa-news-types";
 
 const CHANNEL_USERNAME = "AmoFan12";
 const CHANNEL_URL = `https://eitaa.com/${CHANNEL_USERNAME}`;
-const CACHE_KEY = "eitaa_news_amofan12_v4";
+const CACHE_KEY = "eitaa_news_amofan12_v5";
 const MAX_ITEMS = 10;
 const MIN_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const CHANNEL_NAME = "اطلاع‌رسانی آموزش فنی و حرفه‌ای زبرخان";
@@ -254,7 +254,7 @@ async function fetchText(url: string, headers: HeadersInit = {}) {
     cache: "no-store",
     redirect: "follow",
     headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; FanixoNewsBot/1.0; +https://www.fanixo.ir/news)",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
       Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       "Accept-Language": "fa-IR,fa;q=0.9,en;q=0.6",
       ...headers,
