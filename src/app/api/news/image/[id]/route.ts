@@ -82,7 +82,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
       signal: AbortSignal.timeout(12_000),
       headers: {
         Referer: feed.channelUrl,
-        "User-Agent": "Mozilla/5.0 (compatible; FanixoNewsImage/1.0; +https://www.fanixo.ir/news)",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
         Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
       },
     });
@@ -98,6 +98,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
         "Content-Type": contentType,
         "Content-Length": String(bytes.byteLength),
         "Cache-Control": "public, max-age=21600, stale-while-revalidate=86400",
+        "X-Fanixo-News-Image": "eitaa-original",
         "X-Content-Type-Options": "nosniff",
       },
     });
