@@ -1,9 +1,21 @@
 import { NextResponse } from "next/server";
-import { getEitaaNewsFeed } from "@/lib/eitaa-news";
+import { getEitaaNewsFeed, parseEitaaHtml } from "@/lib/eitaa-news";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 20;
+
+const BROWSER_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
+
+function cookieHeader(headers: Headers) {
+  const extendedHeaders = headers as Headers & { getSetCookie?: () => string[] };
+  const values = extendedHeaders.getSetCookie?.() || [];
+  if (values.length === 0) {
+    const combined = headers.get("set-cookie");
+    if (combined) values.push(combined);
+  }
+  return values.map((value) => value.split(";", 1)[0]).filter(Boolean).join("; ");
+}
 
 function escapeXml(value: string) {
   return value.replace(/[&<>"']/g, (character) => ({
@@ -76,14 +88,38 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   if (!item.imageUrl || !item.imageUrl.startsWith("https://eitaa.com/download_")) return fallback(request, item);
 
   try {
-    const upstream = await fetch(item.imageUrl, {
+    let sourceImageUrl = item.imageUrl;
+    let cookies = "";
+    try {
+      const channelResponse = await fetch(feed.channelUrl, {
+        cache: "no-store",
+        redirect: "follow",
+        signal: AbortSignal.timeout(10_000),
+        headers: {
+          "User-Agent": BROWSER_USER_AGENT,
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "fa-IR,fa;q=0.9,en;q=0.6",
+          Referer: feed.channelUrl,
+        },
+      });
+      if (channelResponse.ok) {
+        cookies = cookieHeader(channelResponse.headers);
+        const currentItems = parseEitaaHtml(await channelResponse.text());
+        sourceImageUrl = currentItems.find((news) => news.id === item.id)?.imageUrl || sourceImageUrl;
+      }
+    } catch {
+      // Continue with the stored public media URL when bootstrap is temporarily unavailable.
+    }
+
+    const upstream = await fetch(sourceImageUrl, {
       cache: "no-store",
       redirect: "follow",
       signal: AbortSignal.timeout(12_000),
       headers: {
         Referer: feed.channelUrl,
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        "User-Agent": BROWSER_USER_AGENT,
         Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+        ...(cookies ? { Cookie: cookies } : {}),
       },
     });
     const contentType = upstream.headers.get("content-type") || "";
