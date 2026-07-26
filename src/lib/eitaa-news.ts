@@ -7,7 +7,7 @@ import type { EitaaNewsFeed, EitaaNewsItem } from "@/lib/eitaa-news-types";
 
 const CHANNEL_USERNAME = "AmoFan12";
 const CHANNEL_URL = `https://eitaa.com/${CHANNEL_USERNAME}`;
-const CACHE_KEY = "eitaa_news_amofan12_v5";
+const CACHE_KEY = "eitaa_news_amofan12_v6";
 const MAX_ITEMS = 10;
 const MIN_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const CHANNEL_NAME = "اطلاع‌رسانی آموزش فنی و حرفه‌ای زبرخان";
