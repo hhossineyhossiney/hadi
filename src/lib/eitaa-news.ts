@@ -5,12 +5,12 @@ import { siteSettings } from "@/db/schema";
 import { EITAA_NEWS_FALLBACK } from "@/data/eitaa-news-fallback";
 import type { EitaaNewsFeed, EitaaNewsItem } from "@/lib/eitaa-news-types";
 
-const CHANNEL_USERNAME = "tvto66";
+const CHANNEL_USERNAME = "AmoFan12";
 const CHANNEL_URL = `https://eitaa.com/${CHANNEL_USERNAME}`;
-const CACHE_KEY = "eitaa_news_tvto66";
+const CACHE_KEY = "eitaa_news_amofan12";
 const MAX_ITEMS = 10;
 const MIN_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
-const CHANNEL_NAME = "کانال رسمی اطلاع‌رسانی آموزشگاه‌های فنی و حرفه‌ای آزاد کشور";
+const CHANNEL_NAME = "اطلاع‌رسانی آموزش فنی و حرفه‌ای زبرخان";
 
 function normalizeText(value: string) {
   return value
@@ -90,12 +90,24 @@ export function parseEitaaHtml(html: string): EitaaNewsItem[] {
       : null;
 
     let imageUrl: string | undefined;
-    message.find("a.etme_widget_message_photo_wrap").each((__, photo) => {
+    message.find("[style*='background-image']").each((__, media) => {
       if (imageUrl) return;
-      const style = $(photo).attr("style") || "";
+      const style = $(media).attr("style") || "";
       const match = style.match(/background-image\s*:\s*url\((['"]?)(.*?)\1\)/i);
-      imageUrl = normalizeImageUrl(match?.[2]);
+      const candidate = normalizeImageUrl(match?.[2]);
+      if (candidate?.includes("eitaa.com/download_")) imageUrl = candidate;
     });
+    if (!imageUrl) {
+      message.find("img").each((__, media) => {
+        if (imageUrl) return;
+        const candidate = normalizeImageUrl($(media).attr("src") || $(media).attr("data-src"));
+        if (candidate?.includes("eitaa.com/download_")) imageUrl = candidate;
+      });
+    }
+    if (!imageUrl) {
+      const poster = normalizeImageUrl(message.find("video").first().attr("poster"));
+      if (poster?.includes("eitaa.com/download_")) imageUrl = poster;
+    }
 
     const existing = byId.get(id);
     const item: EitaaNewsItem = {
@@ -128,7 +140,8 @@ export function parseEitaaReaderMarkdown(markdown: string): EitaaNewsItem[] {
     const start = (match.index || 0) + match[0].length;
     const end = index + 1 < matches.length ? (matches[index + 1].index || content.length) : content.length;
     const rawSegment = content.slice(start, end).trim();
-    const postId = rawSegment.match(/https:\/\/eitaa\.com\/s\/tvto66\/(\d+)/)?.[1];
+    const postIdPattern = new RegExp(`https://eitaa\\.com/s/${CHANNEL_USERNAME}/(\\d+)`, "i");
+    const postId = rawSegment.match(postIdPattern)?.[1];
     const lines = rawSegment.split("\n").map((line) => line.trim()).filter(Boolean);
     const dateIndex = lines.findLastIndex((line) => /^[۰-۹]{1,2}\s+[آ-ی]+(?:\s+۱۴۰[۰-۹])?$/u.test(line));
     const dateLabel = dateIndex >= 0 ? lines[dateIndex] : "تاریخ درج‌شده در ایتا";

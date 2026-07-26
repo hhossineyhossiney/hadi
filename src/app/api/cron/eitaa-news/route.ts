@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const status = result.reason === "source-unavailable" ? 503 : 200;
   return NextResponse.json({
     ok: status === 200,
-    source: "https://eitaa.com/tvto66",
+    source: result.feed.channelUrl,
     count: result.feed.items.length,
     refreshedAt: result.feed.refreshedAt,
     updated: result.updated,

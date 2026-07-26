@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, CalendarDays, ExternalLink, Newspaper, Radio, RefreshCw } from "lucide-react";
 import type { EitaaNewsFeed } from "@/lib/eitaa-news-types";
@@ -26,13 +27,13 @@ export default function LatestNewsSection({ feed }: { feed: EitaaNewsFeed }) {
           <div className="relative mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5 text-[9px] font-black text-emerald-200">
-                <Radio className="h-3.5 w-3.5" /> دریافت خودکار از کانال رسمی ایتا
+                <Radio className="h-3.5 w-3.5" /> دریافت خودکار از کانال ایتا زبرخان
               </div>
               <h2 id="latest-news-title" className="flex items-center gap-2 text-[clamp(21px,6vw,32px)] font-black text-white">
                 <Newspaper className="h-7 w-7 shrink-0 text-cyan-300" /> آخرین اخبار مهارت
               </h2>
               <p className="mt-2 text-[11px] font-medium leading-6 text-slate-300 sm:text-xs">
-                ۱۰ خبر و اطلاعیه تازه آموزشگاه‌های فنی و حرفه‌ای آزاد کشور
+                ۱۰ خبر و اطلاعیه تازه آموزش فنی و حرفه‌ای شهرستان زبرخان، همراه تصویر
               </p>
             </div>
 
@@ -48,7 +49,7 @@ export default function LatestNewsSection({ feed }: { feed: EitaaNewsFeed }) {
 
           <div className="news-horizontal-scroll relative flex snap-x snap-mandatory gap-3 overflow-x-auto pb-3 sm:gap-4" aria-label="ده خبر آخر">
             {items.map((item, index) => (
-              <article key={item.id} className="group relative min-h-[250px] w-[84vw] max-w-[360px] shrink-0 snap-start overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.055] p-4 transition hover:-translate-y-1 hover:border-cyan-300/35 hover:bg-white/[0.075] sm:w-[340px] sm:p-5">
+              <article key={item.id} className="group relative min-h-[455px] w-[84vw] max-w-[360px] shrink-0 snap-start overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.055] p-4 transition hover:-translate-y-1 hover:border-cyan-300/35 hover:bg-white/[0.075] sm:w-[340px] sm:p-5">
                 <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-l from-cyan-300 via-emerald-300 to-amber-300 opacity-70" />
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-300/10 text-[10px] font-black text-cyan-200">
@@ -57,6 +58,18 @@ export default function LatestNewsSection({ feed }: { feed: EitaaNewsFeed }) {
                   <span className="inline-flex items-center gap-1 text-[9px] font-bold text-slate-400">
                     <CalendarDays className="h-3.5 w-3.5 text-emerald-300" /> {item.dateLabel}
                   </span>
+                </div>
+
+                <div className="relative mb-3 aspect-video overflow-hidden rounded-[14px] border border-white/10 bg-[#031426]">
+                  <Image
+                    src={`/api/news/image/${encodeURIComponent(item.id)}`}
+                    alt={`تصویر خبر: ${item.title}`}
+                    fill
+                    unoptimized
+                    sizes="(max-width: 640px) 84vw, 340px"
+                    className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                  />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#04162a]/35 to-transparent" />
                 </div>
 
                 <h3 className="line-clamp-2 min-h-[50px] text-sm font-black leading-7 text-white sm:text-[15px]">{item.title}</h3>
@@ -77,7 +90,7 @@ export default function LatestNewsSection({ feed }: { feed: EitaaNewsFeed }) {
           <div className="relative mt-1 flex items-center justify-between gap-3 text-[9px] text-slate-500">
             <span>برای دیدن سایر خبرها، کارت‌ها را به طرفین بکشید.</span>
             <a href={feed.channelUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 font-black text-emerald-300 hover:text-emerald-200">
-              @tvto66
+              @AmoFan12
             </a>
           </div>
         </div>
