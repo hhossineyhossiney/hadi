@@ -79,12 +79,12 @@ export async function POST(request: Request) {
   await addRankingAudit({ rankingId: bundle.ranking.id, academyId: Number(ctx.institute.id), userId: Number(ctx.user.id), action: action === "submit" ? "self_declaration_submitted" : "self_declaration_saved", details: { year } });
 
   if (action === "submit") {
-    const assigned = await db.execute(sql`SELECT expert_id FROM ranking_assignments WHERE academy_id = ${Number(ctx.institute.id)} AND year = ${year}`);
-    const rows = Array.isArray(assigned) ? assigned : (assigned as any).rows || [];
+    const experts = await db.execute(sql`SELECT id FROM users WHERE role = 'expert'`);
+    const rows = Array.isArray(experts) ? experts : (experts as any).rows || [];
     for (const row of rows as any[]) {
       await db.execute(sql`
         INSERT INTO notifications (user_id, user_role, title, body, type, link)
-        VALUES (${Number(row.expert_id)}, 'expert', 'پرونده جدید رتبه‌بندی', ${`خوداظهاری ${ctx.institute.name} برای سال ${year} ارسال شد.`}, 'info', '/expert')
+        VALUES (${Number(row.id)}, 'expert', 'پرونده جدید رتبه‌بندی', ${`خوداظهاری ${ctx.institute.name} برای سال ${year} ارسال شد.`}, 'info', '/expert')
       `);
     }
   }

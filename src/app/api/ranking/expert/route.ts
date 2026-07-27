@@ -26,19 +26,17 @@ export async function GET(request: Request) {
   const academyId = Number(url.searchParams.get("academyId"));
   const year = Number(url.searchParams.get("year")) || currentRankingYear();
   if (academyId) {
-    if (!(await mayReview(user, academyId, year))) return NextResponse.json({ error: "این آموزشگاه به شما تخصیص داده نشده است" }, { status: 403 });
+    if (!(await mayReview(user, academyId, year))) return NextResponse.json({ error: "دسترسی به پرونده مجاز نیست" }, { status: 403 });
     return NextResponse.json(await getRankingBundle(academyId, year));
   }
 
-  const filter = sql``;
   const result = await db.execute(sql`
     SELECT ar.id, ar.academy_id, ar.year, ar.status, ar.score, ar.rank, ar.rank_label,
       ar.submitted_at, ar.updated_at, i.name AS academy_name, i.slug, rg.name AS city
     FROM academy_rankings ar
     JOIN institutes i ON i.id = ar.academy_id
     LEFT JOIN regions rg ON rg.id = i.region_id
-    LEFT JOIN ranking_assignments ra ON ra.academy_id = ar.academy_id AND ra.year = ar.year
-    WHERE ar.status <> 'draft' ${filter}
+    WHERE ar.status <> 'draft'
     ORDER BY CASE ar.status WHEN 'submitted' THEN 1 WHEN 'under_review' THEN 2 WHEN 'needs_correction' THEN 3 ELSE 4 END, ar.updated_at DESC
   `);
   const items = rowsOf(result);
@@ -61,7 +59,7 @@ export async function POST(request: Request) {
   if (!academyId || !(await mayReview(user, academyId, year))) return NextResponse.json({ error: "دسترسی به پرونده مجاز نیست" }, { status: 403 });
 
   const bundle = await getRankingBundle(academyId, year);
-  if (bundle.ranking.status === "published" && user.role !== "admin") return NextResponse.json({ error: "رتبه منتشرشده قابل تغییر نیست" }, { status: 409 });
+  if (bundle.ranking.status === "published") return NextResponse.json({ error: "برای ویرایش، ابتدا از بخش کنترل انتشار، انتشار رتبه را لغو کنید" }, { status: 409 });
   const incoming = Array.isArray(body.scores) ? body.scores : [];
   for (const criterion of bundle.scores) {
     const scoreInput = incoming.find((item: any) => item.code === criterion.code) || {};
@@ -93,11 +91,6 @@ export async function POST(request: Request) {
       valid_until = ${status === "published" ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : bundle.ranking.validUntil},
       updated_at = NOW()
     WHERE id = ${bundle.ranking.id}
-  `);
-  await db.execute(sql`
-    INSERT INTO ranking_assignments (academy_id, expert_id, year, assigned_by, status)
-    VALUES (${academyId}, ${Number(user.id)}, ${year}, ${Number(user.id)}, ${status})
-    ON CONFLICT (academy_id, expert_id, year) DO UPDATE SET status = EXCLUDED.status
   `);
   await addRankingAudit({ rankingId: bundle.ranking.id, academyId, userId: Number(user.id), action: `expert_${status}`, details: { score: finalScore, rank: rank.code } });
 

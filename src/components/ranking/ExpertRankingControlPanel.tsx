@@ -1,19 +1,117 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Award, CheckCircle2, Loader2, Plus, Send, ShieldCheck, Users2 } from "lucide-react";
+import { Award, CheckCircle2, Eye, EyeOff, Loader2, ShieldCheck, Users2 } from "lucide-react";
 
-export default function ExpertRankingControlPanel(){
- const [data,setData]=useState<any>(null),[loading,setLoading]=useState(true),[msg,setMsg]=useState("");
- const [expert,setExpert]=useState({name:"",phone:"",password:""});
- const [assignment,setAssignment]=useState({academyId:"",expertId:"",year:""});
- const load=()=>fetch("/api/ranking/control").then(r=>r.json()).then(setData).finally(()=>setLoading(false)); useEffect(()=>{ void load(); },[]);
- const act=async(body:any)=>{setMsg("");const r=await fetch("/api/ranking/control",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const d=await r.json();if(!r.ok){setMsg(`❌ ${d.error}`);return false}setMsg("✅ ذخیره شد");load();return true};
- if(loading)return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-cyan-300"/></div>;
- return <div className="space-y-6"><div><h2 className="flex items-center gap-2 text-2xl font-black"><Award className="h-6 w-6 text-amber-300"/> تنظیمات کامل رتبه‌بندی</h2><p className="text-xs text-slate-400">تمام اختیارات ایجاد کارشناس، تخصیص، انتشار، لغو انتشار و اعتبارسنجی در کنترل کارشناسان است.</p></div>{msg&&<div className="rounded-xl bg-white/5 p-3 text-xs">{msg}</div>}
- <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[["کل پرونده",data?.stats?.total,ShieldCheck],["منتظر بررسی",data?.stats?.waiting,Users2],["تایید کارشناس",data?.stats?.approved,CheckCircle2],["منتشرشده",data?.stats?.published,Award]].map(([l,v,I]:any)=><div key={l} className="rounded-[16px] border border-white/10 bg-[#111a2e] p-4"><I className="mb-3 h-5 w-5 text-cyan-300"/><div className="text-2xl font-black">{Number(v||0).toLocaleString("fa-IR")}</div><div className="text-[10px] text-slate-400">{l}</div></div>)}</div>
- <div className="grid gap-4 lg:grid-cols-2"><form onSubmit={async e=>{e.preventDefault();if(await act({action:"createExpert",...expert}))setExpert({name:"",phone:"",password:""})}} className="rounded-[18px] border border-white/10 bg-[#111a2e] p-5"><h3 className="mb-4 font-black">ایجاد حساب کارشناس</h3><div className="space-y-2"><input value={expert.name} onChange={e=>setExpert({...expert,name:e.target.value})} placeholder="نام کارشناس" className="w-full rounded-lg bg-white/90 px-3 py-2.5 text-sm text-slate-900"/><input value={expert.phone} onChange={e=>setExpert({...expert,phone:e.target.value})} placeholder="شماره موبایل" dir="ltr" className="w-full rounded-lg bg-white/90 px-3 py-2.5 text-sm text-slate-900"/><input value={expert.password} onChange={e=>setExpert({...expert,password:e.target.value})} placeholder="رمز حداقل ۶ کاراکتر" dir="ltr" className="w-full rounded-lg bg-white/90 px-3 py-2.5 text-sm text-slate-900"/><button className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 py-3 text-xs font-black text-slate-950"><Plus className="h-4 w-4"/>ساخت حساب کارشناس</button></div></form>
- <form onSubmit={async e=>{e.preventDefault();if(await act({action:"assign",...assignment,year:Number(assignment.year||data.currentYear)}))setAssignment({academyId:"",expertId:"",year:""})}} className="rounded-[18px] border border-white/10 bg-[#111a2e] p-5"><h3 className="mb-4 font-black">تخصیص آموزشگاه به کارشناس</h3><div className="space-y-2"><select value={assignment.academyId} onChange={e=>setAssignment({...assignment,academyId:e.target.value})} className="w-full rounded-lg bg-white/90 px-3 py-2.5 text-sm text-slate-900"><option value="">انتخاب آموزشگاه</option>{data?.institutes?.map((x:any)=><option key={x.id} value={x.id}>{x.name}</option>)}</select><select value={assignment.expertId} onChange={e=>setAssignment({...assignment,expertId:e.target.value})} className="w-full rounded-lg bg-white/90 px-3 py-2.5 text-sm text-slate-900"><option value="">انتخاب کارشناس</option>{data?.experts?.map((x:any)=><option key={x.id} value={x.id}>{x.name} — {x.phone}</option>)}</select><input type="number" value={assignment.year} onChange={e=>setAssignment({...assignment,year:e.target.value})} placeholder={`سال رتبه‌بندی (${data?.currentYear})`} className="w-full rounded-lg bg-white/90 px-3 py-2.5 text-sm text-slate-900"/><button className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary-600 py-3 text-xs font-black"><Send className="h-4 w-4"/>ثبت تخصیص</button></div></form></div>
- <div className="overflow-x-auto rounded-[18px] border border-white/10 bg-[#111a2e]"><table className="w-full min-w-[760px] text-xs"><thead><tr className="border-b border-white/10 text-right text-[10px] text-slate-500"><th className="p-4">آموزشگاه</th><th>سال</th><th>کارشناس</th><th>امتیاز</th><th>رتبه</th><th>وضعیت</th><th>انتشار</th></tr></thead><tbody>{data?.rankings?.map((r:any)=><tr key={r.id} className="border-b border-white/5"><td className="p-4 font-black">{r.academy_name}</td><td>{r.year}</td><td>{r.expert_name||"تخصیص‌نیافته"}</td><td>{Number(r.score||0)}</td><td className="font-black text-amber-300">{r.rank||"—"}</td><td>{r.status}</td><td>{["approved","published"].includes(r.status)?<button onClick={()=>act({action:r.status==="published"?"unpublish":"publish",rankingId:r.id})} className={`rounded-lg px-3 py-2 font-black ${r.status==="published"?"bg-amber-500/20 text-amber-300":"bg-emerald-500 text-slate-950"}`}>{r.status==="published"?"لغو انتشار":"انتشار و استعلام"}</button>:<span className="text-slate-600">پس از تایید کارشناس</span>}</td></tr>)}</tbody></table></div>
- </div>
+function statusLabel(status: string) {
+  return ({ draft: "پیش‌نویس", submitted: "منتظر بررسی", under_review: "در حال بررسی", needs_correction: "نیازمند اصلاح", approved: "تاییدشده", published: "منتشرشده" } as Record<string, string>)[status] || status;
+}
+
+export default function ExpertRankingControlPanel() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<number | null>(null);
+  const [msg, setMsg] = useState("");
+
+  const load = () => fetch("/api/ranking/control")
+    .then(async (response) => {
+      const value = await response.json();
+      if (!response.ok) throw new Error(value.error || "خطا در دریافت اطلاعات");
+      setData(value);
+    })
+    .catch((error) => setMsg(`❌ ${error.message}`))
+    .finally(() => setLoading(false));
+
+  useEffect(() => { void load(); }, []);
+
+  const changePublication = async (ranking: any) => {
+    setBusy(ranking.id);
+    setMsg("");
+    const response = await fetch("/api/ranking/control", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: ranking.status === "published" ? "unpublish" : "publish", rankingId: ranking.id }),
+    });
+    const result = await response.json();
+    setBusy(null);
+    if (!response.ok) return setMsg(`❌ ${result.error || "خطا"}`);
+    setMsg(ranking.status === "published" ? "✅ انتشار رتبه لغو شد" : "✅ رتبه منتشر و صفحه استعلام فعال شد");
+    load();
+  };
+
+  if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-cyan-300" /></div>;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="flex items-center gap-2 text-2xl font-black">
+          <Award className="h-6 w-6 text-amber-300" /> کنترل انتشار و اعتبار رتبه‌ها
+        </h2>
+        <p className="mt-1 text-xs text-slate-400">
+          تمام آموزشگاه‌ها به‌صورت خودکار در اختیار همین کارشناس هستند؛ نیازی به ساخت کارشناس یا تخصیص آموزشگاه وجود ندارد.
+        </p>
+      </div>
+
+      {msg && <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs font-bold">{msg}</div>}
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[
+          ["کل پرونده‌ها", data?.stats?.total, ShieldCheck, "text-cyan-300"],
+          ["منتظر بررسی", data?.stats?.waiting, Users2, "text-amber-300"],
+          ["تایید کارشناس", data?.stats?.approved, CheckCircle2, "text-emerald-300"],
+          ["منتشرشده", data?.stats?.published, Award, "text-fuchsia-300"],
+        ].map(([label, value, Icon, color]: any) => (
+          <div key={label} className="rounded-[16px] border border-white/10 bg-[#111a2e] p-4">
+            <Icon className={`mb-3 h-5 w-5 ${color}`} />
+            <div className="text-2xl font-black">{Number(value || 0).toLocaleString("fa-IR")}</div>
+            <div className="text-[10px] text-slate-400">{label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="overflow-x-auto rounded-[18px] border border-white/10 bg-[#111a2e]">
+        <table className="w-full min-w-[700px] text-xs">
+          <thead>
+            <tr className="border-b border-white/10 text-right text-[10px] text-slate-500">
+              <th className="p-4">آموزشگاه</th>
+              <th>سال</th>
+              <th>امتیاز</th>
+              <th>رتبه</th>
+              <th>وضعیت</th>
+              <th>تاریخ انتشار</th>
+              <th>کنترل انتشار</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(data?.rankings || []).map((ranking: any) => (
+              <tr key={ranking.id} className="border-b border-white/5 hover:bg-white/[0.025]">
+                <td className="p-4 font-black text-white">{ranking.academy_name}</td>
+                <td>{ranking.year}</td>
+                <td>{Number(ranking.score || 0).toLocaleString("fa-IR")} از ۱۰۰</td>
+                <td className="text-base font-black text-amber-300">{ranking.rank || "—"}</td>
+                <td><span className="rounded-full bg-cyan-500/10 px-2 py-1 text-[10px] text-cyan-200">{statusLabel(ranking.status)}</span></td>
+                <td className="text-[10px] text-slate-500">{ranking.published_at ? new Date(ranking.published_at).toLocaleDateString("fa-IR") : "—"}</td>
+                <td>
+                  {["approved", "published"].includes(ranking.status) ? (
+                    <button
+                      type="button"
+                      onClick={() => changePublication(ranking)}
+                      disabled={busy === ranking.id}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 font-black disabled:opacity-50 ${ranking.status === "published" ? "bg-amber-500/15 text-amber-300" : "bg-emerald-500 text-slate-950"}`}
+                    >
+                      {busy === ranking.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : ranking.status === "published" ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      {ranking.status === "published" ? "لغو انتشار" : "انتشار"}
+                    </button>
+                  ) : <span className="text-[10px] text-slate-600">پس از تکمیل ارزیابی</span>}
+                </td>
+              </tr>
+            ))}
+            {(data?.rankings || []).length === 0 && (
+              <tr><td colSpan={7} className="p-12 text-center text-slate-500">هنوز پرونده رتبه‌بندی ایجاد نشده است.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 }
