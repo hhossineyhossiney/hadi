@@ -10,15 +10,12 @@ export const dynamic = "force-dynamic";
 async function userContext() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
-  return user?.id && ["expert", "admin"].includes(user.role) ? user : null;
+  return user?.id && user.role === "expert" ? user : null;
 }
 
 async function mayReview(user: any, academyId: number, year: number) {
-  if (user.role === "admin") return true;
-  const result = await db.execute(sql`
-    SELECT id FROM ranking_assignments WHERE academy_id = ${academyId} AND expert_id = ${Number(user.id)} AND year = ${year} LIMIT 1
-  `);
-  return rowsOf(result).length > 0;
+  if (user.role !== "expert" || !academyId || !year) return false;
+  return true;
 }
 
 export async function GET(request: Request) {
@@ -33,7 +30,7 @@ export async function GET(request: Request) {
     return NextResponse.json(await getRankingBundle(academyId, year));
   }
 
-  const filter = user.role === "admin" ? sql`` : sql`AND ra.expert_id = ${Number(user.id)}`;
+  const filter = sql``;
   const result = await db.execute(sql`
     SELECT ar.id, ar.academy_id, ar.year, ar.status, ar.score, ar.rank, ar.rank_label,
       ar.submitted_at, ar.updated_at, i.name AS academy_name, i.slug, rg.name AS city
@@ -79,7 +76,8 @@ export async function POST(request: Request) {
     `);
   }
 
-  const status = ["under_review", "needs_correction", "approved"].includes(body.status) ? body.status : "under_review";
+  const requestedStatus = ["under_review", "needs_correction", "approved"].includes(body.status) ? body.status : "under_review";
+  const status = requestedStatus === "approved" ? "published" : requestedStatus;
   const refreshed = await getRankingBundle(academyId, year);
   const finalScore = refreshed.scores.reduce((sum: number, item: any) => sum + Number(item.expertScore ?? item.systemScore ?? 0), 0);
   const rank = rankFromScore(finalScore);
@@ -90,17 +88,24 @@ export async function POST(request: Request) {
     UPDATE academy_rankings SET expert_id = ${Number(user.id)}, status = ${status}, score = ${finalScore},
       rank = ${rank.code}, rank_label = ${rank.label}, strengths = ${JSON.stringify(strengths)}::jsonb,
       improvements = ${JSON.stringify(improvements)}::jsonb,
-      reviewed_at = ${["approved", "needs_correction"].includes(status) ? new Date() : null}, updated_at = NOW()
+      reviewed_at = ${["published", "needs_correction"].includes(status) ? new Date() : null},
+      published_at = ${status === "published" ? new Date() : bundle.ranking.publishedAt},
+      valid_until = ${status === "published" ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : bundle.ranking.validUntil},
+      updated_at = NOW()
     WHERE id = ${bundle.ranking.id}
   `);
-  await db.execute(sql`UPDATE ranking_assignments SET status = ${status} WHERE academy_id = ${academyId} AND year = ${year} AND expert_id = ${Number(user.id)}`);
+  await db.execute(sql`
+    INSERT INTO ranking_assignments (academy_id, expert_id, year, assigned_by, status)
+    VALUES (${academyId}, ${Number(user.id)}, ${year}, ${Number(user.id)}, ${status})
+    ON CONFLICT (academy_id, expert_id, year) DO UPDATE SET status = EXCLUDED.status
+  `);
   await addRankingAudit({ rankingId: bundle.ranking.id, academyId, userId: Number(user.id), action: `expert_${status}`, details: { score: finalScore, rank: rank.code } });
 
   const institute = rowsOf(await db.execute(sql`SELECT user_id, name FROM institutes WHERE id = ${academyId}`))[0] as any;
   if (institute?.user_id) {
     await db.execute(sql`
       INSERT INTO notifications (user_id, user_role, title, body, type, link)
-      VALUES (${Number(institute.user_id)}, 'institute', ${status === "needs_correction" ? "پرونده رتبه‌بندی نیازمند اصلاح است" : status === "approved" ? "رتبه آموزشگاه تایید شد" : "بررسی رتبه‌بندی آغاز شد"},
+      VALUES (${Number(institute.user_id)}, 'institute', ${status === "needs_correction" ? "پرونده رتبه‌بندی نیازمند اصلاح است" : status === "published" ? "رتبه آموزشگاه تایید و منتشر شد" : "بررسی رتبه‌بندی آغاز شد"},
         ${status === "needs_correction" ? "کارشناس مواردی را برای اصلاح ثبت کرده است." : `امتیاز فعلی آموزشگاه ${finalScore} از ۱۰۰ است.`}, ${status === "needs_correction" ? "warning" : "success"}, '/panel')
     `);
   }

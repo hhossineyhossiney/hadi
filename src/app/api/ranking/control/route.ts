@@ -9,15 +9,15 @@ import { normalizePhone } from "@/lib/phone";
 
 export const dynamic = "force-dynamic";
 
-async function admin() {
+async function rankingExpert() {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
-  return user?.id && (user.role === "admin" || ["09159513179", "09150000000"].includes(normalizePhone(user.phone || ""))) ? user : null;
+  return user?.id && user.role === "expert" ? user : null;
 }
 
 export async function GET() {
-  const user = await admin();
-  if (!user) return NextResponse.json({ error: "دسترسی مدیر مرکزی لازم است" }, { status: 401 });
+  const user = await rankingExpert();
+  if (!user) return NextResponse.json({ error: "دسترسی کارشناس رتبه‌بندی لازم است" }, { status: 401 });
   await ensureRankingSystem();
   const [expertsResult, institutesResult, assignmentsResult, rankingsResult] = await Promise.all([
     db.execute(sql`SELECT id, name, phone, email, created_at FROM users WHERE role = 'expert' ORDER BY name`),
@@ -39,8 +39,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await admin();
-  if (!user) return NextResponse.json({ error: "دسترسی مدیر مرکزی لازم است" }, { status: 401 });
+  const user = await rankingExpert();
+  if (!user) return NextResponse.json({ error: "دسترسی کارشناس رتبه‌بندی لازم است" }, { status: 401 });
   await ensureRankingSystem();
   const body = await request.json();
 
