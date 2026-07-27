@@ -30,123 +30,148 @@ export async function GET(request: Request) {
     return NextResponse.json(await getRankingBundle(academyId, year));
   }
 
-  const [result, totalsResult, trendResult, cityResult, distributionResult] = await Promise.all([
-    db.execute(sql`
+  let baseRows: any[] = [];
+  try {
+    baseRows = rowsOf(await db.execute(sql`
       SELECT COALESCE(ar.id, 0) AS id, i.id AS academy_id, ${year}::int AS year,
         COALESCE(ar.status, 'not_started') AS status, COALESCE(ar.score, 0) AS score,
         ar.rank, ar.rank_label, ar.submitted_at, ar.reviewed_at, ar.published_at,
         COALESCE(ar.updated_at, i.created_at) AS updated_at,
         i.name AS academy_name, i.slug, i.user_id AS manager_user_id, rg.name AS city,
         COALESCE(sd.status, 'not_started') AS declaration_status,
-        COALESCE(jsonb_object_length(COALESCE(sd.physical, '{}'::jsonb)), 0)::int AS physical_fields,
-        COALESCE(jsonb_array_length(COALESCE(sd.books, '[]'::jsonb)), 0)::int AS books_count,
-        COALESCE(jsonb_array_length(COALESCE(sd.seminars, '[]'::jsonb)), 0)::int AS seminars_count,
-        COALESCE(jsonb_array_length(COALESCE(sd.honors, '[]'::jsonb)), 0)::int AS honors_count,
-        COALESCE(jsonb_array_length(COALESCE(sd.documents, '[]'::jsonb)), 0)::int AS documents_count,
-        (CASE WHEN COALESCE(jsonb_object_length(COALESCE(sd.physical, '{}'::jsonb)), 0) >= 4 THEN 40 ELSE COALESCE(jsonb_object_length(COALESCE(sd.physical, '{}'::jsonb)), 0) * 10 END
-          + CASE WHEN COALESCE(jsonb_array_length(COALESCE(sd.documents, '[]'::jsonb)), 0) > 0 THEN 20 ELSE 0 END
-          + CASE WHEN COALESCE(jsonb_array_length(COALESCE(sd.books, '[]'::jsonb)), 0) > 0 THEN 15 ELSE 0 END
-          + CASE WHEN COALESCE(jsonb_array_length(COALESCE(sd.seminars, '[]'::jsonb)), 0) > 0 THEN 15 ELSE 0 END
-          + CASE WHEN COALESCE(jsonb_array_length(COALESCE(sd.honors, '[]'::jsonb)), 0) > 0 THEN 10 ELSE 0 END)::int AS completion_percent,
+        COALESCE(sd.physical, '{}'::jsonb) AS physical,
+        COALESCE(sd.books, '[]'::jsonb) AS books,
+        COALESCE(sd.seminars, '[]'::jsonb) AS seminars,
+        COALESCE(sd.honors, '[]'::jsonb) AS honors,
+        COALESCE(sd.documents, '[]'::jsonb) AS documents,
         (SELECT COUNT(*)::int FROM registrations reg WHERE reg.institute_id = i.id AND COALESCE(reg.notes, '') <> '__FAV__') AS total_students,
-        COALESCE((SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE g.status = 'passed') / NULLIF(COUNT(*) FILTER (WHERE g.status IN ('passed','failed')), 0), 1) FROM grades g WHERE g.institute_id = i.id), 0) AS pass_rate,
-        COALESCE((SELECT previous.score FROM academy_rankings previous WHERE previous.academy_id = i.id AND previous.year < ${year} ORDER BY previous.year DESC LIMIT 1), 0) AS previous_score,
-        CASE
-          WHEN ar.status = 'submitted' AND ar.submitted_at < NOW() - INTERVAL '2 days' THEN 'urgent'
-          WHEN ar.status = 'needs_correction' THEN 'high'
-          WHEN ar.id IS NULL OR ar.status = 'draft' THEN 'incomplete'
-          WHEN COALESCE(jsonb_array_length(COALESCE(sd.documents, '[]'::jsonb)), 0) = 0 THEN 'documents'
-          ELSE 'normal'
-        END AS priority
+        (SELECT COUNT(*)::int FROM courses course WHERE course.institute_id = i.id) AS courses_count,
+        COALESCE((SELECT previous.score FROM academy_rankings previous WHERE previous.academy_id = i.id AND previous.year < ${year} ORDER BY previous.year DESC LIMIT 1), 0) AS previous_score
       FROM institutes i
       LEFT JOIN regions rg ON rg.id = i.region_id
       LEFT JOIN academy_rankings ar ON ar.academy_id = i.id AND ar.year = ${year}
       LEFT JOIN self_declarations sd ON sd.academy_id = i.id AND sd.year = ${year}
       WHERE i.is_active = TRUE
-      ORDER BY CASE COALESCE(ar.status, 'not_started') WHEN 'submitted' THEN 1 WHEN 'under_review' THEN 2 WHEN 'needs_correction' THEN 3 WHEN 'not_started' THEN 4 WHEN 'draft' THEN 5 ELSE 6 END, COALESCE(ar.updated_at, i.created_at) DESC
-    `),
-    db.execute(sql`
-      SELECT
-        (SELECT COUNT(*)::int FROM institutes WHERE is_active = TRUE) AS total_academies,
-        COUNT(*) FILTER (WHERE status IN ('submitted','under_review','needs_correction','approved'))::int AS active_cases,
-        COUNT(*) FILTER (WHERE status = 'submitted')::int AS waiting,
-        COUNT(*) FILTER (WHERE status IN ('approved','published'))::int AS approved,
-        COUNT(*) FILTER (WHERE status = 'needs_correction')::int AS needs_correction,
-        COUNT(*) FILTER (WHERE rank = 'A+' AND status IN ('approved','published'))::int AS excellent,
-        COUNT(*) FILTER (WHERE status = 'submitted' AND submitted_at::date = CURRENT_DATE)::int AS today_cases,
-        COUNT(*) FILTER (WHERE status = 'submitted' AND submitted_at < NOW() - INTERVAL '2 days')::int AS urgent,
-        COUNT(*) FILTER (WHERE status IN ('approved','published') AND reviewed_at::date = CURRENT_DATE)::int AS today_approved,
-        COUNT(*) FILTER (WHERE status = 'needs_correction' AND reviewed_at::date = CURRENT_DATE)::int AS today_returned,
-        COUNT(*) FILTER (WHERE status IN ('approved','published') AND reviewed_at::date = CURRENT_DATE)::int AS today_reviewed,
-        COALESCE(ROUND(AVG(score) FILTER (WHERE status IN ('approved','published')), 1), 0) AS average_score,
-        COALESCE(ROUND(AVG(score) FILTER (WHERE year = ${year} AND status IN ('approved','published')), 1), 0) AS current_average,
-        COALESCE(ROUND(AVG(score) FILTER (WHERE year = ${year - 1} AND status IN ('approved','published')), 1), 0) AS previous_average
-      FROM academy_rankings
-    `),
-    db.execute(sql`
-      SELECT TO_CHAR(DATE_TRUNC('month', COALESCE(reviewed_at, updated_at)), 'YYYY-MM') AS month,
-        COUNT(*)::int AS count
-      FROM academy_rankings
-      WHERE status IN ('approved','published') AND COALESCE(reviewed_at, updated_at) >= NOW() - INTERVAL '6 months'
-      GROUP BY DATE_TRUNC('month', COALESCE(reviewed_at, updated_at))
-      ORDER BY DATE_TRUNC('month', COALESCE(reviewed_at, updated_at))
-    `),
-    db.execute(sql`
-      SELECT COALESCE(rg.name, 'بدون منطقه') AS city, COUNT(ar.id)::int AS cases,
-        COALESCE(ROUND(AVG(ar.score) FILTER (WHERE ar.status IN ('approved','published')), 1), 0) AS average
-      FROM institutes i
-      LEFT JOIN regions rg ON rg.id = i.region_id
-      LEFT JOIN academy_rankings ar ON ar.academy_id = i.id
-      WHERE i.is_active = TRUE
-      GROUP BY rg.name ORDER BY average DESC, city
-    `),
-    db.execute(sql`
-      SELECT COALESCE(rank, 'بدون رتبه') AS rank, COUNT(*)::int AS count
-      FROM academy_rankings WHERE status IN ('approved','published')
-      GROUP BY rank ORDER BY CASE rank WHEN 'A+' THEN 1 WHEN 'A' THEN 2 WHEN 'B' THEN 3 WHEN 'C' THEN 4 WHEN 'D' THEN 5 ELSE 6 END
-    `),
-  ]);
-  const items = rowsOf(result).map((item: any) => {
+      ORDER BY i.name
+    `));
+  } catch (error) {
+    console.error("ranking expert institute list", error);
+    return NextResponse.json({ error: "خطا در دریافت فهرست آموزشگاه‌ها؛ لطفاً دوباره تلاش کنید." }, { status: 500 });
+  }
+
+  const passRates = new Map<number, number>();
+  try {
+    const gradeRows = rowsOf(await db.execute(sql`
+      SELECT institute_id,
+        COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE status = 'passed') / NULLIF(COUNT(*) FILTER (WHERE status IN ('passed','failed')), 0), 1), 0) AS pass_rate
+      FROM grades GROUP BY institute_id
+    `));
+    gradeRows.forEach((row: any) => passRates.set(Number(row.institute_id), Number(row.pass_rate || 0)));
+  } catch (error) {
+    console.error("ranking expert pass rates", error);
+  }
+
+  const asObject = (value: any) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  const asArray = (value: any) => Array.isArray(value) ? value : [];
+  const items = baseRows.map((row: any) => {
+    const physical = asObject(row.physical);
+    const books = asArray(row.books);
+    const seminars = asArray(row.seminars);
+    const honors = asArray(row.honors);
+    const documents = asArray(row.documents);
+    const physicalFields = [physical.area, physical.classrooms, physical.workshops, physical.systems].filter((value) => String(value || "").trim()).length;
+    const completion = Math.min(100,
+      physicalFields * 10
+      + (documents.length > 0 ? 20 : 0)
+      + (books.length > 0 ? 15 : 0)
+      + (seminars.length > 0 ? 15 : 0)
+      + (honors.length > 0 ? 10 : 0)
+    );
     const missingItems: string[] = [];
-    if (Number(item.physical_fields || 0) < 4) missingItems.push("اطلاعات امکانات فیزیکی");
-    if (Number(item.documents_count || 0) === 0) missingItems.push("تصاویر و مستندات");
-    if (Number(item.books_count || 0) === 0) missingItems.push("کتاب‌ها یا فعالیت علمی");
-    if (Number(item.seminars_count || 0) === 0) missingItems.push("سمینارها و رویدادها");
-    if (Number(item.honors_count || 0) === 0) missingItems.push("افتخارات و دستاوردها");
-    return { ...item, missing_items: missingItems };
+    if (physicalFields < 4) missingItems.push("اطلاعات امکانات فیزیکی");
+    if (documents.length === 0) missingItems.push("تصاویر و مستندات");
+    if (books.length === 0) missingItems.push("کتاب‌ها یا فعالیت علمی");
+    if (seminars.length === 0) missingItems.push("سمینارها و رویدادها");
+    if (honors.length === 0) missingItems.push("افتخارات و دستاوردها");
+    const status = String(row.status || "not_started");
+    const submittedAt = row.submitted_at ? new Date(row.submitted_at) : null;
+    const priority = status === "submitted" && submittedAt && Date.now() - submittedAt.getTime() > 2 * 86400000
+      ? "urgent"
+      : status === "needs_correction"
+        ? "high"
+        : ["not_started", "draft"].includes(status)
+          ? "incomplete"
+          : documents.length === 0
+            ? "documents"
+            : "normal";
+    return {
+      ...row,
+      physical_fields: physicalFields,
+      books_count: books.length,
+      seminars_count: seminars.length,
+      honors_count: honors.length,
+      documents_count: documents.length,
+      completion_percent: completion,
+      missing_items: missingItems,
+      priority,
+      pass_rate: passRates.get(Number(row.academy_id)) || 0,
+    };
   });
-  const total = rowsOf(totalsResult)[0] as any || {};
-  const currentAverage = Number(total.current_average || 0);
-  const previousAverage = Number(total.previous_average || 0);
+
+  const finalItems = items.filter((item: any) => ["approved", "published"].includes(item.status));
+  const average = (values: number[]) => values.length ? Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 10) / 10 : 0;
+  const currentAverage = average(finalItems.map((item: any) => Number(item.score || 0)));
+  const previousScores = finalItems.map((item: any) => Number(item.previous_score || 0)).filter((value: number) => value > 0);
+  const previousAverage = average(previousScores);
   const growth = previousAverage > 0 ? Math.round(((currentAverage - previousAverage) / previousAverage) * 1000) / 10 : 0;
+  const today = new Date().toDateString();
+  const isToday = (value: any) => value && new Date(value).toDateString() === today;
+
+  const cityMap = new Map<string, { city: string; cases: number; scores: number[] }>();
+  items.forEach((item: any) => {
+    const city = item.city || "بدون منطقه";
+    const entry: { city: string; cases: number; scores: number[] } = cityMap.get(city) || { city, cases: 0, scores: [] };
+    entry.cases += 1;
+    if (["approved", "published"].includes(item.status)) entry.scores.push(Number(item.score || 0));
+    cityMap.set(city, entry);
+  });
+  const cityStats = [...cityMap.values()].map((entry) => ({ city: entry.city, cases: entry.cases, average: average(entry.scores) })).sort((a, b) => b.average - a.average);
+
+  const rankOrder = ["A+", "A", "B", "C", "D"];
+  const distribution = rankOrder.map((rank) => ({ rank, count: finalItems.filter((item: any) => item.rank === rank).length }));
+
+  const trendMap = new Map<string, number>();
+  finalItems.forEach((item: any) => {
+    const date = new Date(item.reviewed_at || item.updated_at);
+    if (Number.isNaN(date.getTime())) return;
+    const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    trendMap.set(month, (trendMap.get(month) || 0) + 1);
+  });
+  const trend = [...trendMap.entries()].sort(([a], [b]) => a.localeCompare(b)).slice(-6).map(([month, count]) => ({ month, count }));
+
   const incompleteDocuments = items.filter((item: any) => Number(item.documents_count || 0) === 0).length;
   const incompleteDeclarations = items.filter((item: any) => Number(item.completion_percent || 0) < 100).length;
-  const notStarted = items.filter((item: any) => ["not_started", "draft"].includes(item.status)).length;
   const stats = {
-    totalAcademies: Number(total.total_academies || 0),
-    activeCases: Number(total.active_cases || 0),
-    waiting: Number(total.waiting || 0),
-    reviewed: Number(total.approved || 0),
-    approved: Number(total.approved || 0),
-    needsCorrection: Number(total.needs_correction || 0),
-    excellent: Number(total.excellent || 0),
-    averageScore: Number(total.average_score || 0),
+    totalAcademies: items.length,
+    activeCases: items.filter((item: any) => ["submitted", "under_review", "needs_correction", "approved"].includes(item.status)).length,
+    waiting: items.filter((item: any) => item.status === "submitted").length,
+    reviewed: finalItems.length,
+    approved: finalItems.length,
+    needsCorrection: items.filter((item: any) => item.status === "needs_correction").length,
+    excellent: finalItems.filter((item: any) => item.rank === "A+").length,
+    averageScore: currentAverage,
     growth,
-    todayCases: Number(total.today_cases || 0),
-    urgent: Number(total.urgent || 0),
+    todayCases: items.filter((item: any) => isToday(item.submitted_at)).length,
+    urgent: items.filter((item: any) => item.priority === "urgent").length,
     incompleteDocuments,
     incompleteDeclarations,
-    notStarted,
-    todayApproved: Number(total.today_approved || 0),
-    todayReturned: Number(total.today_returned || 0),
-    todayReviewed: Number(total.today_reviewed || 0),
+    notStarted: items.filter((item: any) => ["not_started", "draft"].includes(item.status)).length,
+    todayApproved: finalItems.filter((item: any) => isToday(item.reviewed_at)).length,
+    todayReturned: items.filter((item: any) => item.status === "needs_correction" && isToday(item.reviewed_at)).length,
+    todayReviewed: finalItems.filter((item: any) => isToday(item.reviewed_at)).length,
   };
-  return NextResponse.json({
-    items, stats, year,
-    trend: rowsOf(trendResult),
-    cityStats: rowsOf(cityResult),
-    distribution: rowsOf(distributionResult),
-  });
+
+  return NextResponse.json({ items, stats, year, trend, cityStats, distribution });
 }
 
 export async function POST(request: Request) {

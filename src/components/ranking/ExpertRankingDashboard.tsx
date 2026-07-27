@@ -27,6 +27,13 @@ function persianDate() {
   return new Intl.DateTimeFormat("fa-IR-u-ca-persian", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date());
 }
 
+async function readJsonResponse(response: Response) {
+  const text = await response.text();
+  if (!text.trim()) throw new Error("پاسخ سرور خالی بود؛ لطفاً دوباره تلاش کنید.");
+  try { return JSON.parse(text); }
+  catch { throw new Error("پاسخ سرور قابل پردازش نبود؛ صفحه را تازه‌سازی کنید."); }
+}
+
 export default function ExpertRankingDashboard() {
   const { data: session, status } = useSession();
   const user = session?.user as any;
@@ -46,7 +53,7 @@ export default function ExpertRankingDashboard() {
     setLoading(true);
     fetch("/api/ranking/expert")
       .then(async (response) => {
-        const value = await response.json();
+        const value = await readJsonResponse(response);
         if (!response.ok) throw new Error(value.error);
         setList(value);
       })
@@ -57,7 +64,7 @@ export default function ExpertRankingDashboard() {
   useEffect(() => {
     fetch("/api/ranking/expert")
       .then(async (response) => {
-        const value = await response.json();
+        const value = await readJsonResponse(response);
         if (!response.ok) throw new Error(value.error);
         setList(value);
       })
@@ -66,15 +73,16 @@ export default function ExpertRankingDashboard() {
   }, []);
 
   const open = (item: any) => fetch(`/api/ranking/expert?academyId=${item.academy_id}&year=${item.year}`)
-    .then((response) => response.json())
-    .then((value) => setSelected({ ...value, academyId: item.academy_id, academyName: item.academy_name, listItem: item, strengths: value.ranking.strengths || [], improvements: value.ranking.improvements || [] }));
+    .then(async (response) => { const value = await readJsonResponse(response); if (!response.ok) throw new Error(value.error || "خطا در دریافت پرونده"); return value; })
+    .then((value) => setSelected({ ...value, academyId: item.academy_id, academyName: item.academy_name, listItem: item, strengths: value.ranking.strengths || [], improvements: value.ranking.improvements || [] }))
+    .catch((error) => setMsg(`❌ ${error.message}`));
 
   const updateScore = (code: string, patch: any) => setSelected((current: any) => ({ ...current, scores: current.scores.map((score: any) => score.code === code ? { ...score, ...patch } : score) }));
 
   const save = async (nextStatus: string) => {
     setSaving(true); setMsg("");
     const response = await fetch("/api/ranking/expert", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ academyId: selected.academyId, year: selected.year, status: nextStatus, scores: selected.scores, strengths: selected.strengths, improvements: selected.improvements }) });
-    const value = await response.json(); setSaving(false);
+    const value = await readJsonResponse(response); setSaving(false);
     if (!response.ok) return setMsg(`❌ ${value.error}`);
     setMsg("✅ ارزیابی ذخیره شد"); setSelected(null); load();
   };
@@ -88,7 +96,7 @@ export default function ExpertRankingDashboard() {
     if (!message) return;
     setMsg("");
     const response = await fetch("/api/ranking/expert", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "send_reminder", academyId: item.academy_id, year: item.year, severity: severity === "warning" ? "warning" : "reminder", message }) });
-    const result = await response.json();
+    const result = await readJsonResponse(response);
     if (!response.ok) return setMsg(`❌ ${result.error || "ارسال پیام ناموفق بود"}`);
     setMsg(`✅ پیام برای ${result.sentTo} ارسال شد`);
   };
