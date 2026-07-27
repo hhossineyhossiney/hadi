@@ -170,6 +170,7 @@ export async function getAutomaticMetrics(academyId: number) {
   await ensureRankingSystem();
   const instituteResult = await db.execute(sql`
     SELECT i.id, i.name, i.slug, i.license_number, i.established_year, i.created_at,
+      i.description, i.address, i.phone, i.mobile, i.manager_name, i.manager_title,
       r.name AS city
     FROM institutes i LEFT JOIN regions r ON r.id = i.region_id
     WHERE i.id = ${academyId} LIMIT 1
@@ -217,6 +218,12 @@ export async function getAutomaticMetrics(academyId: number) {
     slug: institute.slug,
     academyCode: institute.license_number || `FNX-${String(academyId).padStart(4, "0")}`,
     city: institute.city || "زبرخان",
+    description: institute.description || "توضیحی برای آموزشگاه ثبت نشده است.",
+    address: institute.address || "ثبت نشده",
+    phone: institute.phone || "ثبت نشده",
+    mobile: institute.mobile || "ثبت نشده",
+    managerName: institute.manager_name || "ثبت نشده",
+    managerTitle: institute.manager_title || "مدیر آموزشگاه",
     establishedYear: establishedYear || "ثبت نشده",
     activityYears,
     totalStudents,
