@@ -30,23 +30,98 @@ export async function GET(request: Request) {
     return NextResponse.json(await getRankingBundle(academyId, year));
   }
 
-  const result = await db.execute(sql`
-    SELECT ar.id, ar.academy_id, ar.year, ar.status, ar.score, ar.rank, ar.rank_label,
-      ar.submitted_at, ar.updated_at, i.name AS academy_name, i.slug, rg.name AS city
-    FROM academy_rankings ar
-    JOIN institutes i ON i.id = ar.academy_id
-    LEFT JOIN regions rg ON rg.id = i.region_id
-    WHERE ar.status <> 'draft'
-    ORDER BY CASE ar.status WHEN 'submitted' THEN 1 WHEN 'under_review' THEN 2 WHEN 'needs_correction' THEN 3 ELSE 4 END, ar.updated_at DESC
-  `);
+  const [result, totalsResult, trendResult, cityResult, distributionResult] = await Promise.all([
+    db.execute(sql`
+      SELECT ar.id, ar.academy_id, ar.year, ar.status, ar.score, ar.rank, ar.rank_label,
+        ar.submitted_at, ar.reviewed_at, ar.published_at, ar.updated_at,
+        i.name AS academy_name, i.slug, rg.name AS city,
+        (SELECT COUNT(*)::int FROM registrations reg WHERE reg.institute_id = i.id AND COALESCE(reg.notes, '') <> '__FAV__') AS total_students,
+        COALESCE((SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE g.status = 'passed') / NULLIF(COUNT(*) FILTER (WHERE g.status IN ('passed','failed')), 0), 1) FROM grades g WHERE g.institute_id = i.id), 0) AS pass_rate,
+        COALESCE(jsonb_array_length(COALESCE(sd.documents, '[]'::jsonb)), 0)::int AS documents_count,
+        COALESCE((SELECT previous.score FROM academy_rankings previous WHERE previous.academy_id = ar.academy_id AND previous.year < ar.year ORDER BY previous.year DESC LIMIT 1), 0) AS previous_score,
+        CASE
+          WHEN ar.status = 'submitted' AND ar.submitted_at < NOW() - INTERVAL '2 days' THEN 'urgent'
+          WHEN ar.status = 'needs_correction' THEN 'high'
+          WHEN COALESCE(jsonb_array_length(COALESCE(sd.documents, '[]'::jsonb)), 0) = 0 THEN 'documents'
+          ELSE 'normal'
+        END AS priority
+      FROM academy_rankings ar
+      JOIN institutes i ON i.id = ar.academy_id
+      LEFT JOIN regions rg ON rg.id = i.region_id
+      LEFT JOIN self_declarations sd ON sd.academy_id = ar.academy_id AND sd.year = ar.year
+      WHERE ar.status <> 'draft'
+      ORDER BY CASE ar.status WHEN 'submitted' THEN 1 WHEN 'under_review' THEN 2 WHEN 'needs_correction' THEN 3 ELSE 4 END, ar.updated_at DESC
+    `),
+    db.execute(sql`
+      SELECT
+        (SELECT COUNT(*)::int FROM institutes WHERE is_active = TRUE) AS total_academies,
+        COUNT(*) FILTER (WHERE status IN ('submitted','under_review','needs_correction','approved'))::int AS active_cases,
+        COUNT(*) FILTER (WHERE status = 'submitted')::int AS waiting,
+        COUNT(*) FILTER (WHERE status IN ('approved','published'))::int AS approved,
+        COUNT(*) FILTER (WHERE status = 'needs_correction')::int AS needs_correction,
+        COUNT(*) FILTER (WHERE rank = 'A+' AND status IN ('approved','published'))::int AS excellent,
+        COUNT(*) FILTER (WHERE status = 'submitted' AND submitted_at::date = CURRENT_DATE)::int AS today_cases,
+        COUNT(*) FILTER (WHERE status = 'submitted' AND submitted_at < NOW() - INTERVAL '2 days')::int AS urgent,
+        COUNT(*) FILTER (WHERE status IN ('approved','published') AND reviewed_at::date = CURRENT_DATE)::int AS today_approved,
+        COUNT(*) FILTER (WHERE status = 'needs_correction' AND reviewed_at::date = CURRENT_DATE)::int AS today_returned,
+        COUNT(*) FILTER (WHERE status IN ('approved','published') AND reviewed_at::date = CURRENT_DATE)::int AS today_reviewed,
+        COALESCE(ROUND(AVG(score) FILTER (WHERE status IN ('approved','published')), 1), 0) AS average_score,
+        COALESCE(ROUND(AVG(score) FILTER (WHERE year = ${year} AND status IN ('approved','published')), 1), 0) AS current_average,
+        COALESCE(ROUND(AVG(score) FILTER (WHERE year = ${year - 1} AND status IN ('approved','published')), 1), 0) AS previous_average
+      FROM academy_rankings
+    `),
+    db.execute(sql`
+      SELECT TO_CHAR(DATE_TRUNC('month', COALESCE(reviewed_at, updated_at)), 'YYYY-MM') AS month,
+        COUNT(*)::int AS count
+      FROM academy_rankings
+      WHERE status IN ('approved','published') AND COALESCE(reviewed_at, updated_at) >= NOW() - INTERVAL '6 months'
+      GROUP BY DATE_TRUNC('month', COALESCE(reviewed_at, updated_at))
+      ORDER BY DATE_TRUNC('month', COALESCE(reviewed_at, updated_at))
+    `),
+    db.execute(sql`
+      SELECT COALESCE(rg.name, 'بدون منطقه') AS city, COUNT(ar.id)::int AS cases,
+        COALESCE(ROUND(AVG(ar.score) FILTER (WHERE ar.status IN ('approved','published')), 1), 0) AS average
+      FROM institutes i
+      LEFT JOIN regions rg ON rg.id = i.region_id
+      LEFT JOIN academy_rankings ar ON ar.academy_id = i.id
+      WHERE i.is_active = TRUE
+      GROUP BY rg.name ORDER BY average DESC, city
+    `),
+    db.execute(sql`
+      SELECT COALESCE(rank, 'بدون رتبه') AS rank, COUNT(*)::int AS count
+      FROM academy_rankings WHERE status IN ('approved','published')
+      GROUP BY rank ORDER BY CASE rank WHEN 'A+' THEN 1 WHEN 'A' THEN 2 WHEN 'B' THEN 3 WHEN 'C' THEN 4 WHEN 'D' THEN 5 ELSE 6 END
+    `),
+  ]);
   const items = rowsOf(result);
+  const total = rowsOf(totalsResult)[0] as any || {};
+  const currentAverage = Number(total.current_average || 0);
+  const previousAverage = Number(total.previous_average || 0);
+  const growth = previousAverage > 0 ? Math.round(((currentAverage - previousAverage) / previousAverage) * 1000) / 10 : 0;
+  const incompleteDocuments = items.filter((item: any) => Number(item.documents_count || 0) === 0).length;
   const stats = {
-    waiting: items.filter((item: any) => item.status === "submitted").length,
-    reviewed: items.filter((item: any) => ["approved", "published"].includes(item.status)).length,
-    approved: items.filter((item: any) => ["approved", "published"].includes(item.status)).length,
-    needsCorrection: items.filter((item: any) => item.status === "needs_correction").length,
+    totalAcademies: Number(total.total_academies || 0),
+    activeCases: Number(total.active_cases || 0),
+    waiting: Number(total.waiting || 0),
+    reviewed: Number(total.approved || 0),
+    approved: Number(total.approved || 0),
+    needsCorrection: Number(total.needs_correction || 0),
+    excellent: Number(total.excellent || 0),
+    averageScore: Number(total.average_score || 0),
+    growth,
+    todayCases: Number(total.today_cases || 0),
+    urgent: Number(total.urgent || 0),
+    incompleteDocuments,
+    todayApproved: Number(total.today_approved || 0),
+    todayReturned: Number(total.today_returned || 0),
+    todayReviewed: Number(total.today_reviewed || 0),
   };
-  return NextResponse.json({ items, stats, year });
+  return NextResponse.json({
+    items, stats, year,
+    trend: rowsOf(trendResult),
+    cityStats: rowsOf(cityResult),
+    distribution: rowsOf(distributionResult),
+  });
 }
 
 export async function POST(request: Request) {
